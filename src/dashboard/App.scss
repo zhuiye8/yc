@@ -1,0 +1,348 @@
+.dashboard-root {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Microsoft YaHei', sans-serif;
+
+  .container {
+    width: 100vw;
+    height: 100vh;
+    min-width: 1024px;
+    background-image: url('./assets/imgs/bgimg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    color: #fff;
+
+    @media (max-width: 1600px) { padding: 14px; }
+    @media (max-width: 1400px) { padding: 12px; }
+    @media (max-width: 1200px) { padding: 10px; }
+    @media (max-width: 900px) { padding: 8px; }
+  }
+
+  .map-wrapper {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  .header {
+    height: 120px;
+    background-image: url('./assets/imgs/header.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 0;
+    .real-time-clock {
+      position: relative;
+      top: 72px;
+      left: 48px;
+      display: flex;
+      align-items: baseline;
+      gap: 20px;
+
+      .time {
+        font-family: 'Digital', 'Microsoft YaHei', sans-serif;
+        font-size: 36px;
+        font-weight: bold;
+        letter-spacing: 2px;
+        background: linear-gradient(135deg, #fff 0%, #31ebeb 50%, #2962FF 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+      }
+      .date {
+        font-size: 18px;
+        color: #afabab;
+        text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+        font-weight: normal;
+      }
+    }
+
+    @media (max-width: 1600px) {
+      height: 108px;
+      .real-time-clock { top: 68px; left: 43px;
+        .time { font-size: 32px; }
+        .date { font-size: 16px; }
+      }
+    }
+    @media (max-width: 1400px) {
+      height: 96px;
+      .real-time-clock { top: 61px; left: 38px;
+        .time { font-size: 28px; }
+        .date { font-size: 14px; }
+      }
+    }
+    @media (max-width: 1200px) {
+      height: 84px;
+      .real-time-clock { top: 54px; left: 34px;
+        .time { font-size: 24px; }
+        .date { font-size: 12px; }
+      }
+    }
+    @media (max-width: 900px) {
+      height: 72px;
+      .real-time-clock { top: 46px; left: 30px;
+        .time { font-size: 20px; }
+        .date { font-size: 10px; }
+      }
+    }
+  }
+
+  /* ===== 三栏布局 ===== */
+  .main-content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1.2fr 2fr 1.2fr;
+    gap: 8px;
+    padding: 0 16px;
+    min-height: 0;
+
+    @media (max-width: 1600px) { gap: 8px; padding: 0 14px; }
+    @media (max-width: 1400px) { gap: 8px; padding: 0 12px; }
+    @media (max-width: 1200px) { grid-template-columns: 1fr 1.5fr 1fr; gap: 8px; padding: 0 10px; }
+    @media (max-width: 900px) { grid-template-columns: 1fr; gap: 8px; padding: 0 8px; }
+  }
+
+  /* ===== 左侧栏 ===== */
+  .left-column {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+  }
+
+  .left-middle {
+    flex: 1.5;
+    background-image: url('./assets/imgs/talent.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 0;
+    margin: 8px 0;
+
+    .left-middle-title {
+      content: '';
+      width: 100%;
+      height: 40px;
+      background-size: 100% 100%;
+      background-position: center;
+      background-repeat: no-repeat;
+      pointer-events: none;
+      background-image: url('./assets/imgs/industry-title.png');
+    }
+  }
+
+  .left-bottom {
+    flex: 1.5;
+    background-image: url('./assets/imgs/talent.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 0;
+    margin: 8px 0;
+
+    .left-bottom-title {
+      content: '';
+      width: 100%;
+      height: 40px;
+      background-size: 100% 100%;
+      background-position: center;
+      background-repeat: no-repeat;
+      pointer-events: none;
+      background-image: url('./assets/imgs/talent-title.png');
+    }
+  }
+
+  /* ===== 中间栏 ===== */
+  .middle-column {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+  }
+
+  .middle-top {
+    flex: 0 0 auto;
+    height: 60px;
+    border-radius: 12px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    overflow: hidden;
+    white-space: nowrap;
+
+    @media (max-width: 1600px) { height: 54px; padding: 0 14px; gap: 16px; }
+    @media (max-width: 1400px) { height: 48px; padding: 0 12px; gap: 12px; }
+    @media (max-width: 1200px) { height: 42px; padding: 0 10px; gap: 10px; }
+    @media (max-width: 900px) { height: 36px; padding: 0 8px; gap: 8px; }
+  }
+
+  .tab-item {
+    padding: 16px 32px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #00c6ff;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.3s;
+    background-image: url('./assets/imgs/tab.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    white-space: nowrap;
+    &:hover {
+      background-image: url('./assets/imgs/tab-hover.png');
+      color: #00ffc0;
+    }
+
+    @media (max-width: 1600px) { padding: 20px 40px; font-size: 16px; }
+    @media (max-width: 1400px) { padding: 16px 32px; font-size: 14px; }
+    @media (max-width: 1200px) { padding: 12px 24px; font-size: 12px; }
+    @media (max-width: 900px) { padding: 8px 16px; font-size: 10px; }
+  }
+
+  /* 中间中部 - 地图 */
+  .middle-center {
+    flex: 1;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    min-height: 0;
+  }
+
+  .map-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* 中间底部 - 返回首页 */
+  .bottom {
+    flex: 0 0 auto;
+    background-image: url('./assets/imgs/home-bottom.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .return-button {
+    padding: 8px 16px 8px 24px;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    border-radius: 12px;
+    transition: all 0.3s;
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin-top: -12px;
+    letter-spacing: 8px;
+    text-align: center;
+  }
+
+  /* ===== 右侧栏 ===== */
+  .right-column {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+  }
+
+  .right-top {
+    flex: 2;
+    background-image: url('./assets/imgs/innovation.png');
+    background-size: cover;
+    background-position: bottom;
+    background-repeat: no-repeat;
+    min-height: 0;
+    margin: 8px 0;
+    .right-top-title {
+      content: '';
+      width: 100%;
+      height: 40px;
+      background-size: 100% 100%;
+      background-position: center;
+      background-repeat: no-repeat;
+      pointer-events: none;
+      background-image: url('./assets/imgs/innovation-title.png');
+    }
+  }
+
+  .right-middle {
+    flex: 2;
+    background-image: url('./assets/imgs/innovation.png');
+    background-size: cover;
+    background-position: bottom;
+    background-repeat: no-repeat;
+    min-height: 0;
+    margin: 8px 0;
+    .right-middle-title {
+      content: '';
+      width: 100%;
+      height: 40px;
+      background-size: 100% 100%;
+      background-position: center;
+      background-repeat: no-repeat;
+      pointer-events: none;
+      background-image: url('./assets/imgs/funds-title.png');
+    }
+  }
+
+  .status-number.strong { color: #00ff00; }
+  .status-number.weak { color: #ffaa00; }
+  .status-number.missing { color: #ff4444; }
+
+  .right-bottom {
+    flex: 2;
+    background-image: url('./assets/imgs/innovation.png');
+    background-size: cover;
+    background-position: bottom;
+    background-repeat: no-repeat;
+    min-height: 0;
+    margin: 8px 0;
+    .right-bottom-title {
+      content: '';
+      width: 100%;
+      height: 40px;
+      background-size: 100% 100%;
+      background-position: center;
+      background-repeat: no-repeat;
+      pointer-events: none;
+      background-image: url('./assets/imgs/policy-title.png');
+    }
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(0, 30, 60, 0.3);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 255, 0.3);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 255, 0.5);
+  }
+}

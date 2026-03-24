@@ -1,0 +1,415 @@
+#root {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 清除body默认样式 */
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: 'Microsoft YaHei', sans-serif;
+}
+
+.container {
+  width: 100vw;
+  height: 100vh;
+  min-width: 1024px; /* 设置最小宽度，防止布局崩溃 */
+  background-image: url('./assets/imgs/bgimg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+
+  /* 添加响应式媒体查询 */
+  @media (max-width: 1600px) {
+    /* 大屏幕适配 */
+    padding: 14px;
+  }
+
+  @media (max-width: 1400px) {
+    /* 中等屏幕适配 */
+    padding: 12px;
+  }
+
+  @media (max-width: 1200px) {
+    /* 小屏幕适配 */
+    padding: 10px;
+  }
+
+  @media (max-width: 900px) {
+    /* 超小屏幕适配 */
+    padding: 8px;
+  }
+}
+
+/* 地图容器 */
+.map-wrapper {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* 所有内容都在遮罩层上方 */
+.container > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* ===== 顶部标题栏 ===== */
+.header {
+  height: 120px;
+  background-image: url('./assets/imgs/header.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 0;
+
+  .real-time-clock{
+    position: relative;
+    top: 72px;
+    left: 48px;
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+
+    .time {
+      font-size: 28px;
+      font-weight: bold;
+      color: #00c6ff;
+      text-shadow: 0 0 10px rgba(0, 198, 255, 0.5);
+    }
+
+    .date {
+      font-size: 14px;
+      color: #fff;
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 1600px) {
+      .time {
+        font-size: 24px;
+      }
+      .date {
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 1400px) {
+      .time {
+        font-size: 20px;
+      }
+      .date {
+        font-size: 10px;
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .time {
+        font-size: 18px;
+      }
+      .date {
+        font-size: 10px;
+      }
+    }
+  }
+}
+
+/* ===== 三栏布局 ===== */
+.main-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.2fr 2fr 1.2fr; /* 三栏比例 */
+  gap: 8px;
+  padding: 0 16px;
+  min-height: 0; /* 防止flex溢出 */
+
+  /* 响应式调整 */
+  @media (max-width: 1600px) {
+    gap: 8px;
+    padding: 0 14px;
+  }
+
+  @media (max-width: 1400px) {
+    gap: 8px;
+    padding: 0 12px;
+  }
+
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr 1.5fr 1fr; /* 调整比例 */
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr; /* 改为单列布局 */
+    gap: 8px;
+    padding: 0 8px;
+  }
+}
+
+/* ===== 左侧栏 ===== */
+.left-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+/* 左侧 - 产业 */
+.left-middle {
+  flex: 1.5;
+  background-image: url('./assets/imgs/talent.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 0;
+  margin: 8px 0;
+
+  .left-middle-title {
+    content: '';
+    width: 100%;
+    height: 40px;
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    background-image: url('./assets/imgs/industry-title.png');
+  }
+}
+
+/* 左侧第三块 - 人才总览 */
+.left-bottom {
+  flex: 1.5;
+  background-image: url('./assets/imgs/talent.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 0;
+  margin: 8px 0;
+
+  .left-bottom-title {
+    content: '';
+    width: 100%;
+    height: 40px;
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    background-image: url('./assets/imgs/talent-title.png');
+  }
+}
+
+/* ===== 中间栏 ===== */
+.middle-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+/* 中间顶部 - Tabs */
+.middle-top {
+  flex: 0 0 auto;
+  height: 60px;
+  border-radius: 12px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  overflow: hidden; /* 隐藏滚动条 */
+  white-space: nowrap; /* 防止换行 */
+
+  /* 响应式调整 */
+  @media (max-width: 1600px) {
+    height: 54px;
+    padding: 0 14px;
+    gap: 16px;
+  }
+
+  @media (max-width: 1400px) {
+    height: 48px;
+    padding: 0 12px;
+    gap: 12px;
+  }
+
+  @media (max-width: 1200px) {
+    height: 42px;
+    padding: 0 10px;
+    gap: 10px;
+  }
+
+  @media (max-width: 900px) {
+    height: 36px;
+    padding: 0 8px;
+    gap: 8px;
+  }
+}
+
+.tab-item {
+  padding: 16px 32px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #00c6ff;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.3s;
+  background-image: url('./assets/imgs/tab.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  white-space: nowrap; /* 防止文字换行 */
+  &:hover {
+    background-image: url('./assets/imgs/tab-hover.png');
+    color: #00ffc0
+  }
+
+  /* 响应式调整 */
+  @media (max-width: 1600px) {
+    padding: 20px 40px;
+    font-size: 16px;
+  }
+
+  @media (max-width: 1400px) {
+    padding: 16px 32px;
+    font-size: 14px;
+  }
+
+  @media (max-width: 1200px) {
+    padding: 12px 24px;
+    font-size: 12px;
+  }
+
+  @media (max-width: 900px) {
+    padding: 8px 16px;
+    font-size: 10px;
+  }
+}
+
+
+/* 中间中部 - 地图 */
+.middle-center {
+  flex: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+
+  /* 响应式调整 */
+  @media (max-width: 1600px) {
+    flex: 1;
+  }
+
+  @media (max-width: 1400px) {
+    flex: 1;
+  }
+
+  @media (max-width: 1200px) {
+    flex: 1;
+  }
+
+  @media (max-width: 900px) {
+    flex: 1;
+  }
+}
+
+.map-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 中间底部 - 返回首页 */
+.bottom {
+  flex: 0 0 auto;
+  background-image: url('./assets/imgs/return.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.return-button {
+  padding: 8px 24px;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  border-radius: 12px;
+  transition: all 0.3s;
+  // outline: none
+    outline: none !important;
+  border: none !important;
+  box-shadow: none !important;  /* 移除可能的阴影 */
+}
+
+/* ===== 右侧栏 ===== */
+.right-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+/* 右侧第一块 - 创新资源 */
+.right-top {
+  flex: 2;
+  background-image: url('./assets/imgs/innovation.png');
+  background-size: cover;
+  background-position: bottom;
+  background-repeat: no-repeat;
+  min-height: 0;
+  margin: 8px 0;
+  .right-top-title {
+    content: '';
+    width: 100%;
+    height: 40px;
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    background-image: url('./assets/imgs/innovation-title.png');
+  }
+}
+
+/* 右侧第二块 - 资金概览 */
+.right-middle {
+  flex: 2;
+  background-image: url('./assets/imgs/innovation.png');
+  background-size: cover;
+  background-position: bottom;
+  background-repeat: no-repeat;
+  min-height: 0;
+  margin: 8px 0;
+  .right-middle-title {
+    content: '';
+    width: 100%;
+    height: 40px;
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    background-image: url('./assets/imgs/funds-title.png');
+  }
+}
+
+
+.status-number.strong { color: #00ff00; }
+.status-number.weak { color: #ffaa00; }

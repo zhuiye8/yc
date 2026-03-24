@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(mkdir -p src/dashboard)",
+      "Bash(cp -r dashboard/src/components dashboard/src/pages dashboard/src/assets dashboard/src/App.scss dashboard/src/App.scss.new src/dashboard/)",
+      "Bash(npx tsc:*)",
+      "Bash(timeout 15 npm run dev)",
+      "Bash(npm run:*)",
+      "Bash(node -e \"const pkg = require\\(''@mui/material/package.json''\\); console.log\\(pkg.version\\)\")",
+      "Bash(npx vite:*)",
+      "Bash(ls:*)",
+      "Bash(pandoc:*)",
+      "Bash(npx tsx:*)",
+      "Bash(node -e \":*)",
+      "Bash(npx eslint:*)"
+    ]
+  }
+}
