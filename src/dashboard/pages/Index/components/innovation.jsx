@@ -159,10 +159,6 @@ const styles = {
     },
     '& .chart': {
         flex: '1 1 0',
-        minHeight: 0,
-        width: '100%',
-        position: 'relative',
-        overflow: 'hidden',
         flexGrow: 1,
         flexShrink: 1,
         minHeight: 0,
@@ -172,9 +168,6 @@ const styles = {
         overflow: 'hidden',
         '& > div': {
             width: '100%',
-            height: '100% !important',
-            minHeight: '0 !important',
-            width: '100%', 
             height: '100%',
             minHeight: 0,
             position: 'absolute',

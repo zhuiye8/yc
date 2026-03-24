@@ -51,7 +51,6 @@ function Policy({className}) {
 }
 
 const styles = {
-    overflow: 'hidden',
     height: 'calc(100% - 40px)',
     width: '100%',
     overflow: 'hidden',
