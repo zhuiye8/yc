@@ -17,15 +17,16 @@ import {
   StarOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
 import { fundingProducts, investmentInstitutions, fundTypeStats } from '../mock/data';
 
 const { Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
 
+const FINANCIAL_URL = 'https://www.threegorges-financial.com/';
+const openFinancial = () => window.open(FINANCIAL_URL, '_blank');
+
 const Funding: React.FC = () => {
-  const { message, modal } = App.useApp();
-  const navigate = useNavigate();
+  App.useApp(); // keep context alive
   const [searchValue, setSearchValue] = useState('');
   const hotTags = ['科技贷', '创业担保', '股权融资', '贴息政策', 'VC机构', '产业基金', '天使投资', '引导基金'];
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -40,7 +41,7 @@ const Funding: React.FC = () => {
       dataIndex: 'name',
       key: 'name',
       render: (text: string, record: typeof fundingProducts[0]) => (
-        <a onClick={() => { setSelectedItem(record); setDrawerType('product'); setDrawerVisible(true); }}>{text}</a>
+        <a onClick={openFinancial}>{text}</a>
       ),
     },
     {
@@ -61,7 +62,7 @@ const Funding: React.FC = () => {
       key: 'action',
       render: (_: unknown, record: typeof fundingProducts[0]) => (
         <Space>
-          <Button type="link" size="small" icon={<PlusOutlined />} onClick={() => message.success(`已将「${record.name}」加入对接清单`)}>加入对接清单</Button>
+          <Button type="link" size="small" icon={<PlusOutlined />} onClick={openFinancial}>加入对接清单</Button>
         </Space>
       ),
     },
@@ -83,7 +84,7 @@ const Funding: React.FC = () => {
       dataIndex: 'name',
       key: 'name',
       render: (text: string, record: typeof investmentInstitutions[0]) => (
-        <a onClick={() => { setSelectedItem(record); setDrawerType('institution'); setDrawerVisible(true); }}>{text}</a>
+        <a onClick={openFinancial}>{text}</a>
       ),
     },
     {
@@ -106,7 +107,7 @@ const Funding: React.FC = () => {
       key: 'action',
       render: (_: unknown, record: typeof investmentInstitutions[0]) => (
         <Space>
-          <Button type="link" size="small" icon={<PlusOutlined />} onClick={() => message.success(`已将「${record.name}」加入对接清单`)}>加入对接清单</Button>
+          <Button type="link" size="small" icon={<PlusOutlined />} onClick={openFinancial}>加入对接清单</Button>
         </Space>
       ),
     },
@@ -134,14 +135,14 @@ const Funding: React.FC = () => {
               size="large"
               value={searchValue}
               onChange={e => setSearchValue(e.target.value)}
-              onSearch={v => { if (v.trim()) message.info(`正在搜索"${v}"...`); }}
+              onSearch={() => openFinancial()}
             />
           </div>
           <div style={{ marginTop: 12 }}>
             <Text type="secondary" style={{ marginRight: 8 }}>热门搜索：</Text>
             {hotTags.map(tag => (
               <Tag key={tag} style={{ cursor: 'pointer', marginBottom: 8, padding: '4px 14px' }} color="blue"
-                onClick={() => { setSearchValue(tag); message.info(`正在搜索"${tag}"...`); }}><span style={{fontSize:'16px'}}>{tag}</span></Tag>
+                onClick={openFinancial}><span style={{fontSize:'16px'}}>{tag}</span></Tag>
             ))}
           </div>
         </div>
@@ -188,7 +189,7 @@ const Funding: React.FC = () => {
                   size="small"
                   className="funding-fund-card"
                   bodyStyle={{ padding: 12, cursor: 'pointer' }}
-                  onClick={() => setFundTypeFilter(item.type === fundTypeFilter ? 'all' : item.type)}
+                  onClick={openFinancial}
                   style={{
                     borderColor: item.type === fundTypeFilter ? fundImages.color : undefined,
                     borderWidth: item.type === fundTypeFilter ? 2 : 1,
@@ -276,7 +277,7 @@ const Funding: React.FC = () => {
           {/* 我的对接清单 */}
           <Card
             title={<span style={{ fontSize: 17, fontWeight: 600 }}><StarOutlined style={{ color: '#faad14', fontSize: 18, marginRight: 6 }} />我的对接清单</span>}
-            extra={<Button type="link" size="small">管理 <RightOutlined /></Button>}
+            extra={<Button type="link" size="small" onClick={openFinancial}>管理 <RightOutlined /></Button>}
             bodyStyle={{ padding: 12 }}
             style={{ ...glassCardStyle }}
           >
@@ -327,23 +328,7 @@ const Funding: React.FC = () => {
                 </List.Item>
               )}
             />
-            <Button block style={{ marginTop: 8 }} onClick={() => {
-              modal.confirm({
-                title: '添加跟进记录',
-                content: (
-                  <div style={{ marginTop: 16 }}>
-                    <Input.TextArea
-                      placeholder="请输入跟进内容，例如：与XX机构进行了初步沟通..."
-                      rows={4}
-                      id="follow-up-content"
-                    />
-                  </div>
-                ),
-                onOk: () => {
-                  message.success('跟进记录添加成功');
-                },
-              });
-            }}>添加记录</Button>
+            <Button block style={{ marginTop: 8 }} onClick={openFinancial}>添加记录</Button>
           </Card>
 
           {/* 输出 - 美化为图片卡片 */}
@@ -355,21 +340,7 @@ const Funding: React.FC = () => {
               ].map((item, idx) => (
                 <Col span={12} key={idx} style={{ display: 'flex' }}>
                   <div
-                    onClick={() => {
-                      if (item.title === '导出对接清单') {
-                        message.loading('正在导出对接清单...', 1);
-                        setTimeout(() => {
-                          message.success('对接清单导出成功');
-                          navigate('/list');
-                        }, 1000);
-                      } else {
-                        message.loading(`正在生成${item.title}...`, 1.5);
-                        setTimeout(() => {
-                          message.success(`${item.title}生成完成`);
-                          navigate('/reports');
-                        }, 1500);
-                      }
-                    }}
+                    onClick={openFinancial}
                     style={{
                       position: 'relative',
                       flex: 1,
@@ -451,10 +422,7 @@ const Funding: React.FC = () => {
         open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => {
-            message.success(`已将「${selectedItem ? ('name' in selectedItem ? selectedItem.name : '') : ''}」加入对接清单`);
-            setDrawerVisible(false);
-          }}>加入对接清单</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openFinancial}>加入对接清单</Button>
         }
       >
         {selectedItem && drawerType === 'product' && (
