@@ -8,17 +8,12 @@ import tabImg from '../../../assets/imgs/tooltip.png'
 import { Grid2 as Grid } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
+import { industryIndicator } from '../../../data/realData';
+
 function Indicator({className}) {
 
-    const items1 = [
-        {title: '缺链数', value: 4},
-        {title: '强链数', value: 10},
-    ]
-    const items2 = [
-        {title: '产业链数', value: 6},
-        {title: '企业总数', value: 20944},
-        {title: '人才总数', value: 419039},
-    ]
+    const items1 = industryIndicator.row1
+    const items2 = industryIndicator.row2
 
 
     return <Grid container className={className}>

@@ -9,15 +9,13 @@ import { styled } from '@mui/material/styles';
 import React, { useRef, useEffect } from 'react';
 import * as echarts from 'echarts';
 
+import { gapCountData } from '../../../data/realData';
+
 function GapCount({className}) {
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
 
-    // 人才缺口数据 - 14个产业链
-    const gapData = {
-        categories: ['湿电子化学品', '新能源电池', '化学制药', '合成生物', '船舶制造', '人工智能'],
-        values: [1800, 1600, 1400, 1200, 1100, 900]
-    };
+    const gapData = gapCountData;
 
     useEffect(() => {
         if (!chartRef.current) return;

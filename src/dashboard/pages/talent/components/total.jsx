@@ -9,17 +9,13 @@ import { styled } from '@mui/material/styles';
 import React, { useRef, useEffect } from 'react';
 import * as echarts from 'echarts';
 
+import { talentTotalData } from '../../../data/realData';
+
 function Total({className}) {
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
 
-    const innovationData = {
-        items: [
-            { name: '人才总数', value: 517482 },
-            { name: '重点人才总数', value: 27482 },
-            { name: '活跃人才总数', value: 8482 },
-        ]
-    };
+    const innovationData = talentTotalData;
 
     useEffect(() => {
         if (!chartRef.current) return;

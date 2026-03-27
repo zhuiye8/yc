@@ -33,8 +33,19 @@ import {
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import { useNavigate } from 'react-router-dom';
-import { enterprises, industryGraphDataMap, industryOverviewDataMap, enterpriseList, enterpriseNews, keyTechnologies, coreTalents, patentLayout, cooperativeOrgs, industryChainColorConfig } from '../mock/data';
+import { enterprises, industryGraphDataMap, industryOverviewDataMap, enterpriseList as mockEnterpriseList, enterpriseNews, keyTechnologies, coreTalents, patentLayout, cooperativeOrgs, industryChainColorConfig } from '../mock/data';
 import type { IndustryGraphNode, IndustryGraphSet } from '../mock/data';
+import { aggregations } from '../mock/localAggregations';
+import { findExpertByKey, getYearCountByIndex, getCkeyAboutRaw, getOrgOutput, getOrgTechKeywords, findOrgByName } from '../services/wanfangService';
+
+interface ChainTalentItem {
+  id: string; name: string; title: string; field: string; institution: string;
+}
+
+interface ExcelEnterprise {
+  id: string; name: string; type: string; uscc: string;
+  region: string; address: string; industryTags: string; contactPerson: string;
+}
 
 const { Text, Paragraph } = Typography;
 
@@ -201,9 +212,132 @@ const Industry: React.FC = () => {
   const [selectedProvince, setSelectedProvince] = useState<string | null>('湖北省');
   const innovationMapRef = useRef<ReactECharts>(null);
   const [enterpriseDetailVisible, setEnterpriseDetailVisible] = useState(false);
-  const [selectedEnterpriseDetail, setSelectedEnterpriseDetail] = useState<typeof enterpriseList[0] | null>(null);
+  const [selectedEnterpriseDetail, setSelectedEnterpriseDetail] = useState<typeof mockEnterpriseList[0] | null>(null);
   const [enterpriseDetailTab, setEnterpriseDetailTab] = useState('basic');
   const [innovationFlash, setInnovationFlash] = useState(false);
+
+  // 真实企业数据（从 Excel JSON 加载）
+  const [realEnterprises, setRealEnterprises] = useState<ExcelEnterprise[]>([]);
+  const [enterpriseLoading, setEnterpriseLoading] = useState(false);
+
+  useEffect(() => {
+    setEnterpriseLoading(true);
+    fetch('/data/enterprises.json')
+      .then(res => res.json())
+      .then((data: ExcelEnterprise[]) => setRealEnterprises(data))
+      .catch(err => console.warn('Failed to load enterprises:', err))
+      .finally(() => setEnterpriseLoading(false));
+  }, []);
+
+  // 将 Excel 企业数据适配为 enterpriseList 格式（供表格展示）
+  const enterpriseList = useMemo(() => {
+    if (realEnterprises.length === 0) return mockEnterpriseList;
+    return realEnterprises.map(e => ({
+      id: e.id,
+      name: e.name,
+      legalPerson: e.contactPerson || '—',
+      status: '存续',
+      industry: e.industryTags ? e.industryTags.split(/[,，]/)[0] : '—',
+      region: e.region || '—',
+      industryChain: e.industryTags ? e.industryTags.split(/[,，]/)[0] : '—',
+      type: e.type || '企业',
+      logo: '',
+      introduction: `${e.name}，位于${e.address || e.region || '宜昌'}。`,
+      foundDate: '',
+      registeredCapital: '—',
+      address: e.address || '—',
+    }));
+  }, [realEnterprises]);
+
+  // 链上人才（从万方 API 加载）
+  const [chainTalents, setChainTalents] = useState<ChainTalentItem[]>(
+    coreTalents.map(t => ({ id: t.id, name: t.name, title: t.title, field: t.field, institution: t.institution }))
+  );
+
+  // 产业链关键词到搜索词的映射
+  const chainKeywordMap: Record<string, string> = {
+    'ai': '人工智能', 'green-chem': '磷化工', 'bio-pharma': '生物医药',
+    'new-materials': '新材料', 'equipment': '船舶制造', 'new-energy': '新能源电池',
+  };
+
+  useEffect(() => {
+    const keyword = chainKeywordMap[selectedChainKey] || '人工智能';
+    findExpertByKey(keyword, 0, 8, undefined, '湖北')
+      .then(experts => {
+        if (experts.length > 0) {
+          setChainTalents(experts.map((e, i) => ({
+            id: e.ID || `api-ct${i}`,
+            name: e.CNAME,
+            title: Array.isArray(e.TITLE) ? (e.TITLE as unknown as string[])[0] : (e.TITLE || ''),
+            field: (e.DIRECTION ?? '').split(/[，,、]/)[0] || '',
+            institution: e.AORG || '',
+          })));
+        }
+      })
+      .catch(() => {});
+  }, [selectedChainKey]);
+
+  // 趋势折线图（从API加载年度聚合数据）
+  const [trendData, setTrendData] = useState<{ years: string[]; patent: number[]; standard: number[]; project: number[]; achievement: number[] }>({
+    years: ['2021', '2022', '2023', '2024', '2025'],
+    patent: [820, 932, 901, 1234, 1456],
+    standard: [23, 34, 45, 56, 78],
+    project: [56, 78, 89, 112, 145],
+    achievement: [34, 45, 67, 89, 123],
+  });
+
+  useEffect(() => {
+    const must = 'PROVINCE:湖北';
+    Promise.all([
+      getYearCountByIndex({ indexName: '10004', must, yearCount: 6 }),
+      getYearCountByIndex({ indexName: '10005', yearCount: 6 }),
+      getYearCountByIndex({ indexName: '10015', must, yearCount: 6 }),
+      getYearCountByIndex({ indexName: '10006', must, yearCount: 6 }),
+    ]).then(([patent, standard, project, achievement]) => {
+      const allYears = [...new Set([...patent, ...standard, ...project, ...achievement].map(y => y.year))]
+        .filter(y => Number(y) >= 2020).sort().slice(-5);
+      if (allYears.length === 0) return;
+      const getC = (s: typeof patent, y: string) => s.find(x => x.year === y)?.count ?? 0;
+      setTrendData({
+        years: allYears,
+        patent: allYears.map(y => getC(patent, y)),
+        standard: allYears.map(y => getC(standard, y)),
+        project: allYears.map(y => getC(project, y)),
+        achievement: allYears.map(y => getC(achievement, y)),
+      });
+    }).catch(() => {});
+  }, []);
+
+  // 关键技术词（从API加载）
+  const [apiKeyTechnologies, setApiKeyTechnologies] = useState<Array<{ name: string; value: number }>>([]);
+
+  useEffect(() => {
+    const keyword = chainKeywordMap[selectedChainKey] || '人工智能';
+    getCkeyAboutRaw(keyword).then(res => {
+      if (res.keys.length > 0) {
+        setApiKeyTechnologies(res.keys.slice(0, 20).map((k, i) => ({ name: k, value: res.values[i] ?? 0 })));
+      }
+    }).catch(() => {});
+  }, [selectedChainKey]);
+
+  // 竞合机构（从链上人才第一人的合作机构获取）
+  const [apiCooperativeOrgs, setApiCooperativeOrgs] = useState<typeof cooperativeOrgs>([]);
+
+  useEffect(() => {
+    if (chainTalents.length > 0 && chainTalents[0].id && chainTalents[0].id.startsWith('L')) {
+      import('../services/wanfangService').then(({ getCooperationOrgs }) => {
+        getCooperationOrgs(chainTalents[0].id).then(orgs => {
+          setApiCooperativeOrgs(orgs.slice(0, 6).map((o, i) => ({
+            id: `api-co${i}`, name: o.name, type: '机构', cooperation: o.count, avatar: '',
+          })));
+        }).catch(() => {});
+      });
+    }
+  }, [chainTalents]);
+
+  // 企业详情Drawer - API增强数据
+  const [drawerOrgOutput, setDrawerOrgOutput] = useState<{ patents: number; papers: number; iar: number } | null>(null);
+  const [drawerOrgTech, setDrawerOrgTech] = useState<string[]>([]);
 
   // 三棵树聚焦交互
   const [focusedTree, setFocusedTree] = useState<StreamKey | null>(null);
@@ -536,13 +670,13 @@ const Industry: React.FC = () => {
   const getTrendOption = () => ({
     tooltip: { trigger: 'axis' },
     legend: { data: ['专利', '标准', '项目', '成果'], textStyle: { fontSize: 14 } },
-    xAxis: { type: 'category', data: ['2021', '2022', '2023', '2024', '2025'], axisLabel: { fontSize: 13 } },
+    xAxis: { type: 'category', data: trendData.years, axisLabel: { fontSize: 13 } },
     yAxis: { type: 'value', axisLabel: { fontSize: 13 } },
     series: [
-      { name: '专利', type: 'line', smooth: true, data: [820, 932, 901, 1234, 1456] },
-      { name: '标准', type: 'line', smooth: true, data: [23, 34, 45, 56, 78] },
-      { name: '项目', type: 'line', smooth: true, data: [56, 78, 89, 112, 145] },
-      { name: '成果', type: 'line', smooth: true, data: [34, 45, 67, 89, 123] },
+      { name: '专利', type: 'line', smooth: true, data: trendData.patent },
+      { name: '标准', type: 'line', smooth: true, data: trendData.standard },
+      { name: '项目', type: 'line', smooth: true, data: trendData.project },
+      { name: '成果', type: 'line', smooth: true, data: trendData.achievement },
     ],
   });
 
@@ -895,7 +1029,7 @@ const Industry: React.FC = () => {
                 style={{ flex: 1, ...glassCardStyle }}
               >
                 <Table
-                  dataSource={coreTalents.slice(0, 5)}
+                  dataSource={chainTalents.slice(0, 5)}
                   rowKey="id"
                   pagination={false}
                   size="small"
@@ -905,9 +1039,9 @@ const Industry: React.FC = () => {
                       render: (text: string) => <Text style={{ color: '#333' }}>{text}</Text>
                     },
                     { title: '职称', dataIndex: 'title', key: 'title', width: 100,
-                      render: (text: string) => <Tag color="purple">{text}</Tag>
+                      render: (text: string) => <Tag color="purple">{text || '—'}</Tag>
                     },
-                    { title: '领域', dataIndex: 'field', key: 'field', ellipsis: true },
+                    { title: '单位', dataIndex: 'institution', key: 'institution', ellipsis: true },
                   ]}
                 />
                 <div style={{ padding: '12px 16px', textAlign: 'center', borderTop: '1px solid #f0f0f0' }}>
@@ -1012,8 +1146,8 @@ const Industry: React.FC = () => {
               { title: '强链', value: currentOverview.strong, color: statusColorMap.strong, icon: <CheckCircleOutlined /> },
               { title: '弱链', value: currentOverview.weak, color: statusColorMap.weak, icon: <ExclamationCircleOutlined /> },
               { title: '缺链', value: currentOverview.missing, color: statusColorMap.missing, icon: <CloseCircleOutlined /> },
-              { title: '企业总数', value: currentOverview.enterprises, color: '#2468F2', suffix: '家', icon: <BankOutlined /> },
-              { title: '人才总数', value: currentOverview.talents, color: '#722ed1', suffix: '人', icon: <TeamOutlined /> },
+              { title: '企业总数', value: aggregations.totalEnterprises || currentOverview.enterprises, color: '#2468F2', suffix: '家', icon: <BankOutlined /> },
+              { title: '人才总数', value: aggregations.totalSkillTalents || currentOverview.talents, color: '#722ed1', suffix: '人', icon: <TeamOutlined /> },
             ].map((item, idx) => (
               <Col xs={12} sm={8} md={4} key={idx}>
                 <Card size="small" bodyStyle={{ textAlign: 'center', padding: '16px 8px' }} style={{ ...glassCardStyle }}>
@@ -1188,9 +1322,26 @@ const Industry: React.FC = () => {
             <Table
               dataSource={enterpriseList}
               rowKey="id"
-              pagination={{ pageSize: 8 }}
+              loading={enterpriseLoading}
+              pagination={{ pageSize: 20, showTotal: (total) => `共 ${total} 家`, showSizeChanger: true, pageSizeOptions: ['20', '50', '100'] }}
               onRow={(record) => ({
-                onClick: () => { setSelectedEnterpriseDetail(record); setEnterpriseDetailVisible(true); },
+                onClick: () => {
+                  setSelectedEnterpriseDetail(record);
+                  setEnterpriseDetailVisible(true);
+                  setDrawerOrgOutput(null);
+                  setDrawerOrgTech([]);
+                  // 尝试从万方API加载企业科技数据
+                  findOrgByName(record.name).then(org => {
+                    if (!org) return;
+                    Promise.all([
+                      getOrgOutput(org.id),
+                      getOrgTechKeywords(org.id, org.name),
+                    ]).then(([output, tech]) => {
+                      if (output) setDrawerOrgOutput({ patents: output.patentInvent + output.patentUtility, papers: output.thesisTotal + output.meetingTotal, iar: output.iarTotal });
+                      if (tech.length > 0) setDrawerOrgTech(tech.slice(0, 8).map(t => t.name));
+                    }).catch(() => {});
+                  }).catch(() => {});
+                },
                 style: { cursor: 'pointer' },
               })}
               columns={[
@@ -1244,7 +1395,7 @@ const Industry: React.FC = () => {
             <Col xs={24} md={8}>
               <Card title={<><BulbOutlined style={{ marginRight: 6, color: '#52c41a' }} />关键技术</>} size="small" style={{ height: 420, ...glassCardStyle }} bodyStyle={{ padding: 16 }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-                  {keyTechnologies.map((tech, idx) => (
+                  {(apiKeyTechnologies.length > 0 ? apiKeyTechnologies : keyTechnologies).map((tech, idx) => (
                     <Tag key={idx} color={['blue', 'cyan', 'geekblue', 'purple'][idx % 4]}
                       style={{ fontSize: Math.max(12, Math.min(18, tech.value / 6)), padding: '4px 10px', margin: 2 }}>
                       {tech.name}
@@ -1258,7 +1409,7 @@ const Industry: React.FC = () => {
             <Col xs={24} md={8}>
               <Card title={<><TeamOutlined style={{ marginRight: 6, color: '#722ed1' }} />核心人才</>} size="small" style={{ height: 420, ...glassCardStyle }} bodyStyle={{ padding: 0, overflow: 'auto', maxHeight: 360 }}>
                 <List
-                  dataSource={coreTalents}
+                  dataSource={chainTalents.length > 0 ? chainTalents : coreTalents}
                   renderItem={(item) => (
                     <List.Item style={{ padding: '12px 16px' }}>
                       <List.Item.Meta
@@ -1303,7 +1454,7 @@ const Industry: React.FC = () => {
             <Col xs={24} md={12} style={{ display: 'flex' }}>
               <Card title={<><ApartmentOutlined style={{ marginRight: 6, color: '#13c2c2' }} />竞合机构</>} size="small" bodyStyle={{ padding: 0 }} style={{ flex: 1, ...glassCardStyle }}>
                 <List
-                  dataSource={cooperativeOrgs}
+                  dataSource={apiCooperativeOrgs.length > 0 ? apiCooperativeOrgs : cooperativeOrgs}
                   renderItem={(item) => (
                     <List.Item style={{ padding: '12px 16px' }}>
                       <List.Item.Meta
@@ -1462,13 +1613,13 @@ const Industry: React.FC = () => {
                 children: (
                   <div>
                     <Row gutter={16} style={{ marginBottom: 16 }}>
-                      <Col span={8}><Card size="small"><Statistic title="专利总数" value={189} suffix="件" valueStyle={{ color: '#2468F2' }} /></Card></Col>
-                      <Col span={8}><Card size="small"><Statistic title="软著数量" value={56} suffix="件" valueStyle={{ color: '#52c41a' }} /></Card></Col>
-                      <Col span={8}><Card size="small"><Statistic title="研发投入" value={3.2} suffix="亿" valueStyle={{ color: '#722ed1' }} /></Card></Col>
+                      <Col span={8}><Card size="small"><Statistic title="专利总数" value={drawerOrgOutput?.patents ?? 189} suffix="件" valueStyle={{ color: '#2468F2' }} /></Card></Col>
+                      <Col span={8}><Card size="small"><Statistic title="论文数量" value={drawerOrgOutput?.papers ?? 56} suffix="篇" valueStyle={{ color: '#52c41a' }} /></Card></Col>
+                      <Col span={8}><Card size="small"><Statistic title="产学研合作" value={drawerOrgOutput?.iar ?? 32} suffix="项" valueStyle={{ color: '#722ed1' }} /></Card></Col>
                     </Row>
                     <Card title="核心技术" size="small">
                       <Space wrap>
-                        {['精细磷化工工艺', '绿色合成技术', '废水循环利用', '智能化生产系统', '节能降碳技术'].map(t => (
+                        {(drawerOrgTech.length > 0 ? drawerOrgTech : ['精细磷化工工艺', '绿色合成技术', '废水循环利用', '智能化生产系统', '节能降碳技术']).map(t => (
                           <Tag key={t} color="blue">{t}</Tag>
                         ))}
                       </Space>

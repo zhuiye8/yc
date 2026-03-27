@@ -1,31 +1,44 @@
 /**
- * @input MUI Grid
+ * @input MUI Grid, Wanfang API (findExpert-v2)
  * @output { ChainTalent } 产业链人才列表组件
- * @position 大屏产业页子组件，展示人才名 + 职称 + 领域列表
+ * @position 大屏产业页子组件，展示人才名 + 职称 + 领域列表（从万方接口实时加载）
  * @doc-sync Update this header and folder INDEX.md when this file changes.
  */
 import { Grid2 as Grid } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { wfGet } from '../../../../services/apiClient';
 
-function ChainTalent({className}) {
-    // 人才数据
+const FALLBACK_ITEMS = [
+    { name: '贡长生', title: '教授', field: '武汉工程大学' },
+    { name: '张红霞', title: '副教授', field: '武汉工程大学' },
+    { name: '蒋子铎', title: '教授', field: '四川大学' },
+    { name: '马尚', title: '副教授', field: '武汉工程大学' },
+    { name: '杨世忠', title: '高工', field: '中国石油' },
+    { name: '刘胜初', title: '研究员', field: '武汉海昕药物' },
+];
+
+function ChainTalent({className, industryKey = '磷化工'}) {
+    const [items, setItems] = useState(FALLBACK_ITEMS);
+
+    useEffect(() => {
+        wfGet('findExpert-v2', { key: industryKey, from: 0, size: 12, prov: '湖北' })
+            .then(res => {
+                const experts = res?.data?.expertsRecommend || [];
+                if (experts.length > 0) {
+                    setItems(experts.map(e => ({
+                        name: e.CNAME || '',
+                        title: (e.TITLE && e.TITLE[0]) || e.GENDER || '',
+                        field: e.AORG || '',
+                    })));
+                }
+            })
+            .catch(err => console.warn('ChainTalent API failed:', err));
+    }, [industryKey]);
+
     const talentData = {
-        headers: ['人才名', '职称', '领域'],
-        items: [
-            { name: '王某某', title: '部门经理', field: '深圳市大数据智慧创新部门' },
-            { name: '王某某', title: '部门经理', field: '深圳市大数据智慧创新部门' },
-            { name: '王某某', title: '部门经理', field: '深圳市大数据智慧创新部门' },
-            { name: '王某某', title: '部门经理', field: '深圳市大数据智慧创新部门' },
-            { name: '王某某', title: '部门经理', field: '深圳市大数据智慧创新部门' },
-            { name: '王某某', title: '部门经理', field: '深圳市大数据智慧创新部门' },
-            { name: '王某某', title: '部门经理', field: '深圳市大数据智慧创新部门' },
-            { name: '王某某', title: '部门经理', field: '深圳市大数据智慧创新部门' },
-            { name: '王某某', title: '部门经理', field: '深圳市大数据智慧创新部门' },
-            { name: '王某某', title: '部门经理', field: '深圳市大数据智慧创新部门' },
-            { name: '王某某', title: '部门经理', field: '深圳市大数据智慧创新部门' },
-            { name: '王某某', title: '部门经理', field: '深圳市大数据智慧创新部门' }
-        ]
+        headers: ['人才名', '职称', '单位'],
+        items,
     };
 
     return (
@@ -58,7 +71,7 @@ const styles = {
     flexDirection: 'column',
     borderRadius: '12px',
     border: '1px solid rgba(255,255,255,0.1)',
-    
+
     '@media screen and (max-width: 1920px)': {
         fontSize: '16px',
     },
@@ -68,8 +81,7 @@ const styles = {
     '@media screen and (max-width: 1440px)': {
         fontSize: '12px',
     },
-    
-    // 表格容器
+
     '& .table-container': {
         flex: 1,
         display: 'flex',
@@ -77,15 +89,14 @@ const styles = {
         overflow: 'hidden',
         padding: '4px',
     },
-    
-    // 表头
+
     '& .table-header': {
         display: 'flex',
         padding: '10px 0',
         borderBottom: '1px solid rgba(255,255,255,0.1)',
         marginBottom: '4px',
         flexShrink: 0,
-        
+
         '& .header-cell': {
             fontSize: '0.9rem',
             fontWeight: 500,
@@ -93,7 +104,7 @@ const styles = {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            
+
             '&:first-child': {
                 width: '15%',
                 minWidth: '80px',
@@ -107,14 +118,13 @@ const styles = {
             },
         },
     },
-    
-    // 表格体 - 可滚动
+
     '& .table-body': {
         flex: 1,
         overflowY: 'auto',
         scrollbarWidth: 'thin',
         scrollbarColor: 'rgba(255,255,255,0.2) rgba(255,255,255,0.05)',
-        
+
         '&::-webkit-scrollbar': {
             width: '4px',
         },
@@ -130,18 +140,17 @@ const styles = {
             },
         },
     },
-    
-    // 表格行
+
     '& .table-row': {
         display: 'flex',
         padding: '4px 0',
         borderBottom: '1px solid rgba(255,255,255,0.03)',
         transition: 'background-color 0.2s ease',
-        
+
         '&:hover': {
             backgroundColor: 'rgba(255,255,255,0.02)',
         },
-        
+
         '& .cell': {
             fontSize: '0.95rem',
             color: '#FFFFFF',
@@ -152,19 +161,19 @@ const styles = {
             justifyContent: 'center',
             alignItems: 'center',
         },
-        
+
         '& .name-cell': {
             width: '15%',
             minWidth: '80px',
             fontWeight: 500,
             color: '#FFD700',
         },
-        
+
         '& .title-cell': {
             width: '20%',
             minWidth: '100px',
         },
-        
+
         '& .field-cell': {
             flex: 1,
             color: 'rgba(255,255,255,0.8)',

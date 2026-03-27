@@ -10,9 +10,11 @@ import { styled } from '@mui/material/styles';
 import React, { useRef, useEffect } from 'react';
 import * as echarts from 'echarts';
 
+import { industryData } from '../../../data/realData';
+
 function Industry({className}) {
-    const sumTitle = '链上企业总数'
-    const sumValue = '154570'
+    const sumTitle = industryData.sumTitle
+    const sumValue = industryData.sumValue
     const chartRef = useRef(null);
 
 

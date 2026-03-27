@@ -9,21 +9,13 @@ import { styled } from '@mui/material/styles';
 import React, { useRef, useEffect } from 'react';
 import * as echarts from 'echarts';
 
+import { valueChainData } from '../../../data/realData';
+
 function ValueChain({className}) {
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
 
-    // 产业链数据 - 8个产业链，每个5713人
-    const industryData = [
-        { name: '湿电子化学品', value: 5713, color: '#3B82F6' },
-        { name: '新能源电池', value: 5713, color: '#FF8A00' },
-        { name: '化学制药', value: 5713, color: '#10B981' },
-        { name: '合成生物', value: 5713, color: '#F59E0B' },
-        { name: '船舶制造', value: 5713, color: '#EF4444' },
-        { name: '人工智能', value: 5713, color: '#8B5CF6' },
-        // { name: '产业链7', value: 5713, color: '#EC4899' },
-        // { name: '产业链8', value: 5713, color: '#06B6D4' }
-    ];
+    const industryData = valueChainData;
 
     useEffect(() => {
         if (!chartRef.current) return;

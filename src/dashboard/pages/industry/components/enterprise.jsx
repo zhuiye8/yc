@@ -8,22 +8,10 @@ import { Grid2 as Grid } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useRef, useEffect } from 'react';
 
+import { enterpriseTableData } from '../../../data/realData';
+
 function EnterPrise({className}) {
-// 人才数据
-    const talentData = {
-        headers: ['企业命', '所属行业'],
-        items: [
-            { name: '兴发集团股份有限公司', industry: '化学原料' },
-            { name: '安琪酵母股份有限公司', industry: '食品制造' },
-            { name: '宜化集团有限责任公司', industry: '化学原料' },
-            { name: '人福医药集团股份公司', industry: '医药制造' },
-            { name: '三峡新材股份有限公司', industry: '非金属矿物' },
-            { name: '华中科技大学', industry: '科学研究' },
-            { name: '三峡集团', industry: '电力生产' },
-            { name: '中船重工710研究所', industry: '科学研究' },
-            { name: '湖北三峡实验室', industry: '科学研究' },
-            ]
-    };
+    const talentData = enterpriseTableData;
 
     return (
         <Grid container className={className}>

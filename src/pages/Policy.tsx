@@ -21,7 +21,7 @@ import {
   SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { policies } from '../mock/data';
+import { policies } from '../mock/localPolicies';
 
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;

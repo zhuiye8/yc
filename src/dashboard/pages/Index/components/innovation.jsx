@@ -6,21 +6,38 @@
  */
 import { Grid2 as Grid } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import * as echarts from 'echarts';
+import { wfGet } from '../../../../services/apiClient';
 
 function Innovation({className}) {
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
 
-    const innovationData = {
+    const [innovationData, setInnovationData] = useState({
         items: [
             { name: '产业园区数', value: 567},
             { name: '科研项目数', value: 1234 },
             { name: '技术标准数', value: 4567 },
             { name: '知识产权数', value: 67889 }
         ]
-    };
+    });
+
+    useEffect(() => {
+        wfGet('talent-resourceStatistics', { areacode: '420500' }).then(res => {
+            const d = res;
+            if (d && d['产业园区']) {
+                setInnovationData({
+                    items: [
+                        { name: '产业园区数', value: Number(d['产业园区']) || 567 },
+                        { name: '科研项目数', value: Number(d['科研项目']) || 1234 },
+                        { name: '技术标准数', value: Number(d['技术标准']) || 4567 },
+                        { name: '知识产权数', value: Number(d['专利']) || 67889 },
+                    ]
+                });
+            }
+        }).catch(() => {});
+    }, []);
 
     useEffect(() => {
         if (!chartRef.current) return;

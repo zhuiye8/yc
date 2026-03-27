@@ -9,15 +9,13 @@ import { styled } from '@mui/material/styles';
 import React, { useRef, useEffect } from 'react';
 import * as echarts from 'echarts';
 
+import { yichangDistributionData } from '../../../data/realData';
+
 function Yichang({className}) {
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
 
-    // 省份数据
-    const provinceData = {
-        categories: ['北京', '上海', '广东', '湖北', '江苏', '安徽', '福建', '江西', '山东', '河南', '湖南'],
-        values: [10000, 9000, 8500, 7200, 6800, 5500, 4800, 4200, 3800, 3200, 2800]
-    };
+    const provinceData = yichangDistributionData;
 
     useEffect(() => {
         if (!chartRef.current) return;

@@ -9,16 +9,13 @@ import { styled } from '@mui/material/styles';
 import React, { useRef, useEffect } from 'react';
 import * as echarts from 'echarts';
 
+import { classificationData } from '../../../data/realData';
+
 function Classification({className}) {
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
 
-    // 人才分类数据
-    const talentData = [
-        { name: '领军人才', value: 9668,   color: '#3B82F6' },
-        { name: '技能人才', value: 12668, color: '#FF8A00' },
-        { name: '创新人才', value: 23146,  color: '#10B981' }
-    ];
+    const talentData = classificationData;
 
     useEffect(() => {
         if (!chartRef.current) return;

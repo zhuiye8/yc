@@ -9,17 +9,11 @@ import { styled } from '@mui/material/styles';
 import React from 'react';
 import img from '../../../assets/imgs/policy-bottom.png'
 
+import { policyHomeData } from '../../../data/realData';
+
 function Policy({className}) {
     // 政策数据
-    const policyData = {
-        total: '134条',
-        totalLabel: '政策总数',
-        items: [
-            { name: '人才政策数', value: '44' },
-            { name: '可申报政策数', value: '56' },
-            { name: '到期政策数', value: '4' }
-        ]
-    };
+    const policyData = policyHomeData;
 
     return (
         <Grid container className={className}>

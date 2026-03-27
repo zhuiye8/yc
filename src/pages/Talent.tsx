@@ -29,6 +29,49 @@ import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import { useNavigate } from 'react-router-dom';
 import { talents } from '../mock/data';
+import { queryTalents, getCooperationOrgs, findExpertByKey, getPersonRelationGraph, getExpertSummary, getExpertKeywords, getExpertKeyYear } from '../services/wanfangService';
+import { wfGet } from '../services/apiClient';
+import type { WfExpert, KeyYearItem } from '../services/wanfangService';
+import { aggregations } from '../mock/localAggregations';
+
+interface TalentItem {
+  id: string;
+  name: string;
+  gender: string;
+  institution: string;
+  orgType: string;
+  field: string;
+  industryChain: string;
+  hIndex: number;
+  tags: string[];
+  region: string;
+  introduction: string;
+  apiId?: string; // Wanfang expert ID for API detail queries
+}
+
+function mapExpertToTalent(e: WfExpert): TalentItem {
+  const orgTypeMap: Record<string, string> = { GX: '高校', QY: '企业', KY: '科研院所' };
+  const rawTags = e.TAGS ?? [];
+  const tags = rawTags.map(t => {
+    if (typeof t === 'string') return t;
+    const o = t as { TAG?: string; VALUE?: string };
+    return o.TAG ?? o.VALUE ?? '';
+  }).filter(Boolean) as string[];
+  return {
+    id: e.ID,
+    name: e.CNAME,
+    gender: '',
+    institution: e.AORG ?? '',
+    orgType: e.ORGTYPE ? (orgTypeMap[e.ORGTYPE] ?? e.ORGTYPE) : '',
+    field: (e.DIRECTION ?? '').split(/[，,、;；\s]/)[0].trim() || '',
+    industryChain: '',
+    hIndex: e.H ?? 0,
+    tags,
+    region: e.CITY ?? e.PROVINCE ?? '',
+    introduction: '',
+    apiId: e.ID,
+  };
+}
 
 const { Title, Text } = Typography;
 
@@ -37,7 +80,7 @@ const Talent: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('graph');
   const [talentDetailVisible, setTalentDetailVisible] = useState(false);
-  const [selectedTalentDetail, setSelectedTalentDetail] = useState<typeof talentListData[0] | null>(null);
+  const [selectedTalentDetail, setSelectedTalentDetail] = useState<TalentItem | null>(null);
   const [talentDetailTab, setTalentDetailTab] = useState('basic');
   const [chinaMapRegistered, setChinaMapRegistered] = useState(false);
   const mapChartRef = useRef<ReactECharts>(null);
@@ -49,6 +92,17 @@ const Talent: React.FC = () => {
   const [graphPopoverData, setGraphPopoverData] = useState<{ name: string; field: string; institution: string; title: string; hIndex: number } | null>(null);
   const [graphPopoverPos, setGraphPopoverPos] = useState({ x: 0, y: 0 });
   const graphChartRef = useRef<ReactECharts>(null);
+
+  // API图谱数据（覆盖mock图谱节点和连线）
+  const [apiGraphNodes, setApiGraphNodes] = useState<typeof graphTalentNodes | null>(null);
+  const [apiGraphLinks, setApiGraphLinks] = useState<typeof graphTalentLinks | null>(null);
+  const [graphLoading, setGraphLoading] = useState(false);
+  // 当前选中专家的研究方向和趋势
+  const [expertKeywords, setExpertKeywords] = useState<string[]>([]);
+  const [expertKeyYearData, setExpertKeyYearData] = useState<KeyYearItem[]>([]);
+  const [currentExpertSummary, setCurrentExpertSummary] = useState<{ papers: number; patents: number; iar: number; hIndex: number } | null>(null);
+  // 高端人才榜
+  const [topTalentList, setTopTalentList] = useState<Array<{ name: string; field: string; level: string; institution: string }>>([]);
 
   // 注册中国地图
   useEffect(() => {
@@ -68,6 +122,123 @@ const Talent: React.FC = () => {
       .catch(() => console.warn('Failed to load china map data'));
   }, []);
 
+  // 加载高端人才榜
+  useEffect(() => {
+    findExpertByKey('生物医药', 0, 4, undefined, '湖北')
+      .then(experts => {
+        if (experts.length > 0) {
+          setTopTalentList(experts.map(e => ({
+            name: e.CNAME,
+            field: (e.DIRECTION ?? '').split(/[，,、]/)[0] || '',
+            level: (e.H ?? 0) > 30 ? '顶尖' : (e.H ?? 0) > 10 ? '领军' : '骨干',
+            institution: e.AORG ?? '',
+          })));
+        }
+      }).catch(() => {});
+  }, []);
+
+  // 加载全国省份人才分布（一次API调用，索引90003=专家库，aggFields=PROVINCE）
+  useEffect(() => {
+    wfGet('basicSearch', {
+      indexName: '90003', from: 0, size: 0, aggFields: 'PROVINCE', aggSize: 35,
+    }).then((res: unknown) => {
+      const r = res as { data?: { aggregations?: Record<string, { buckets?: Array<{ key: string; doc_count: number }> }> } };
+      const aggs = r.data?.aggregations ?? {};
+      const buckets = aggs['province']?.buckets ?? aggs['PROVINCE']?.buckets ?? [];
+      if (buckets.length > 0) {
+        const top10 = [...buckets].sort((a, b) => b.doc_count - a.doc_count).slice(0, 10);
+        setTalentProvinceData(top10.map(b => ({ name: b.key, value: b.doc_count })));
+      }
+    }).catch(() => {});
+  }, []);
+
+  // 加载默认图谱（生物医药领域第一个湖北专家）
+  const loadGraphForExpert = (expertId: string, expertName: string) => {
+    setGraphLoading(true);
+    setGraphSearchedTalent(expertName);
+    Promise.all([
+      getPersonRelationGraph(expertId, 2, 20),
+      getExpertKeywords(expertId),
+      getExpertKeyYear(expertId),
+      getExpertSummary(expertId),
+    ]).then(([graph, keywords, keyYear, summary]) => {
+      if (graph.nodes.length > 0) {
+        const personNodes = graph.nodes.filter(n => n.class === 'PERSON' || !n.class);
+        setApiGraphNodes(personNodes.map(n => ({
+          id: n.id, name: n.name, field: '', institution: n.org ?? '',
+          title: '', hIndex: n.h ?? 0, category: n.id === expertId ? 0 : 1,
+        })));
+        setApiGraphLinks(graph.edges.filter(e =>
+          personNodes.some(n => n.id === e.source) && personNodes.some(n => n.id === e.target)
+        ).map(e => ({ source: e.source, target: e.target })));
+      }
+      setExpertKeywords(keywords.slice(0, 10));
+      setExpertKeyYearData(keyYear.slice(0, 5));
+      if (summary) {
+        setCurrentExpertSummary({
+          papers: (summary as Record<string, number>)['科技论文All'] ?? 0,
+          patents: (summary as Record<string, number>)['专利All'] ?? 0,
+          iar: (summary as Record<string, number>)['产学研合作All'] ?? 0,
+          hIndex: 0,
+        });
+      }
+    }).catch(() => {}).finally(() => setGraphLoading(false));
+  };
+
+  useEffect(() => {
+    findExpertByKey('生物医药', 0, 1, undefined, '湖北').then(experts => {
+      if (experts.length > 0 && experts[0].ID) {
+        loadGraphForExpert(experts[0].ID, experts[0].CNAME);
+      }
+    }).catch(() => {});
+  }, []);
+
+  // 加载人才列表（湖北省专家）
+  useEffect(() => {
+    setTalentListLoading(true);
+    queryTalents({
+      queryString: 'PROVINCE:湖北',
+      from: 0,
+      size: 20,
+      sortField: 'CNT.D',
+    })
+      .then(experts => {
+        const mapped = experts.map(mapExpertToTalent).filter(t => t.name);
+        if (mapped.length > 0) setTalentListData(mapped);
+      })
+      .catch(err => console.warn('Failed to load talent list:', err))
+      .finally(() => setTalentListLoading(false));
+  }, []);
+
+  // 技能人才数据（从 Excel 转换的 JSON 加载）
+  interface SkillTalent {
+    id: string; name: string; gender: string; education: string;
+    school: string; major: string; skill: string; certificate: string;
+    workingYears: string; organization: string; position: string;
+    nativePlace: string; level: string; industry: string;
+  }
+  const [skillTalents, setSkillTalents] = useState<SkillTalent[]>([]);
+  const [skillTalentLoading, setSkillTalentLoading] = useState(false);
+  const [skillSearch, setSkillSearch] = useState('');
+  const [skillFilterLevel, setSkillFilterLevel] = useState<string>('all');
+  const [skillFilterIndustry, setSkillFilterIndustry] = useState<string>('all');
+
+  useEffect(() => {
+    setSkillTalentLoading(true);
+    fetch('/data/skill-talents.json')
+      .then(res => res.json())
+      .then((data: SkillTalent[]) => setSkillTalents(data))
+      .catch(err => console.warn('Failed to load skill talents:', err))
+      .finally(() => setSkillTalentLoading(false));
+  }, []);
+
+  const filteredSkillTalents = skillTalents.filter(t => {
+    if (skillSearch && !t.name.includes(skillSearch) && !t.organization.includes(skillSearch) && !t.skill.includes(skillSearch)) return false;
+    if (skillFilterLevel !== 'all' && t.level !== skillFilterLevel) return false;
+    if (skillFilterIndustry !== 'all' && t.industry !== skillFilterIndustry) return false;
+    return true;
+  });
+
   // 筛选状态
   const [filterIndustry, setFilterIndustry] = useState<(string | number)[]>(['all']);
   const [filterOrgType, setFilterOrgType] = useState<string>('all');
@@ -80,8 +251,14 @@ const Talent: React.FC = () => {
   const [searchValue, setSearchValue] = useState('');
   const hotTags = ['院士', '生物医药', '新材料', '人工智能', '博士后', '高级工程师', '领军人才', '宜昌籍'];
 
-  // 人才列表数据（扩展）
-  const talentListData = [
+  // 人才列表 API 加载状态
+  const [talentListLoading, setTalentListLoading] = useState(false);
+  // 抽屉中的合作机构（按需加载）
+  const [drawerCoopOrgs, setDrawerCoopOrgs] = useState<Array<{ id: string; name: string; type: string; cooperation: number }>>([]);
+  const [drawerExpertSummary, setDrawerExpertSummary] = useState<Record<string, number> | null>(null);
+
+  // 人才列表数据（初始 mock，API 加载后替换）
+  const [talentListData, setTalentListData] = useState<TalentItem[]>([
     { id: 'tl1', name: '王建国', gender: '男', institution: '中国科学院', orgType: '科研院所', field: '生物医药', industryChain: '生命健康', hIndex: 68, tags: ['宜昌籍', '领军人才'], region: '西陵区', introduction: '中国科学院院士，长期从事生物医药研究，在基因治疗领域取得突破性成果。' },
     { id: 'tl2', name: '李明华', gender: '男', institution: '武汉大学', orgType: '高校', field: '新材料', industryChain: '新能源新材料', hIndex: 45, tags: ['创新人才'], region: '伍家岗区', introduction: '武汉大学教授，专注于高性能纤维材料研发，主持多项国家重点项目。' },
     { id: 'tl3', name: '张晓峰', gender: '男', institution: '华中科技大学', orgType: '高校', field: '智能制造', industryChain: '汽车及装备制造', hIndex: 38, tags: ['宜昌籍', '创新人才'], region: '夷陵区', introduction: '华中科技大学研究员，在智能传感器和工业物联网领域具有深厚积累。' },
@@ -92,9 +269,9 @@ const Talent: React.FC = () => {
     { id: 'tl8', name: '孙明辉', gender: '男', institution: '兴发集团', orgType: '企业', field: '精细化工', industryChain: '绿色化工', hIndex: 15, tags: ['技能人才'], region: '猇亭区', introduction: '兴发集团技术总监，在磷化工领域拥有20年经验，主导多项技术改造。' },
     { id: 'tl9', name: '吴婷婷', gender: '女', institution: '安琪酵母', orgType: '企业', field: '生物发酵', industryChain: '生命健康', hIndex: 20, tags: ['创新人才'], region: '伍家岗区', introduction: '安琪酵母研发中心主任，在酵母发酵技术领域取得多项专利。' },
     { id: 'tl10', name: '郑强', gender: '男', institution: '中船重工710所', orgType: '科研院所', field: '船舶动力', industryChain: '汽车及装备制造', hIndex: 32, tags: ['宜昌籍', '创新人才'], region: '西陵区', introduction: '中船重工710所研究员，在舰船电力推进系统领域具有核心技术优势。' },
-  ];
+  ]);
 
-  // 合作机构数据
+  // 合作机构数据（fallback，抽屉中会尝试加载 API 真实数据）
   const cooperativeOrgsData = [
     { id: 'co1', name: '中国地质大学（武汉）', type: '高校', cooperation: 28 },
     { id: 'co2', name: '武汉大学', type: '高校', cooperation: 23 },
@@ -190,12 +367,16 @@ const Talent: React.FC = () => {
       { name: '领域相关', itemStyle: { color: 'rgba(30, 58, 138, 0.6)' } },
     ];
 
+    // 使用API数据或mock数据
+    const activeNodes = apiGraphNodes || graphTalentNodes;
+    const activeLinks = apiGraphLinks || graphTalentLinks;
+
     // BFS 从搜索人才出发，动态计算每个节点的层级
-    const centerNode = graphTalentNodes.find(n => n.name === centerTalent);
-    const centerId = centerNode?.id || 'gt1';
+    const centerNode = activeNodes.find(n => n.name === centerTalent);
+    const centerId = centerNode?.id || activeNodes[0]?.id || 'gt1';
     const adj: Record<string, string[]> = {};
-    graphTalentNodes.forEach(n => { adj[n.id] = []; });
-    graphTalentLinks.forEach(l => { adj[l.source]?.push(l.target); adj[l.target]?.push(l.source); });
+    activeNodes.forEach(n => { adj[n.id] = []; });
+    activeLinks.forEach(l => { adj[l.source]?.push(l.target); adj[l.target]?.push(l.source); });
     const dist: Record<string, number> = {};
     const queue = [centerId];
     dist[centerId] = 0;
@@ -210,12 +391,12 @@ const Talent: React.FC = () => {
     }
     // 距离 → 类别：0=搜索人才, 1=紧密合作, 2=间接合作, 3+=领域相关
     const nodeIdCategoryMap: Record<string, number> = {};
-    graphTalentNodes.forEach(n => {
+    activeNodes.forEach(n => {
       const d = dist[n.id];
       nodeIdCategoryMap[n.id] = d === 0 ? 0 : d === 1 ? 1 : d === 2 ? 2 : 3;
     });
 
-    const links = graphTalentLinks.map(link => {
+    const links = activeLinks.map(link => {
       const srcCat = nodeIdCategoryMap[link.source] ?? 3;
       const tgtCat = nodeIdCategoryMap[link.target] ?? 3;
       const minCat = Math.min(srcCat, tgtCat);
@@ -224,7 +405,7 @@ const Talent: React.FC = () => {
       return { ...link, lineStyle: { width: lineWidth, color: lineColor } };
     });
 
-    const getNodeStyle = (node: typeof graphTalentNodes[0]) => {
+    const getNodeStyle = (node: typeof activeNodes[0]) => {
       const cat = nodeIdCategoryMap[node.id] ?? 3;
       if (cat === 0) return {
         symbolSize: 70,
@@ -268,7 +449,7 @@ const Talent: React.FC = () => {
       };
     };
 
-    const nodes = graphTalentNodes.map(node => {
+    const nodes = activeNodes.map(node => {
       const style = getNodeStyle(node);
       const isCenter = nodeIdCategoryMap[node.id] === 0;
       return {
@@ -336,42 +517,61 @@ const Talent: React.FC = () => {
     }
   };
 
-  // 图谱搜索处理
+  // 图谱搜索处理（通过API搜索专家并加载关系图谱）
   const handleGraphSearch = (value: string) => {
-    if (value.trim()) {
-      const found = graphTalentNodes.find(n => n.name.includes(value));
-      if (found) {
-        setGraphSearchedTalent(found.name);
-        message.success(`已定位到人才「${found.name}」`);
+    if (!value.trim()) return;
+    message.loading(`正在搜索「${value}」...`);
+    findExpertByKey(value, 0, 1).then(experts => {
+      if (experts.length > 0 && experts[0].ID) {
+        message.destroy();
+        message.success(`已定位到人才「${experts[0].CNAME}」`);
+        loadGraphForExpert(experts[0].ID, experts[0].CNAME);
       } else {
-        message.warning(`未找到人才「${value}」`);
+        // 回退到mock节点搜索
+        const found = graphTalentNodes.find(n => n.name.includes(value));
+        message.destroy();
+        if (found) {
+          setApiGraphNodes(null);
+          setApiGraphLinks(null);
+          setGraphSearchedTalent(found.name);
+          message.success(`已定位到人才「${found.name}」`);
+        } else {
+          message.warning(`未找到人才「${value}」`);
+        }
       }
-    }
+    }).catch(() => {
+      message.destroy();
+      message.warning('搜索失败，请稍后重试');
+    });
   };
 
   // 选中人才的合作人才（右侧面板用）
   const getGraphRelatedTalents = () => {
     const centerName = graphSearchedTalent || '王建国';
-    const centerNode = graphTalentNodes.find(n => n.name === centerName);
+    const activeN = apiGraphNodes || graphTalentNodes;
+    const activeL = apiGraphLinks || graphTalentLinks;
+    const centerNode = activeN.find(n => n.name === centerName);
     if (!centerNode) return [];
-    const relatedIds = graphTalentLinks
+    const relatedIds = activeL
       .filter(l => l.source === centerNode.id || l.target === centerNode.id)
       .map(l => l.source === centerNode.id ? l.target : l.source);
-    return graphTalentNodes.filter(n => relatedIds.includes(n.id)).slice(0, 6);
+    return activeN.filter(n => relatedIds.includes(n.id)).slice(0, 6);
   };
 
-  // 研究方向分布图配置（横向柱状图）
+  // 研究方向分布图配置（横向柱状图）— 有API数据时用真实关键词
   const getFieldDistributionOption = () => {
-    const fieldData = [
-      { name: '其他', value: 8 },
-      { name: '生物技术', value: 10 },
-      { name: '人工智能', value: 12 },
-      { name: '清洁能源', value: 15 },
-      { name: '绿色化工', value: 18 },
-      { name: '智能制造', value: 22 },
-      { name: '新材料', value: 28 },
-      { name: '生物医药', value: 35 },
-    ];
+    const fieldData = expertKeywords.length > 0
+      ? expertKeywords.slice(0, 8).map((k, i) => ({ name: k, value: 8 - i })).reverse()
+      : [
+        { name: '其他', value: 8 },
+        { name: '生物技术', value: 10 },
+        { name: '人工智能', value: 12 },
+        { name: '清洁能源', value: 15 },
+        { name: '绿色化工', value: 18 },
+        { name: '智能制造', value: 22 },
+        { name: '新材料', value: 28 },
+        { name: '生物医药', value: 35 },
+      ];
     const colors = ['#8c8c8c', '#faad14', '#13c2c2', '#eb2f96', '#fa8c16', '#722ed1', '#52c41a', '#2468F2'];
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: '{b}: {c}人' },
@@ -388,34 +588,53 @@ const Talent: React.FC = () => {
     };
   };
 
-  // 研究方向趋势图配置
-  const getFieldTrendOption = () => ({
-    tooltip: { trigger: 'axis' },
-    legend: { data: ['论文发表', '专利申请', '项目合作'], top: 0, textStyle: { fontSize: 16 } },
-    xAxis: { type: 'category', data: ['2021', '2022', '2023', '2024', '2025'], axisLabel: { fontSize: 16 } },
-    yAxis: { type: 'value', axisLabel: { fontSize: 16 } },
-    series: [
-      { name: '论文发表', type: 'line', smooth: true, data: [12, 18, 25, 32, 28], itemStyle: { color: '#2468F2' } },
-      { name: '专利申请', type: 'line', smooth: true, data: [5, 8, 12, 15, 18], itemStyle: { color: '#52c41a' } },
-      { name: '项目合作', type: 'line', smooth: true, data: [3, 5, 8, 12, 15], itemStyle: { color: '#fa8c16' } },
-    ],
-    grid: { left: 40, right: 20, bottom: 30, top: 40 },
-  });
+  // 研究方向趋势图配置 — 有API关键词年度数据时显示真实趋势
+  const getFieldTrendOption = () => {
+    if (expertKeyYearData.length > 0) {
+      const allYears = [...new Set(expertKeyYearData.flatMap(d => d.year.map(y => y.key)))].sort();
+      const recentYears = allYears.slice(-5);
+      const series = expertKeyYearData.slice(0, 3).map((d, i) => ({
+        name: d.key, type: 'line' as const, smooth: true,
+        data: recentYears.map(y => d.year.find(yy => yy.key === y)?.count ?? 0),
+        itemStyle: { color: ['#2468F2', '#52c41a', '#fa8c16'][i] },
+      }));
+      return {
+        tooltip: { trigger: 'axis' as const },
+        legend: { data: series.map(s => s.name), top: 0, textStyle: { fontSize: 16 } },
+        xAxis: { type: 'category' as const, data: recentYears.map(String), axisLabel: { fontSize: 16 } },
+        yAxis: { type: 'value' as const, axisLabel: { fontSize: 16 } },
+        series,
+        grid: { left: 40, right: 20, bottom: 30, top: 40 },
+      };
+    }
+    return {
+      tooltip: { trigger: 'axis' as const },
+      legend: { data: ['论文发表', '专利申请', '项目合作'], top: 0, textStyle: { fontSize: 16 } },
+      xAxis: { type: 'category' as const, data: ['2021', '2022', '2023', '2024', '2025'], axisLabel: { fontSize: 16 } },
+      yAxis: { type: 'value' as const, axisLabel: { fontSize: 16 } },
+      series: [
+        { name: '论文发表', type: 'line' as const, smooth: true, data: [12, 18, 25, 32, 28], itemStyle: { color: '#2468F2' } },
+        { name: '专利申请', type: 'line' as const, smooth: true, data: [5, 8, 12, 15, 18], itemStyle: { color: '#52c41a' } },
+        { name: '项目合作', type: 'line' as const, smooth: true, data: [3, 5, 8, 12, 15], itemStyle: { color: '#fa8c16' } },
+      ],
+      grid: { left: 40, right: 20, bottom: 30, top: 40 },
+    };
+  };
 
   // 人才分类数据（金字塔）- 领军人才、创新人才、技能人才
   const talentTypeData = [
-    { name: '领军人才', value: 698 },
-    { name: '创新人才', value: 38730 },
-    { name: '技能人才', value: 523386 },
+    { name: '领军人才', value: aggregations.talentSubStats.leading || 698 },
+    { name: '创新人才', value: aggregations.talentSubStats.innovation || aggregations.talentCountByLevel['创新人才'] || 12402 },
+    { name: '技能人才', value: aggregations.talentSubStats.skill || aggregations.talentCountByLevel['技能人才'] || 12567 },
   ];
 
-  // 人才区域分布数据
-  const talentProvinceData = [
+  // 人才区域分布数据（从API加载）
+  const [talentProvinceData, setTalentProvinceData] = useState([
     { name: '江苏', value: 58200 }, { name: '北京', value: 52800 }, { name: '广东', value: 48500 },
     { name: '山东', value: 42300 }, { name: '上海', value: 38600 }, { name: '浙江', value: 35400 },
     { name: '湖北', value: 32100 }, { name: '辽宁', value: 28500 }, { name: '河南', value: 25800 },
     { name: '四川', value: 22400 },
-  ];
+  ]);
 
   // 人才分类金字塔图（带尖角，居中）
   const getPyramidOption = () => {
@@ -525,18 +744,8 @@ const Talent: React.FC = () => {
   };
 
   // 人才区域分布（全国地图数据）
-  const talentMapData = [
-    { name: '湖北', value: 32100 }, { name: '北京', value: 52800 }, { name: '上海', value: 38600 },
-    { name: '广东', value: 48500 }, { name: '江苏', value: 58200 }, { name: '浙江', value: 35400 },
-    { name: '四川', value: 22400 }, { name: '山东', value: 42300 }, { name: '陕西', value: 18200 },
-    { name: '安徽', value: 15800 }, { name: '湖南', value: 14500 }, { name: '河南', value: 25800 },
-    { name: '辽宁', value: 28500 }, { name: '重庆', value: 12800 }, { name: '天津', value: 11500 },
-    { name: '福建', value: 10800 }, { name: '吉林', value: 8500 }, { name: '黑龙江', value: 7800 },
-    { name: '江西', value: 6500 }, { name: '河北', value: 9200 }, { name: '山西', value: 5800 },
-    { name: '云南', value: 5200 }, { name: '广西', value: 4800 }, { name: '贵州', value: 4200 },
-    { name: '甘肃', value: 3500 }, { name: '内蒙古', value: 3200 }, { name: '新疆', value: 2800 },
-    { name: '海南', value: 2200 }, { name: '宁夏', value: 1800 }, { name: '青海', value: 1200 },
-  ];
+  // 地图数据由省份分布数据驱动（API加载后自动更新）
+  const talentMapData = talentProvinceData;
 
   // 中国地图配置
   const getChinaMapOption = () => {
@@ -789,8 +998,9 @@ const Talent: React.FC = () => {
                             <Tag color="#1e3a8a" style={{ margin: 0 }}>领域相关</Tag>
                           </Space>
                         </div>
+                        {graphLoading && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 20, color: '#4facfe', fontSize: 14 }}>加载中...</div>}
                         <ReactECharts
-                          key={graphSearchedTalent || 'default'}
+                          key={`${graphSearchedTalent || 'default'}-${apiGraphNodes?.length ?? 0}`}
                           ref={graphChartRef}
                           option={getTalentGraphOption()}
                           style={{ height: 660 }}
@@ -891,16 +1101,16 @@ const Talent: React.FC = () => {
                               <Text strong style={{ fontSize: 16 }}>{graphSearchedTalent || '王建国'}</Text>
                               <br />
                               <Text type="secondary" style={{ fontSize: 16 }}>
-                                {graphTalentNodes.find(n => n.name === (graphSearchedTalent || '王建国'))?.institution}
+                                {(apiGraphNodes || graphTalentNodes).find(n => n.name === (graphSearchedTalent || '王建国'))?.institution}
                               </Text>
                             </div>
                           </div>
                           <Descriptions column={2} size="small">
                             <Descriptions.Item label="研究方向">
-                              <Tag color="blue">{graphTalentNodes.find(n => n.name === (graphSearchedTalent || '王建国'))?.field}</Tag>
+                              <Tag color="blue">{expertKeywords[0] || (apiGraphNodes || graphTalentNodes).find(n => n.name === (graphSearchedTalent || '王建国'))?.field}</Tag>
                             </Descriptions.Item>
                             <Descriptions.Item label="H指数">
-                              <Tag color="gold">{graphTalentNodes.find(n => n.name === (graphSearchedTalent || '王建国'))?.hIndex}</Tag>
+                              <Tag color="gold">{currentExpertSummary?.patents ?? (apiGraphNodes || graphTalentNodes).find(n => n.name === (graphSearchedTalent || '王建国'))?.hIndex}</Tag>
                             </Descriptions.Item>
                           </Descriptions>
                         </Card>
@@ -946,7 +1156,7 @@ const Talent: React.FC = () => {
                     <Col xs={24} md={8} style={{ display: 'flex' }}>
                       <Card title={<><TrophyOutlined style={{ color: '#faad14' }} /> 高端人才榜</>} size="small" bodyStyle={{ padding: 12 }} style={{ flex: 1, ...glassCardStyle }}>
                         <List
-                          dataSource={talents.slice(0, 4)}
+                          dataSource={topTalentList.length > 0 ? topTalentList : talents.slice(0, 4)}
                           renderItem={(item, index) => (
                             <List.Item style={{ padding: '10px 0' }}>
                               <Space>
@@ -1079,12 +1289,12 @@ const Talent: React.FC = () => {
                   <Row gutter={16} style={{ marginBottom: 16 }}>
                     <Col xs={12} md={8}>
                       <Card size="small" bodyStyle={{ textAlign: 'center', padding: '20px 16px' }} style={{ ...glassCardStyle }}>
-                        <Statistic title="人才总数" value={562814} suffix="人" valueStyle={{ color: '#2468F2', fontSize: 28 }} prefix={<TeamOutlined />} />
+                        <Statistic title="人才总数" value={aggregations.totalSkillTalents} suffix="人" valueStyle={{ color: '#2468F2', fontSize: 28 }} prefix={<TeamOutlined />} />
                       </Card>
                     </Col>
                     <Col xs={12} md={8}>
                       <Card size="small" bodyStyle={{ textAlign: 'center', padding: '20px 16px' }} style={{ ...glassCardStyle }}>
-                        <Statistic title="重点人才总数" value={39428} suffix="人" valueStyle={{ color: '#722ed1', fontSize: 28 }} prefix={<TrophyOutlined />} />
+                        <Statistic title="重点人才总数" value={aggregations.talentSubStats.innovation + aggregations.talentSubStats.leading} suffix="人" valueStyle={{ color: '#722ed1', fontSize: 28 }} prefix={<TrophyOutlined />} />
                       </Card>
                     </Col>
                     <Col xs={12} md={8}>
@@ -1195,9 +1405,25 @@ const Talent: React.FC = () => {
                     <Table
                       dataSource={talentListData}
                       rowKey="id"
+                      loading={talentListLoading}
                       pagination={{ pageSize: 8 }}
                       onRow={(record) => ({
-                        onClick: () => { setSelectedTalentDetail(record); setTalentDetailVisible(true); },
+                        onClick: () => {
+                          setSelectedTalentDetail(record);
+                          setTalentDetailVisible(true);
+                          setDrawerCoopOrgs([]);
+                          setDrawerExpertSummary(null);
+                          if (record.apiId) {
+                            getCooperationOrgs(record.apiId).then(orgs => {
+                              setDrawerCoopOrgs(orgs.slice(0, 8).map((o, i) => ({
+                                id: `api-co${i}`, name: o.name, type: '机构', cooperation: o.count,
+                              })));
+                            }).catch(() => {});
+                            getExpertSummary(record.apiId).then(s => {
+                              if (s) setDrawerExpertSummary(s as Record<string, number>);
+                            }).catch(() => {});
+                          }
+                        },
                         style: { cursor: 'pointer' },
                       })}
                       columns={[
@@ -1225,13 +1451,64 @@ const Talent: React.FC = () => {
                           render: (h: number) => <Tag color={h > 50 ? 'gold' : h > 30 ? 'blue' : 'default'}>{h}</Tag>
                         },
                         { title: '操作', key: 'action', width: 100,
-                          render: (_: unknown, record: typeof talentListData[0]) => (
+                          render: (_: unknown, record: TalentItem) => (
                             <Button type="primary" size="small" icon={<PlusOutlined />}
                               onClick={(e) => { e.stopPropagation(); message.success(`已将「${record.name}」加入引才清单`); }}>
                               加入清单
                             </Button>
                           ),
                         },
+                      ]}
+                    />
+                  </Card>
+                </div>
+              </Tabs.TabPane>
+
+              {/* 技能人才（蓝领人才 Excel 数据） */}
+              <Tabs.TabPane tab={<><TeamOutlined /> 技能人才</>} key="skillTalent">
+                <div style={{ padding: 16 }}>
+                  <Card size="small" style={{ marginBottom: 16, ...glassCardStyle }}>
+                    <Space style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                      <Input.Search
+                        placeholder="搜索姓名、单位、技能..."
+                        allowClear
+                        style={{ width: 280 }}
+                        value={skillSearch}
+                        onChange={e => setSkillSearch(e.target.value)}
+                        onSearch={v => setSkillSearch(v)}
+                      />
+                      <Select value={skillFilterLevel} onChange={setSkillFilterLevel} style={{ width: 130 }}
+                        options={[{ value: 'all', label: '全部等级' }, { value: '技能人才', label: '技能人才' }, { value: '创新人才', label: '创新人才' }]} />
+                      <Select value={skillFilterIndustry} onChange={setSkillFilterIndustry} style={{ width: 160 }}
+                        options={[
+                          { value: 'all', label: '全部产业链' },
+                          { value: '文化旅游', label: '文化旅游' },
+                          { value: '算力及大数据', label: '算力及大数据' },
+                          { value: '建筑产业链', label: '建筑产业链' },
+                          { value: '汽车及装备制造', label: '汽车及装备制造' },
+                          { value: '新能源新材料', label: '新能源新材料' },
+                          { value: '生命健康', label: '生命健康' },
+                          { value: '绿色化工', label: '绿色化工' },
+                          { value: '其他', label: '其他' },
+                        ]} />
+                      <Tag color="blue">{filteredSkillTalents.length} 人</Tag>
+                    </Space>
+                    <Table
+                      dataSource={filteredSkillTalents}
+                      rowKey="id"
+                      loading={skillTalentLoading}
+                      pagination={{ pageSize: 20, showTotal: (total) => `共 ${total} 条`, showSizeChanger: true, pageSizeOptions: ['20', '50', '100'] }}
+                      size="middle"
+                      columns={[
+                        { title: '姓名', dataIndex: 'name', key: 'name', width: 90, render: (text: string) => <a style={{ color: '#2468F2', fontWeight: 500 }}>{text}</a> },
+                        { title: '性别', dataIndex: 'gender', key: 'gender', width: 60 },
+                        { title: '学历', dataIndex: 'education', key: 'education', width: 100, render: (text: string) => text ? <Tag>{text}</Tag> : '—' },
+                        { title: '工作单位', dataIndex: 'organization', key: 'organization', width: 200, ellipsis: true },
+                        { title: '岗位', dataIndex: 'position', key: 'position', width: 120, ellipsis: true },
+                        { title: '技能', dataIndex: 'skill', key: 'skill', width: 120, render: (text: string) => text ? <Tag color="blue">{text}</Tag> : '—' },
+                        { title: '等级', dataIndex: 'level', key: 'level', width: 90, render: (text: string) => <Tag color={text === '创新人才' ? 'purple' : 'cyan'}>{text}</Tag> },
+                        { title: '产业链', dataIndex: 'industry', key: 'industry', width: 130, render: (text: string) => text && text !== '其他' ? <Tag color="geekblue">{text}</Tag> : <Tag>{text || '—'}</Tag> },
+                        { title: '籍贯', dataIndex: 'nativePlace', key: 'nativePlace', width: 90 },
                       ]}
                     />
                   </Card>
@@ -1299,7 +1576,12 @@ const Talent: React.FC = () => {
                       <Descriptions column={2} size="small" bordered>
                         <Descriptions.Item label="研究方向"><Tag color="blue">{selectedTalentDetail.field}</Tag></Descriptions.Item>
                         <Descriptions.Item label="H指数"><Tag color={selectedTalentDetail.hIndex > 50 ? 'gold' : selectedTalentDetail.hIndex > 30 ? 'blue' : 'default'}>{selectedTalentDetail.hIndex}</Tag></Descriptions.Item>
-                        <Descriptions.Item label="所属产业链"><Tag color="cyan">{selectedTalentDetail.industryChain}</Tag></Descriptions.Item>
+                        {drawerExpertSummary && <>
+                          <Descriptions.Item label="论文数">{drawerExpertSummary['科技论文All'] ?? '—'}</Descriptions.Item>
+                          <Descriptions.Item label="专利数">{drawerExpertSummary['专利All'] ?? '—'}</Descriptions.Item>
+                          <Descriptions.Item label="产学研合作">{drawerExpertSummary['产学研合作All'] ?? '—'}</Descriptions.Item>
+                        </>}
+                        <Descriptions.Item label="所属产业链"><Tag color="cyan">{selectedTalentDetail.industryChain || '—'}</Tag></Descriptions.Item>
                         <Descriptions.Item label="人才分类">
                           {selectedTalentDetail.tags.map(tag => (
                             <Tag key={tag} color={tag === '宜昌籍' ? 'green' : tag === '领军人才' ? 'purple' : tag === '创新人才' ? 'blue' : 'orange'}>{tag}</Tag>
@@ -1333,13 +1615,13 @@ const Talent: React.FC = () => {
                 label: '合作机构',
                 children: (
                   <List
-                    dataSource={cooperativeOrgsData}
+                    dataSource={drawerCoopOrgs.length > 0 ? drawerCoopOrgs : cooperativeOrgsData}
                     renderItem={(item) => (
                       <List.Item>
                         <List.Item.Meta
                           avatar={<Avatar icon={<BankOutlined />} style={{ backgroundColor: item.type === '高校' ? '#52c41a' : '#722ed1' }} />}
                           title={item.name}
-                          description={<><Tag>{item.type}</Tag> 合作项目 {item.cooperation} 个</>}
+                          description={<><Tag>{item.type}</Tag> 合作次数 {item.cooperation}</>}
                         />
                       </List.Item>
                     )}

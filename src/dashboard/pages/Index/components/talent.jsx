@@ -10,16 +10,13 @@ import { styled } from '@mui/material/styles';
 import React, { useRef, useEffect } from 'react';
 import * as echarts from 'echarts';
 
-function Talent({className}) {
-    const sumTitle = '人才总数'
-    const sumValue = '490032'
+import { talentHomeData } from '../../../data/realData';
 
-    const datas = [
-        { text: '宜昌籍人才总数', value: 23457 },
-        { text: '领军人才总数', value: 1235 },
-        { text: '创新人才总数', value: 41134 },
-        { text: '紧缺人才', value: 2752 },
-    ]
+function Talent({className}) {
+    const sumTitle = talentHomeData.sumTitle
+    const sumValue = talentHomeData.sumValue
+
+    const datas = talentHomeData.subStats
  
     return <Grid container className={className}>
         <Grid item size={12}>
