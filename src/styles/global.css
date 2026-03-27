@@ -1425,3 +1425,211 @@ footer span[style*="cursor: pointer"]:hover {
     padding: 8px 16px !important;
   }
 }
+
+/* ==================== 产业图谱组件 ==================== */
+.chain-graph-container {
+  position: relative;
+  height: 560px;
+  overflow: hidden;
+}
+
+.chain-graph-columns {
+  display: flex;
+  align-items: flex-start;
+  height: 100%;
+}
+
+/* 列分隔符 */
+.chain-stream-separator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  flex-shrink: 0;
+  color: #bfc8d6;
+  font-size: 22px;
+  user-select: none;
+}
+
+/* 单列容器 */
+.chain-stream-col {
+  flex-shrink: 0;
+  flex-grow: 0;
+  min-width: 0;
+  transition: flex-basis 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: auto;
+  height: 100%;
+}
+
+/* 列标题 */
+.chain-stream-header {
+  text-align: center;
+  padding: 6px 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.chain-header-line {
+  width: 24px;
+  height: 1px;
+  background: #d0d5dd;
+  display: inline-block;
+}
+.chain-header-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+/* 树内容区 */
+.chain-tree-content {
+  padding: 0 8px 16px;
+}
+
+/* 节点组 */
+.chain-node-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+/* 节点本体 */
+.chain-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  background: #fff;
+  border-width: 1.5px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  margin: 4px 0;
+}
+.chain-node:hover {
+  box-shadow: 0 2px 8px rgba(36, 104, 242, 0.15);
+  transform: translateY(-1px);
+}
+.chain-node.root-node {
+  font-weight: 600;
+  font-size: 13px !important;
+  padding: 6px 14px;
+}
+.chain-node-text {
+  min-width: 0;
+}
+.chain-node-arrow {
+  flex-shrink: 0;
+  font-size: 14px;
+  transition: transform 0.2s ease;
+  color: #999;
+  line-height: 1;
+}
+.chain-node-arrow.arrow-down {
+  transform: rotate(90deg);
+}
+
+/* 子节点区域 */
+.chain-children {
+  display: flex;
+  flex-direction: column;
+  padding-left: 4px;
+  margin-left: 0;
+}
+
+/* 子节点行 = 连线 + 节点 */
+.chain-child-row {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+}
+
+/* 连线 */
+.chain-connector {
+  width: 20px;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.chain-connector-h {
+  width: 100%;
+  height: 1px;
+  background: #c0c8d4;
+  margin-top: 14px;
+}
+/* 垂直连线 */
+.chain-child-row:not(:last-child) > .chain-connector::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: -14px;
+  width: 1px;
+  background: #c0c8d4;
+}
+.chain-child-row:first-child > .chain-connector::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 14px;
+  width: 1px;
+  background: #c0c8d4;
+}
+.chain-child-row:not(:first-child) > .chain-connector::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 14px;
+  width: 1px;
+  background: #c0c8d4;
+}
+
+/* 弹窗 */
+.chain-popover {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  width: 280px;
+  animation: fadeInScale 0.15s ease;
+}
+.chain-popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.chain-popover-stats {
+  line-height: 2;
+  font-size: 14px;
+}
+
+/* 聚焦列的非聚焦列样式 */
+.chain-stream-col:not(.focused) .chain-node {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+/* 滚动条美化 */
+.chain-stream-col::-webkit-scrollbar {
+  width: 4px;
+}
+.chain-stream-col::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 2px;
+}
+.chain-stream-col::-webkit-scrollbar-track {
+  background: transparent;
+}

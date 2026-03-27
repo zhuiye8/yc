@@ -37,6 +37,7 @@ import { enterprises, industryGraphDataMap, industryOverviewDataMap, enterpriseL
 import type { IndustryGraphNode, IndustryGraphSet } from '../mock/data';
 import { aggregations } from '../mock/localAggregations';
 import { findExpertByKey, getYearCountByIndex, getCkeyAboutRaw, getOrgOutput, getOrgTechKeywords, findOrgByName } from '../services/wanfangService';
+import IndustryChainGraph from '../components/IndustryChainGraph';
 
 interface ChainTalentItem {
   id: string; name: string; title: string; field: string; institution: string;
@@ -158,43 +159,6 @@ const InnovationCard: React.FC<{
   );
 };
 
-// 递归将 IndustryGraphNode 转为 ECharts tree data（矩形边框样式）
-// maxDepth: 截断深度（undefined=全展开），depth: 当前递归深度
-function toEChartsTree(node: IndustryGraphNode, maxDepth?: number, depth = 0): object {
-  const nodeColor = statusColorMap[node.status];
-  const textColor = node.status === 'missing' ? '#999' : nodeColor;
-  const truncated = maxDepth !== undefined
-    && depth >= maxDepth
-    && node.children && node.children.length > 0;
-
-  return {
-    name: node.name,
-    itemStyle: {
-      color: '#fff',
-      borderColor: nodeColor,
-      borderWidth: 1.5,
-      borderType: node.status === 'missing' ? 'dashed' : 'solid',
-    },
-    label: truncated
-      ? {
-          formatter: `{name|${node.name}} {plus|⊕}`,
-          rich: {
-            name: { color: textColor, fontSize: 12, fontWeight: 500 },
-            plus: { color: '#2468F2', fontSize: 14, fontWeight: 700, padding: [0, 0, 0, 4] },
-          },
-        }
-      : { color: textColor },
-    children: truncated
-      ? undefined
-      : node.children?.map(c => toEChartsTree(c, maxDepth, depth + 1)),
-  };
-}
-
-// 递归收集所有节点到 map
-function collectNodes(node: IndustryGraphNode, map: Record<string, IndustryGraphNode>) {
-  map[node.name] = node;
-  node.children?.forEach(c => collectNodes(c, map));
-}
 
 const Industry: React.FC = () => {
   const { message } = App.useApp();
@@ -206,8 +170,7 @@ const Industry: React.FC = () => {
   const [searchValue, setSearchValue] = useState('');
 
   const [chinaMapRegistered, setChinaMapRegistered] = useState(false);
-  const [popoverNode, setPopoverNode] = useState<IndustryGraphNode | null>(null);
-  const [popoverPos, setPopoverPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  // (popoverNode/popoverPos moved into IndustryChainGraph)
   const mapChartRef = useRef<ReactECharts>(null);
   const [selectedProvince, setSelectedProvince] = useState<string | null>('湖北省');
   const innovationMapRef = useRef<ReactECharts>(null);
@@ -339,13 +302,6 @@ const Industry: React.FC = () => {
   const [drawerOrgOutput, setDrawerOrgOutput] = useState<{ patents: number; papers: number; iar: number } | null>(null);
   const [drawerOrgTech, setDrawerOrgTech] = useState<string[]>([]);
 
-  // 三棵树聚焦交互
-  const [focusedTree, setFocusedTree] = useState<StreamKey | null>(null);
-  const [popoverStream, setPopoverStream] = useState<StreamKey | null>(null);
-  const treeRefs = useRef<Record<StreamKey, ReactECharts | null>>({
-    upstream: null, midstream: null, downstream: null,
-  });
-
   // 创新资源数据 - 按省份
   const innovationDataByProvince: Record<string, {
     innovationTalent: number; innovationOrg: number; dualCreation: number; industrialPark: number; researchProject: number;
@@ -410,16 +366,6 @@ const Industry: React.FC = () => {
   const currentGraphData: IndustryGraphSet = industryGraphDataMap[selectedChainKey] || industryGraphDataMap.ai;
   const currentOverview = industryOverviewDataMap[selectedChainKey] || industryOverviewDataMap.ai;
 
-  // 节点查找表
-  const nodeMap = useMemo(() => {
-    const map: Record<string, IndustryGraphNode> = {};
-    const gd = currentGraphData;
-    collectNodes(gd.upstream.root, map);
-    collectNodes(gd.midstream.root, map);
-    collectNodes(gd.downstream.root, map);
-    return map;
-  }, [currentGraphData]);
-
   // Cascader onChange → 取第一级 value 作为产业链 key
   const onCascaderChange = (value: (string | number)[]) => {
     if (!value || value.length === 0) {
@@ -427,66 +373,7 @@ const Industry: React.FC = () => {
     } else {
       setSelectedChainKey(value[0] as string);
     }
-    setPopoverNode(null);
-    setFocusedTree(null);
   };
-
-  // ==================== 产业图谱：3 棵 ECharts Tree ====================
-  const getSingleTreeOption = (streamKey: StreamKey) => {
-    const root = currentGraphData[streamKey].root;
-    const isFocused = focusedTree === streamKey;
-
-    return {
-      tooltip: { show: false },
-      series: [{
-        type: 'tree',
-        data: [toEChartsTree(root, isFocused ? undefined : 2)],
-        orient: 'LR' as const,
-        top: '8%', bottom: '5%', left: '10%', right: '10%',
-        symbol: 'rect', symbolSize: [90, 28],
-        initialTreeDepth: isFocused ? 99 : 2,
-        edgeShape: 'polyline',
-        edgeForkPosition: '63%',
-        label: { fontSize: 12, fontWeight: 500, position: 'inside' as const },
-        lineStyle: { color: '#c0c8d4', width: 1 },
-        emphasis: { focus: 'descendant' },
-        expandAndCollapse: isFocused,
-        roam: isFocused,
-      }],
-    };
-  };
-
-  const handleTreeNodeClick = (streamKey: StreamKey) =>
-    (params: { name?: string; event?: { offsetX?: number; offsetY?: number; event?: { offsetX?: number; offsetY?: number } } }) => {
-      const name = params.name;
-      if (!name) return;
-      const nd = nodeMap[name];
-      if (!nd) return;
-
-      // 点击非聚焦树的有子节点节点 → 切换聚焦
-      if (focusedTree !== streamKey && nd.children && nd.children.length > 0) {
-        setFocusedTree(streamKey);
-        setPopoverNode(null);
-        return;
-      }
-
-      // 点击聚焦树或叶节点 → 显示弹窗
-      setPopoverNode(nd);
-      setPopoverStream(streamKey);
-      const ox = params.event?.event?.offsetX ?? params.event?.offsetX ?? 300;
-      const oy = params.event?.event?.offsetY ?? params.event?.offsetY ?? 200;
-      setPopoverPos({ x: ox, y: oy });
-    };
-
-  // 聚焦切换时触发 resize，让未重建的树适应新容器宽度
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      (['upstream', 'midstream', 'downstream'] as StreamKey[]).forEach(sk => {
-        treeRefs.current[sk]?.getEchartsInstance()?.resize();
-      });
-    }, 450);
-    return () => clearTimeout(timer);
-  }, [focusedTree]);
 
   // ==================== 产业总览图表 ====================
 
@@ -883,82 +770,18 @@ const Industry: React.FC = () => {
                     <Space size={4}><span style={{ display: 'inline-block', width: 12, height: 12, border: `2px dashed ${statusColorMap.missing}`, background: '#fff' }} /><Text style={{ fontSize: 13 }}>缺链</Text></Space>
                   </Space>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'stretch', height: 620 }}>
-                  {(['upstream', 'midstream', 'downstream'] as StreamKey[]).map((sk, idx) => {
-                    const isFocused = focusedTree === sk;
-                    const anyFocused = focusedTree !== null;
-                    const flex = anyFocused ? (isFocused ? '66%' : '15%') : '33.33%';
-                    const headers = sectionHeaderMap[selectedChainKey] || ['上游', '中游', '下游'];
-
-                    return (
-                      <React.Fragment key={sk}>
-                        {idx > 0 && (
-                          <div style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            width: 24, flexShrink: 0,
-                            color: '#bfc8d6', fontSize: 22, userSelect: 'none',
-                          }}>›</div>
-                        )}
-                        <div style={{
-                          flexBasis: flex, flexShrink: 0, flexGrow: 0,
-                          transition: 'flex-basis 0.4s cubic-bezier(0.4,0,0.2,1)',
-                          position: 'relative', minWidth: 0,
-                        }}>
-                          {/* 列标题 */}
-                          <div style={{
-                            textAlign: 'center', padding: '6px 0',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                          }}>
-                            <span style={{ width: 24, height: 1, background: '#d0d5dd', display: 'inline-block' }} />
-                            <Text strong style={{ fontSize: 15 }}>{headers[idx]}</Text>
-                            <span style={{ width: 24, height: 1, background: '#d0d5dd', display: 'inline-block' }} />
-                            {isFocused && (
-                              <Button type="text" size="small" onClick={() => setFocusedTree(null)}
-                                style={{ color: '#999', padding: '0 4px' }}>收起</Button>
-                            )}
-                          </div>
-                          {/* 图表 */}
-                          <div style={{ overflow: 'hidden' }}>
-                            <ReactECharts
-                              ref={(r) => { treeRefs.current[sk] = r; }}
-                              key={`${selectedChainKey}-${sk}-${focusedTree === sk}`}
-                              option={getSingleTreeOption(sk)}
-                              style={{ height: 580 }}
-                              onEvents={{ click: handleTreeNodeClick(sk) }}
-                              notMerge
-                            />
-                          </div>
-                          {/* 弹窗 */}
-                          {popoverNode && popoverStream === sk && (
-                            <div style={{
-                              position: 'absolute', left: Math.min(popoverPos.x + 10, 500), top: Math.min(popoverPos.y - 20, 420),
-                              background: '#fff', border: '1px solid #d9d9d9', borderRadius: 8, padding: 16,
-                              boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 100, width: 280,
-                            }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                                <Text strong style={{ fontSize: 17 }}>{popoverNode.name}</Text>
-                                <Tag color={statusColorMap[popoverNode.status]}>{statusLabelMap[popoverNode.status]}</Tag>
-                              </div>
-                              <div style={{ lineHeight: 2.2 }}>
-                                <div>企业 <Text strong>{popoverNode.enterprises}</Text> 家 &nbsp;|&nbsp; 人才 <Text strong>{popoverNode.talents}</Text> 人</div>
-                                <div>本地企业 <Text strong>{popoverNode.localEnterprises}</Text> 家 &nbsp;|&nbsp; 本地人才 <Text strong>{popoverNode.localTalents}</Text> 人</div>
-                              </div>
-                              <Space style={{ marginTop: 12 }} wrap>
-                                <Button type="link" onClick={() => { setPopoverNode(null); setActiveTab('enterprises'); }}>相关企业（找企业）</Button>
-                                <Button type="link" onClick={() => { setPopoverNode(null); navigate('/talent'); }}>相关人才（找人才）</Button>
-                              </Space>
-                              <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between' }}>
-                                <Button type="primary" size="small" icon={<PlusOutlined />}
-                                  onClick={() => { message.success(`已将"${popoverNode.name}"相关企业加入清单`); setPopoverNode(null); }}>加入清单</Button>
-                                <Button type="text" size="small" onClick={() => setPopoverNode(null)} style={{ color: '#999' }}>关闭</Button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </React.Fragment>
-                    );
-                  })}
-                </div>
+                <IndustryChainGraph
+                  key={selectedChainKey}
+                  graphData={currentGraphData}
+                  headers={sectionHeaderMap[selectedChainKey] || ['上游', '中游', '下游']}
+                  statusColorMap={statusColorMap}
+                  statusLabelMap={statusLabelMap}
+                  onNodeAction={(action, node) => {
+                    if (action === 'enterprises') setActiveTab('enterprises');
+                    else if (action === 'talent') navigate('/talent');
+                    else if (action === 'addList') message.success(`已将"${node.name}"相关企业加入清单`);
+                  }}
+                />
               </Card>
             </Col>
             <Col xs={24} lg={6} style={{ display: 'flex', flexDirection: 'column' }}>
