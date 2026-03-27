@@ -34,7 +34,7 @@ import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import { useNavigate } from 'react-router-dom';
 import { enterprises, industryGraphDataMap, industryOverviewDataMap, enterpriseList as mockEnterpriseList, enterpriseNews, keyTechnologies, coreTalents, patentLayout, cooperativeOrgs, industryChainColorConfig } from '../mock/data';
-import type { IndustryGraphNode, IndustryGraphSet } from '../mock/data';
+import type { IndustryGraphSet } from '../mock/data';
 import { aggregations } from '../mock/localAggregations';
 import { findExpertByKey, getYearCountByIndex, getCkeyAboutRaw, getOrgOutput, getOrgTechKeywords, findOrgByName } from '../services/wanfangService';
 import IndustryChainGraph from '../components/IndustryChainGraph';
@@ -56,7 +56,7 @@ const statusColorMap: Record<string, string> = {
   missing: industryChainColorConfig.status.missing,
 };
 const statusLabelMap: Record<string, string> = { strong: '强链', weak: '弱链', missing: '缺链' };
-type StreamKey = 'upstream' | 'midstream' | 'downstream';
+
 
 // 各产业链的三列标题映射
 const sectionHeaderMap: Record<string, [string, string, string]> = {
