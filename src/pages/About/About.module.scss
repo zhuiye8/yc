@@ -1,0 +1,289 @@
+@use '@/styles/variables' as *;
+
+.page { background: $white; }
+
+.hero {
+  width: 100%;
+  height: 360px;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.content {
+  max-width: $content-max-width;
+  margin: 0 auto;
+  padding: $space-3xl $space-2xl $space-4xl;
+}
+
+// 蓝黑相间标题
+.sectionTitle {
+  text-align: center;
+  font-size: $font-size-2xl;
+  font-weight: 700;
+  color: $gray-900;
+  margin-bottom: $space-sm;
+
+  .blue { color: $primary-500; }
+}
+
+.sectionSubtitle {
+  text-align: center;
+  font-size: $font-size-sm;
+  color: $gray-400;
+  margin-bottom: $space-xl;
+}
+
+.introText {
+  font-size: $font-size-base;
+  color: $gray-600;
+  line-height: 2;
+  margin-bottom: $space-2xl;
+  text-indent: 2em;
+}
+
+// 两张图片卡片
+.bannerCards {
+  display: flex;
+  gap: $space-lg;
+  margin-bottom: $space-3xl;
+}
+
+.bannerCard {
+  flex: 1;
+  position: relative;
+  border-radius: $radius-md;
+  overflow: hidden;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: $space-xl $space-2xl;
+
+  img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+
+  // 深色遮罩确保文字可读
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0, 40, 100, 0.6) 0%, rgba(0, 40, 100, 0.3) 100%);
+    z-index: 1;
+  }
+}
+
+.bannerContent {
+  position: relative;
+  z-index: 2;
+}
+
+.bannerTag {
+  font-size: $font-size-sm;
+  color: #7BBFFF;
+  font-weight: 600;
+  margin-bottom: $space-sm;
+}
+
+.bannerTitle {
+  font-size: $font-size-2xl;
+  font-weight: 700;
+  color: $white;
+  margin-bottom: $space-sm;
+}
+
+.bannerDesc {
+  font-size: $font-size-sm;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+}
+
+// 当前版本 + 已上线能力 两栏
+.twoCol {
+  display: flex;
+  gap: $space-3xl;
+  margin-bottom: $space-3xl;
+}
+
+.colItem {
+  flex: 1;
+
+  h3 {
+    font-size: $font-size-lg;
+    font-weight: 600;
+    color: $gray-800;
+    margin-bottom: $space-md;
+    padding-bottom: $space-sm;
+    border-bottom: 2px solid $primary-500;
+    display: inline-block;
+
+    .blue { color: $primary-500; }
+  }
+
+  p, li {
+    font-size: $font-size-sm;
+    color: $gray-600;
+    line-height: 2;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+
+    li::before {
+      content: '✓ ';
+      color: $primary-500;
+      font-weight: 600;
+    }
+  }
+}
+
+.versionTag {
+  display: inline-flex;
+  gap: $space-sm;
+  align-items: center;
+  margin-bottom: $space-md;
+
+  span {
+    padding: 2px 10px;
+    border-radius: 2px;
+    font-size: $font-size-xs;
+  }
+}
+
+// 数据更新指标 — 三等分平铺
+.metricsRow {
+  display: flex;
+  margin-bottom: $space-3xl;
+  padding: $space-xl 0;
+}
+
+.metricItem {
+  flex: 1;
+  text-align: center;
+}
+
+.metricLabel {
+  font-size: $font-size-sm;
+  color: $gray-400;
+  margin-bottom: $space-sm;
+}
+
+.metricNum {
+  font-size: 36px;
+  font-weight: 700;
+  color: $gray-900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-sm;
+}
+
+.metricUnit {
+  font-size: $font-size-base;
+  color: $gray-500;
+  font-weight: 400;
+}
+
+.metricIcon {
+  color: $primary-500;
+  font-size: 20px;
+}
+
+// 未来发展目标
+.goalTags {
+  display: flex;
+  justify-content: center;
+  gap: $space-sm;
+  margin-bottom: $space-xl;
+}
+
+.goalTag {
+  padding: 4px 16px;
+  border-radius: 2px;
+  font-size: $font-size-sm;
+  color: $primary-500;
+  background: $primary-50;
+  border: 1px solid $primary-200;
+}
+
+.goalCards {
+  display: flex;
+  gap: $space-lg;
+  margin-bottom: $space-3xl;
+}
+
+// 卡片按素材比例 279:337
+.goalCard {
+  flex: 1;
+  text-align: center;
+  border-radius: $radius-md;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 279 / 337;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 $space-lg $space-xl;
+  transition: box-shadow 0.2s;
+  &:hover { box-shadow: $shadow-md; }
+}
+
+// 背景图铺满
+.goalBg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 0;
+}
+
+.goalTitle {
+  position: relative;
+  z-index: 1;
+  font-size: $font-size-2xl;
+  font-weight: 700;
+  color: $gray-800;
+  margin-bottom: $space-sm;
+}
+
+.goalDesc {
+  position: relative;
+  z-index: 1;
+  font-size: $font-size-xs;
+  color: $gray-500;
+  line-height: 1.6;
+}
+
+// 使用帮助
+.helpCards {
+  display: flex;
+  gap: $space-lg;
+  margin-bottom: $space-lg;
+}
+
+.helpCard {
+  flex: 1;
+  padding: $space-lg;
+  border: 1px solid $gray-200;
+  border-radius: $radius-md;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: $font-size-base;
+  color: $gray-700;
+  &:hover { border-color: $primary-500; color: $primary-500; }
+}
+
+.helpNote {
+  text-align: center;
+  font-size: $font-size-sm;
+  color: $gray-400;
+}

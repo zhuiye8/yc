@@ -1,0 +1,194 @@
+@use '@/styles/variables' as *;
+@use '@/styles/mixins' as *;
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e8eef8 0%, #d5dff3 30%, #c8d8f0 60%, #bdd0ed 100%);
+  background-image: url('@/assets/images/hero/login-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  padding: $space-2xl;
+}
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1100px;
+  gap: $space-5xl;
+}
+
+// ========== 左侧品牌区 ==========
+.brandSide {
+  flex: 1;
+  max-width: 480px;
+}
+
+.logo {
+  height: 48px;
+  margin-bottom: $space-2xl;
+}
+
+.brandTitle {
+  font-size: 42px;
+  font-weight: 700;
+  color: $gray-900;
+  line-height: 1.2;
+  margin-bottom: $space-lg;
+}
+
+.brandDesc {
+  font-size: $font-size-md;
+  color: $gray-600;
+  line-height: 1.8;
+  margin-bottom: $space-2xl;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm;
+}
+
+.tag {
+  padding: 6px 18px;
+  border-radius: $radius-full;
+  font-size: $font-size-sm;
+  font-weight: 500;
+  color: $white;
+  cursor: default;
+
+  &.blue { background: $primary-500; }
+  &.cyan { background: #1ec7c7; }
+  &.orange { background: #e88a3a; }
+  &.red { background: #d65454; }
+}
+
+// ========== 右侧登录面板 ==========
+.loginPanel {
+  width: 400px;
+  flex-shrink: 0;
+  @include glass-effect(16px, rgba(255, 255, 255, 0.92));
+  border-radius: $radius-lg;
+  padding: $space-3xl $space-2xl;
+  box-shadow: $shadow-lg;
+}
+
+.panelTitle {
+  font-size: $font-size-3xl;
+  font-weight: 600;
+  color: $gray-900;
+  margin-bottom: $space-2xl;
+}
+
+.inputGroup {
+  margin-bottom: $space-lg;
+}
+
+.inputWrapper {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+  padding: $space-md $space-base;
+  border: 1px solid $gray-200;
+  border-radius: $radius-base;
+  background: $white;
+  transition: border-color 0.2s;
+
+  &:focus-within {
+    border-color: $primary-500;
+  }
+
+  .inputIcon {
+    color: $gray-400;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: $font-size-base;
+    color: $gray-900;
+    background: transparent;
+
+    &::placeholder {
+      color: $gray-400;
+    }
+  }
+}
+
+.loginBtn {
+  width: 100%;
+  height: 44px;
+  border: none;
+  border-radius: $radius-base;
+  background: $primary-500;
+  color: $white;
+  font-size: $font-size-lg;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  letter-spacing: 8px;
+  text-indent: 8px;
+  margin-top: $space-sm;
+
+  &:hover {
+    background: $primary-600;
+  }
+
+  &:disabled {
+    background: $gray-300;
+    cursor: not-allowed;
+  }
+}
+
+.panelFooter {
+  display: flex;
+  justify-content: space-between;
+  margin-top: $space-lg;
+
+  a {
+    font-size: $font-size-sm;
+    color: $gray-500;
+    cursor: pointer;
+
+    &:hover {
+      color: $primary-500;
+    }
+  }
+}
+
+.errorMsg {
+  color: $error;
+  font-size: $font-size-sm;
+  margin-bottom: $space-md;
+}
+
+// ========== 响应式 ==========
+@include respond-to(lg) {
+  .container {
+    flex-direction: column;
+    gap: $space-2xl;
+  }
+
+  .brandSide {
+    text-align: center;
+    max-width: 100%;
+  }
+
+  .tags {
+    justify-content: center;
+  }
+}
+
+@include respond-to(md) {
+  .brandSide {
+    display: none;
+  }
+}

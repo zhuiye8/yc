@@ -1,0 +1,132 @@
+@use '@/styles/variables' as *;
+
+// Hero 外层：需要允许搜索框溢出底部
+.heroOuter {
+  position: relative;
+  margin-bottom: 160px; // 给搜索框溢出留空间
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 280px;
+}
+
+.heroBg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+// 搜索容器：绝对定位，横跨 Hero 底部边缘
+.searchContainer {
+  position: absolute;
+  bottom: -100px; // 向下溢出 Hero
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 $space-2xl;
+}
+
+.searchWrapper {
+  background: linear-gradient(180deg, rgba(225, 237, 255, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: $radius-md;
+  padding: $space-xl $space-xl $space-lg;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+}
+
+.searchInput {
+  flex: 1;
+  height: 60px;
+  padding: 0 $space-xl;
+  border: 1px solid $gray-200;
+  border-radius: $radius-base;
+  font-size: $font-size-lg;
+  outline: none;
+  background: $white;
+
+  &::placeholder {
+    color: $gray-400;
+  }
+
+  &:focus {
+    border-color: $primary-400;
+  }
+}
+
+.searchBtn {
+  height: 60px;
+  padding: 0 36px;
+  background: linear-gradient(135deg, #5a9cf7 0%, #2468F2 100%);
+  color: $white;
+  border: none;
+  border-radius: $radius-base;
+  font-size: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.searchIcon {
+  width: 24px;
+  height: 24px;
+}
+
+// 热门标签
+.hotTags {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  flex-wrap: wrap;
+  margin-top: $space-md;
+  justify-content: center;
+}
+
+.hotLabel {
+  font-size: $font-size-sm;
+  color: $gray-600;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.hotTag {
+  padding: 4px 16px;
+  border: 1px solid $gray-300;
+  border-radius: 2px; // 直角
+  font-size: $font-size-sm;
+  color: $gray-700;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: $white;
+
+  &:hover {
+    color: $primary-500;
+    border-color: $primary-500;
+    background: $primary-50;
+  }
+}

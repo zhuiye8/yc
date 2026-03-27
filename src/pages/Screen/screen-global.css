@@ -1,0 +1,304 @@
+/* 大屏全局样式 — 从旧项目 App.scss 迁移 */
+
+/* ===== 三栏布局 ===== */
+.main-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.2fr 2fr 1.2fr;
+  gap: 8px;
+  padding: 0 16px;
+  min-height: 0;
+}
+
+/* ===== 左侧栏 ===== */
+.left-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.left-middle {
+  flex: 1.5;
+  background-image: url('/src/assets/images/screen/talent.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 0;
+  margin: 8px 0;
+}
+
+.left-middle .left-middle-title {
+  width: 100%;
+  height: 40px;
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  background-image: url('/src/assets/images/screen/industry-title.png');
+}
+
+.left-bottom {
+  flex: 1.5;
+  background-image: url('/src/assets/images/screen/talent.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 0;
+  margin: 8px 0;
+}
+
+.left-bottom .left-bottom-title {
+  width: 100%;
+  height: 40px;
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  background-image: url('/src/assets/images/screen/talent-title.png');
+}
+
+/* ===== 中间栏 ===== */
+.middle-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.middle-top {
+  flex: 0 0 auto;
+  height: 60px;
+  border-radius: 12px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.tab-item {
+  padding: 16px 32px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #00c6ff;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.3s;
+  background-image: url('/src/assets/images/screen/tab.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  white-space: nowrap;
+}
+
+.tab-item:hover {
+  background-image: url('/src/assets/images/screen/tab-hover.png');
+  color: #00ffc0;
+}
+
+.middle-center {
+  flex: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+}
+
+.map-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ===== 右侧栏 ===== */
+.right-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.right-top {
+  flex: 2;
+  background-image: url('/src/assets/images/screen/innovation.png');
+  background-size: cover;
+  background-position: bottom;
+  background-repeat: no-repeat;
+  min-height: 0;
+  margin: 8px 0;
+}
+
+.right-top .right-top-title {
+  width: 100%;
+  height: 40px;
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  background-image: url('/src/assets/images/screen/innovation-title.png');
+}
+
+.right-middle {
+  flex: 2;
+  background-image: url('/src/assets/images/screen/innovation.png');
+  background-size: cover;
+  background-position: bottom;
+  background-repeat: no-repeat;
+  min-height: 0;
+  margin: 8px 0;
+}
+
+.right-middle .right-middle-title {
+  width: 100%;
+  height: 40px;
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  background-image: url('/src/assets/images/screen/funds-title.png');
+}
+
+.right-bottom {
+  flex: 2;
+  background-image: url('/src/assets/images/screen/innovation.png');
+  background-size: cover;
+  background-position: bottom;
+  background-repeat: no-repeat;
+  min-height: 0;
+  margin: 8px 0;
+}
+
+.right-bottom .right-bottom-title {
+  width: 100%;
+  height: 40px;
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  background-image: url('/src/assets/images/screen/policy-title.png');
+}
+
+/* ===== 产业页特殊样式 ===== */
+.industry-container .industry-top {
+  flex: 1;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.industry-container .industry-items {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  height: 100%;
+}
+
+.industry-container .industry-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.3s;
+  background-image: url('/src/assets/images/screen/industry-bg.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  font-size: 14px;
+  color: #00c6ff;
+  cursor: pointer;
+}
+
+.industry-container .industry-item:hover,
+.industry-container .industry-item.active {
+  color: #00ffc0;
+  filter: brightness(1.3);
+}
+
+.industry-container .left-middle {
+  flex: 2;
+}
+
+.industry-container .left-middle .left-middle-title {
+  background-image: url('/src/assets/images/screen/indicator-title.png');
+}
+
+.industry-container .left-bottom {
+  flex: 2;
+}
+
+.industry-container .left-bottom .left-bottom-title {
+  background-image: url('/src/assets/images/screen/enterprise-title.png');
+}
+
+.industry-container .right-middle .right-middle-title {
+  background-image: url('/src/assets/images/screen/industry-talent-title.png');
+}
+
+.industry-container .right-bottom .right-bottom-title {
+  background-image: url('/src/assets/images/screen/distribution-title.png');
+}
+
+/* ===== 人才页特殊标题 ===== */
+.talent-container .left-middle .left-middle-title {
+  background-image: url('/src/assets/images/screen/nationwide-title.png');
+}
+
+.talent-container .left-bottom .left-bottom-title {
+  background-image: url('/src/assets/images/screen/classfication-title.png');
+}
+
+.talent-container .left-extra .left-extra-title {
+  width: 100%;
+  height: 40px;
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  background-image: url('/src/assets/images/screen/total-title.png');
+}
+
+.talent-container .left-extra {
+  flex: 1.5;
+  background-image: url('/src/assets/images/screen/talent.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 0;
+  margin: 8px 0;
+}
+
+.talent-container .right-top .right-top-title {
+  background-image: url('/src/assets/images/screen/yichang-title.png');
+}
+
+.talent-container .right-middle .right-middle-title {
+  background-image: url('/src/assets/images/screen/valuechain-title.png');
+}
+
+.talent-container .right-bottom .right-bottom-title {
+  background-image: url('/src/assets/images/screen/gapcount-title.png');
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 1600px) {
+  .main-content { gap: 6px; padding: 0 14px; }
+  .middle-top { height: 54px; }
+  .tab-item { padding: 20px 40px; font-size: 16px; }
+}
+
+@media (max-width: 1400px) {
+  .main-content { gap: 6px; padding: 0 12px; }
+  .middle-top { height: 48px; }
+  .tab-item { padding: 16px 32px; font-size: 14px; }
+}
+
+@media (max-width: 1200px) {
+  .main-content { grid-template-columns: 1fr 1.5fr 1fr; gap: 6px; padding: 0 10px; }
+  .middle-top { height: 42px; }
+  .tab-item { padding: 12px 24px; font-size: 12px; }
+}

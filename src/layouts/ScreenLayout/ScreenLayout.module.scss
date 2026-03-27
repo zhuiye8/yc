@@ -1,0 +1,113 @@
+@use '@/styles/variables' as *;
+
+.container {
+  width: 100vw;
+  height: 100vh;
+  background-image: url('@/assets/images/screen/bgimg.jpg');
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+  color: $screen-text;
+  overflow: hidden;
+}
+
+.header {
+  height: 120px;
+  background-image: url('@/assets/images/screen/header.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.clock {
+  position: absolute;
+  top: 72px;
+  left: 48px;
+  z-index: 10;
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+}
+
+.time {
+  font-size: 36px;
+  font-weight: bold;
+  background: linear-gradient(135deg, #fff 0%, #31ebeb 50%, #2962FF 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 2px;
+}
+
+.date {
+  font-size: $font-size-xl;
+  color: $screen-text-muted;
+}
+
+.mainContent {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.2fr 2fr 1.2fr;
+  gap: 8px;
+  padding: 0 16px;
+  overflow: hidden;
+}
+
+.leftColumn,
+.middleColumn,
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.bottom {
+  height: 80px;
+  background-image: url('@/assets/images/screen/home-bottom.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.returnBtn {
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.3s;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  img {
+    height: 40px;
+  }
+}
+
+// 大屏滚动条
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+// 响应式
+@media (max-width: 1600px) {
+  .header { height: 108px; }
+  .time { font-size: 32px; }
+}
+
+@media (max-width: 1400px) {
+  .header { height: 96px; }
+  .time { font-size: 28px; }
+  .clock { top: 60px; left: 36px; }
+}

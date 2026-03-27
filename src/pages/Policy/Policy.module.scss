@@ -1,0 +1,163 @@
+@use '@/styles/variables' as *;
+
+.tabBar {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $space-lg $space-2xl 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tabLeft { display: flex; gap: 0; }
+
+.tab {
+  padding: 8px 24px;
+  font-size: $font-size-base;
+  cursor: pointer;
+  color: $white;
+  &:first-child { border-radius: $radius-full 0 0 $radius-full; }
+  &:last-child { border-radius: 0 $radius-full $radius-full 0; }
+  &.active { background: #F26B4A; }
+  &.inactive { background: $primary-500; }
+  &:hover { opacity: 0.9; }
+}
+
+.tabRight { display: flex; align-items: center; gap: $space-md; }
+.filterLabel { font-size: $font-size-sm; color: $gray-500; }
+
+// 提示条（全宽）
+.tipBar {
+  max-width: 1400px;
+  margin: $space-md auto 0;
+  padding: 0 $space-2xl;
+}
+
+.tipContent {
+  background: $primary-50;
+  border-radius: $radius-base;
+  padding: $space-sm $space-lg;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: $font-size-sm;
+  color: $primary-500;
+}
+
+// 内容区
+.content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $space-lg $space-2xl $space-2xl;
+}
+
+// 两列布局：左(政策列表) 右(预警+更新)，等高
+.twoColumn {
+  display: flex;
+  gap: $space-xl;
+  align-items: stretch;
+}
+
+.mainCol {
+  flex: 1;
+  min-width: 0;
+
+  // 列表面板撑满左列高度
+  .listPanel {
+    height: 100%;
+  }
+}
+
+.sideCol {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+}
+
+.panel {
+  background: $white;
+  border-radius: $radius-md;
+  padding: $space-lg;
+  box-shadow: $shadow-sm;
+}
+
+// 左列的列表面板——不强制撑满，自然高度即可
+.listPanel {
+  composes: panel;
+}
+
+.panelTitle {
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $gray-800;
+  margin-bottom: $space-md;
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+
+  .icon { color: $primary-500; }
+}
+
+.listHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $space-md;
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $space-md;
+}
+
+// 预警订阅
+.alertItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $space-md 0;
+  border-bottom: 1px solid $gray-100;
+  font-size: $font-size-sm;
+
+  &:last-child { border-bottom: none; }
+}
+
+.alertName {
+  color: $gray-800;
+  font-weight: 500;
+}
+
+.alertDesc {
+  font-size: $font-size-xs;
+  color: $gray-400;
+  margin-top: 2px;
+}
+
+// 本周更新（撑满右列剩余空间，与左列底部对齐）
+.updatePanel {
+  composes: panel;
+  flex: 1;
+}
+
+.updateItem {
+  padding: $space-sm 0;
+  border-bottom: 1px solid $gray-100;
+  font-size: $font-size-sm;
+
+  &:last-child { border-bottom: none; }
+}
+
+.updateTitle {
+  color: $gray-800;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.updateDate {
+  font-size: $font-size-xs;
+  color: $gray-400;
+}

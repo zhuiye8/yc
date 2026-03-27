@@ -1,0 +1,228 @@
+@use '@/styles/variables' as *;
+
+.tabBar {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $space-lg $space-2xl 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tabLeft { display: flex; gap: 0; }
+
+.tab {
+  padding: 8px 24px;
+  font-size: $font-size-base;
+  cursor: pointer;
+  color: $white;
+  &:first-child { border-radius: $radius-full 0 0 $radius-full; }
+  &:last-child { border-radius: 0 $radius-full $radius-full 0; }
+  &.active { background: #F26B4A; }
+  &.inactive { background: $primary-500; }
+  &:hover { opacity: 0.9; }
+}
+
+.tabRight { display: flex; align-items: center; gap: $space-md; }
+.filterLabel { font-size: $font-size-sm; color: $gray-500; }
+
+.content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $space-lg $space-2xl $space-2xl;
+}
+
+// 网格布局：精确对齐左右两列的各行
+.twoColumn {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  grid-template-rows: auto auto;
+  gap: $space-lg $space-xl;
+}
+
+// 左上：统计卡片 + 基金类型
+.mainTop {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+// 右上：对接清单（与左上底部对齐）
+.sideTop {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+// 左下：子Tab + 表格
+.mainBottom {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+// 右下：跟进记录（与左下底部对齐）
+.sideBottom {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+// 统计卡片
+.statsRow {
+  display: flex;
+  gap: $space-md;
+  margin-bottom: $space-lg;
+}
+
+.statCard {
+  flex: 1;
+  background: $white;
+  border-radius: $radius-md;
+  padding: $space-lg $space-md;
+  text-align: center;
+  box-shadow: $shadow-sm;
+  transition: box-shadow 0.2s;
+
+  &:hover {
+    box-shadow: $shadow-md;
+  }
+}
+
+.statIcon { margin-bottom: $space-sm; }
+
+.statTitle {
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $gray-800;
+}
+
+.statDesc {
+  font-size: $font-size-xs;
+  color: $gray-400;
+  margin-bottom: $space-sm;
+}
+
+.statNum {
+  font-size: $font-size-3xl;
+  font-weight: 700;
+}
+
+.statUnit {
+  font-size: $font-size-sm;
+  font-weight: 400;
+  margin-left: 2px;
+}
+
+// 基金类型卡片
+.fundRow {
+  display: flex;
+  gap: $space-sm;
+  margin-bottom: $space-xl;
+}
+
+.fundCard {
+  flex: 1;
+  background: $white;
+  border-radius: $radius-base;
+  padding: $space-md $space-sm;
+  text-align: center;
+  box-shadow: $shadow-sm;
+  transition: box-shadow 0.2s;
+
+  &:hover {
+    box-shadow: $shadow-md;
+  }
+}
+
+.fundLabel {
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $gray-800;
+}
+
+.fundDesc {
+  font-size: 10px;
+  color: $gray-400;
+  margin-bottom: $space-xs;
+}
+
+.fundNum {
+  font-size: $font-size-2xl;
+  font-weight: 700;
+}
+
+.fundUnit {
+  font-size: $font-size-xs;
+  font-weight: 400;
+  margin-left: 2px;
+}
+
+// 子Tab
+.subTabBar {
+  display: flex;
+  gap: 0;
+}
+
+.subTab {
+  padding: 6px 20px;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  color: $white;
+  &:first-child { border-radius: $radius-full 0 0 $radius-full; }
+  &:last-child { border-radius: 0 $radius-full $radius-full 0; }
+  &.active { background: #F26B4A; }
+  &.inactive { background: $primary-500; }
+}
+
+// 通用面板
+.panel {
+  background: $white;
+  border-radius: $radius-md;
+  padding: $space-lg;
+  box-shadow: $shadow-sm;
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $space-md;
+}
+
+.panelTitle {
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $gray-800;
+  margin-bottom: $space-md;
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+
+  .icon { color: $primary-500; }
+}
+
+// 对接清单项
+.dockItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $space-sm 0;
+  border-bottom: 1px solid $gray-100;
+  font-size: $font-size-sm;
+
+  &:last-child { border-bottom: none; }
+}
+
+// 跟进记录
+.recordItem {
+  padding: $space-sm 0;
+  border-bottom: 1px solid $gray-100;
+  font-size: $font-size-sm;
+  color: $gray-600;
+
+  &:last-child { border-bottom: none; }
+
+  .recordDate {
+    font-size: $font-size-xs;
+    color: $gray-400;
+    display: block;
+    margin-top: 2px;
+  }
+}

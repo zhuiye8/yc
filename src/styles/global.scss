@@ -1,0 +1,96 @@
+@use './variables' as *;
+
+// ========== 全局重置 ==========
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: $font-size-base;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: $font-family;
+  color: $gray-900;
+  background-color: $gray-50;
+  line-height: 1.6;
+}
+
+a {
+  color: $primary-500;
+  text-decoration: none;
+}
+
+// ========== Ant Design 全局覆盖 ==========
+
+// 按钮胶囊化
+.ant-btn {
+  border-radius: $radius-xl;
+}
+
+// 卡片大圆角
+.ant-card {
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  border: none;
+
+  &:hover {
+    box-shadow: $shadow-card-hover;
+  }
+}
+
+// Tab 胶囊风格
+.ant-tabs-nav-list {
+  background: $gray-100;
+  border-radius: $radius-xl;
+  padding: 3px;
+}
+
+.ant-tabs-tab {
+  border-radius: $radius-xl !important;
+  padding: 6px 20px !important;
+  margin: 0 !important;
+  transition: all 0.3s;
+
+  &.ant-tabs-tab-active {
+    background: $primary-500;
+
+    .ant-tabs-tab-btn {
+      color: $white !important;
+    }
+  }
+}
+
+.ant-tabs-ink-bar {
+  display: none;
+}
+
+// 表格优化
+.ant-table {
+  border-radius: $radius-md;
+}
+
+// 滚动条美化
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $gray-300;
+  border-radius: 3px;
+
+  &:hover {
+    background: $gray-400;
+  }
+}

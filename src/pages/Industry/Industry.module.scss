@@ -1,0 +1,293 @@
+@use '@/styles/variables' as *;
+
+// 主 Tab 区
+.tabBar {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $space-lg $space-2xl 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tabLeft {
+  display: flex;
+  gap: 0;
+}
+
+.tab {
+  padding: 8px 24px;
+  font-size: $font-size-base;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: $white;
+
+  &:first-child {
+    border-radius: $radius-full 0 0 $radius-full;
+  }
+
+  &:last-child {
+    border-radius: 0 $radius-full $radius-full 0;
+  }
+
+  // 选中态：橙红色
+  &.active {
+    background: #F26B4A;
+    color: $white;
+  }
+
+  // 未选中态：蓝色
+  &.inactive {
+    background: $primary-500;
+    color: $white;
+  }
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.tabRight {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+}
+
+.filterLabel {
+  font-size: $font-size-sm;
+  color: $gray-500;
+}
+
+// 图谱视图 内容区
+.graphSection {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $space-lg $space-2xl;
+}
+
+.graphDesc {
+  font-size: $font-size-sm;
+  color: $gray-500;
+  margin-bottom: $space-lg;
+  line-height: 1.6;
+}
+
+// 整体两列布局：左（图谱+企业）右（指标+人才），底部对齐
+.graphLayout {
+  display: flex;
+  gap: $space-xl;
+}
+
+// 左列：图谱 + 链上企业
+.leftColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+}
+
+.graphArea {
+  background: $white;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  padding: $space-lg;
+  overflow: hidden;
+}
+
+// 三列树形图谱（React 自绘）
+.treeColumns {
+  display: flex;
+  gap: 0;
+  min-height: 300px;
+  overflow-x: auto;
+  padding-bottom: $space-md;
+}
+
+// 右列：指标 + 链上人才
+.sidePanel {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+}
+
+// 侧面板卡片
+.panelCard {
+  background: $white;
+  border-radius: $radius-md;
+  padding: $space-lg;
+  box-shadow: $shadow-sm;
+}
+
+.panelTitle {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $gray-800;
+  margin-bottom: $space-md;
+
+  .icon {
+    color: $primary-500;
+  }
+}
+
+.statValue {
+  font-size: 32px;
+  font-weight: 700;
+  color: $gray-900;
+  line-height: 1;
+}
+
+.statTrend {
+  font-size: $font-size-sm;
+  margin-left: $space-sm;
+
+  &.up { color: #e74c3c; }
+  &.down { color: $success; }
+}
+
+.statSub {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  margin-top: $space-sm;
+}
+
+.progressBar {
+  margin-top: $space-sm;
+  height: 6px;
+  background: $gray-100;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: $primary-500;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+// 图例
+.legend {
+  display: flex;
+  gap: $space-lg;
+  font-size: $font-size-sm;
+  color: $gray-600;
+  margin-bottom: $space-sm;
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+// 链上人才表格
+.talentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $space-md;
+}
+
+.talentTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $font-size-sm;
+
+  th {
+    text-align: left;
+    padding: $space-sm $space-xs;
+    color: $gray-500;
+    font-weight: 400;
+    border-bottom: 1px solid $gray-200;
+  }
+
+  td {
+    padding: $space-sm $space-xs;
+    color: $gray-800;
+    border-bottom: 1px solid $gray-100;
+  }
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $space-md;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  font-size: $font-size-lg;
+  font-weight: 600;
+  color: $gray-800;
+
+  .icon {
+    color: $primary-500;
+  }
+}
+
+// 企业双列表格
+.enterpriseGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-xl;
+}
+
+.enterpriseTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $font-size-sm;
+
+  th {
+    text-align: left;
+    padding: $space-sm $space-xs;
+    color: $gray-500;
+    font-weight: 400;
+    border-bottom: 1px solid $gray-200;
+  }
+
+  td {
+    padding: $space-sm $space-xs;
+    color: $gray-800;
+    border-bottom: 1px solid $gray-100;
+  }
+}
+
+.scoreCircle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid $primary-400;
+  color: $primary-500;
+  font-size: $font-size-sm;
+  font-weight: 600;
+}
+
+.viewAll {
+  text-align: right;
+  font-size: $font-size-sm;
+  color: $gray-500;
+  margin-top: $space-sm;
+  cursor: pointer;
+
+  &:hover {
+    color: $primary-500;
+  }
+}

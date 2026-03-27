@@ -1,0 +1,177 @@
+@use '@/styles/variables' as *;
+
+// 单列容器
+.column {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: $space-sm 0;
+}
+
+// 流标题
+.streamLabel {
+  display: block;
+  text-align: center;
+  margin-bottom: $space-base;
+
+  span {
+    display: inline-block;
+    padding: 6px 28px;
+    background: $primary-500;
+    color: $white;
+    font-size: $font-size-sm;
+    font-weight: 600;
+    border-radius: $radius-full;
+  }
+}
+
+// 树根容器
+.tree {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+// 每一层的子节点横向排列
+.nodeGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+// 子节点行
+.childrenRow {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  margin-top: 0;
+}
+
+// 竖线：从父节点到横线
+.vLine {
+  width: 1px;
+  height: 20px;
+  background: #C9CDD4;
+  margin: 0 auto;
+}
+
+// 横线：连接所有子节点（用border实现）
+.hLine {
+  height: 1px;
+  background: #C9CDD4;
+  align-self: stretch;
+  margin: 0 calc(50% / var(--child-count, 1));
+}
+
+// 子节点包裹器
+.childBranch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+// ===== 节点胶囊样式 =====
+.capsule {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1.5px solid;
+  background: $white;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 12px;
+  transition: box-shadow 0.15s;
+  position: relative;
+
+  &:hover {
+    box-shadow: 0 2px 12px rgba(36, 104, 242, 0.15);
+  }
+
+  &.strong { border-color: #2468F2; }
+  &.weak { border-color: #7BA3FA; }
+  &.missing { border-color: #BFC8D6; }
+}
+
+.rootCapsule {
+  composes: capsule;
+  background: $primary-500;
+  border-color: $primary-500 !important;
+  color: $white;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 7px 18px;
+  border-radius: $radius-full;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &.strong { background: #2468F2; }
+  &.weak { background: #7BA3FA; }
+  &.missing { background: #BFC8D6; }
+}
+
+.name {
+  font-weight: 500;
+  color: $gray-800;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  .rootCapsule & {
+    color: $white;
+    max-width: none;
+  }
+}
+
+.stats {
+  font-size: 10px;
+  color: $gray-400;
+  margin-left: 2px;
+}
+
+// 折叠指示器
+.toggle {
+  font-size: 10px;
+  color: $gray-400;
+  margin-left: 2px;
+}
+
+// Tooltip
+.tip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(29, 33, 41, 0.9);
+  color: $white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 100;
+  line-height: 1.7;
+
+  .capsule:hover > &,
+  .rootCapsule:hover > & {
+    display: block;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(29, 33, 41, 0.9);
+  }
+}

@@ -1,0 +1,193 @@
+@use '@/styles/variables' as *;
+
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: $gray-50;
+}
+
+// ========== Header ==========
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: $white;
+  box-shadow: $shadow-sm;
+  height: $header-height;
+  display: flex;
+  align-items: center;
+  padding: 0 $space-2xl;
+}
+
+.headerInner {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logoArea {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  img {
+    height: 32px;
+  }
+
+  span {
+    font-size: $font-size-lg;
+    font-weight: 600;
+    color: $gray-900;
+    white-space: nowrap;
+  }
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  margin: 0 $space-2xl;
+}
+
+.navItem {
+  padding: $space-sm $space-base;
+  font-size: $font-size-base;
+  color: $gray-700;
+  border-radius: $radius-base;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+
+  &:hover {
+    color: $primary-500;
+    background: $primary-50;
+  }
+
+  &.active {
+    color: $primary-500;
+    font-weight: 500;
+  }
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: $space-lg;
+  flex-shrink: 0;
+}
+
+.headerAction {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  cursor: pointer;
+  color: $gray-600;
+  font-size: $font-size-sm;
+  transition: color 0.2s;
+
+  &:hover {
+    color: $primary-500;
+  }
+}
+
+// ========== Content ==========
+.content {
+  flex: 1;
+}
+
+// ========== Footer ==========
+.footer {
+  background: $white;
+  border-top: 1px solid $gray-200;
+  padding: $space-2xl 0 $space-lg;
+}
+
+.footerInner {
+  max-width: $content-max-width;
+  margin: 0 auto;
+  padding: 0 $space-2xl;
+}
+
+.footerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: $space-3xl;
+}
+
+.footerBrand {
+  flex: 1;
+}
+
+.footerSlogan {
+  font-size: $font-size-base;
+  color: $gray-600;
+  margin-bottom: $space-md;
+}
+
+.footerNav {
+  display: flex;
+  gap: $space-base;
+  margin-bottom: $space-md;
+
+  span {
+    font-size: $font-size-sm;
+    color: $gray-500;
+    cursor: pointer;
+    position: relative;
+
+    &:not(:last-child)::after {
+      content: '|';
+      margin-left: $space-base;
+      color: $gray-300;
+    }
+
+    &:hover {
+      color: $primary-500;
+    }
+  }
+}
+
+.footerContact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-xl;
+  font-size: $font-size-sm;
+  color: $gray-500;
+  margin-bottom: $space-md;
+}
+
+.footerCopy {
+  font-size: $font-size-xs;
+  color: $gray-400;
+}
+
+.footerQrcodes {
+  display: flex;
+  gap: $space-base;
+  flex-shrink: 0;
+}
+
+.qrItem {
+  text-align: center;
+}
+
+.qrPlaceholder {
+  width: 72px;
+  height: 72px;
+  border-radius: $radius-sm;
+  background: $gray-100;
+  border: 1px solid $gray-200;
+}
+
+.qrItem p {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  margin-top: $space-xs;
+}

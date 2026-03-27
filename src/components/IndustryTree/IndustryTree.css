@@ -1,0 +1,234 @@
+/* 图谱容器：固定高度，严格裁切 */
+.chain-graph-container {
+  position: relative;
+  height: 560px;
+  overflow: hidden;
+}
+
+/* 三列flex：严格占满容器，不溢出 */
+.chain-graph-columns {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  width: 100%;
+}
+
+/* 列分隔箭头 */
+.chain-stream-separator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  flex-shrink: 0;
+  color: #bfc8d6;
+  font-size: 22px;
+  user-select: none;
+}
+
+/* 单列：flex: 1 均分，内部独立滚动 */
+.chain-stream-col {
+  flex: 1;
+  min-width: 0;          /* 关键：允许flex子项缩小 */
+  overflow: auto;         /* 内容多时滚动 */
+  transition: flex 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 聚焦某列时的宽度分配 */
+.chain-stream-col.focused {
+  flex: 2.5;
+}
+
+/* 列标题 */
+.chain-stream-header {
+  text-align: center;
+  padding: 6px 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 5;
+}
+
+.chain-header-line {
+  width: 24px;
+  height: 1px;
+  background: #d0d5dd;
+  display: inline-block;
+}
+
+.chain-header-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1D2129;
+}
+
+/* 树内容区 */
+.chain-tree-content {
+  padding: 0 8px 16px;
+}
+
+/* 节点组：纵向排列 */
+.chain-node-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+/* 节点胶囊 */
+.chain-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: #fff;
+  border-width: 1.5px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: normal;       /* 允许换行 */
+  word-break: break-all;     /* 长文本换行 */
+  max-width: 200px;          /* 限制最大宽度 */
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  margin: 4px 0;
+  line-height: 1.4;
+}
+
+.chain-node:hover {
+  box-shadow: 0 2px 8px rgba(36, 104, 242, 0.15);
+  transform: translateY(-1px);
+}
+
+.chain-node.root-node {
+  font-weight: 600;
+  font-size: 13px !important;
+}
+
+.chain-node-text {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.chain-node-arrow {
+  flex-shrink: 0;
+  font-size: 14px;
+  transition: transform 0.2s ease;
+  color: #999;
+  line-height: 1;
+}
+
+.chain-node-arrow.arrow-down {
+  transform: rotate(90deg);
+}
+
+/* 子节点区域 */
+.chain-children {
+  display: flex;
+  flex-direction: column;
+  padding-left: 4px;
+  margin-left: 0;
+}
+
+/* 子节点行 = 连线 + 节点 */
+.chain-child-row {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+}
+
+/* 连线 */
+.chain-connector {
+  width: 16px;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.chain-connector-h {
+  width: 100%;
+  height: 1px;
+  background: #c0c8d4;
+  margin-top: 14px;
+}
+
+/* 垂直连线 */
+.chain-child-row:not(:last-child) > .chain-connector::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: -14px;
+  width: 1px;
+  background: #c0c8d4;
+}
+
+.chain-child-row:first-child > .chain-connector::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 14px;
+  width: 1px;
+  background: #c0c8d4;
+}
+
+.chain-child-row:not(:first-child) > .chain-connector::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 14px;
+  width: 1px;
+  background: #c0c8d4;
+}
+
+/* Portal 浮窗 */
+.chain-popover-portal {
+  position: fixed;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
+  z-index: 10000;
+  width: 300px;
+  animation: chainPopoverIn 0.15s ease;
+}
+
+@keyframes chainPopoverIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chain-popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.chain-popover-stats {
+  line-height: 2;
+  font-size: 14px;
+}
+
+/* 列滚动条美化 */
+.chain-stream-col::-webkit-scrollbar {
+  width: 4px;
+}
+
+.chain-stream-col::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 2px;
+}
+
+.chain-stream-col::-webkit-scrollbar-track {
+  background: transparent;
+}

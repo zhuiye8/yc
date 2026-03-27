@@ -1,64 +1,45 @@
-/**
- * @input { BrowserRouter, Routes, Route } from 'react-router-dom', { ConfigProvider, App } from 'antd', MainLayout, 11 个页面组件
- * @output { App } 根组件：ConfigProvider 全局主题 + BrowserRouter 路由表
- * @position 应用根组件，定义全局主题配置与路由结构
- * @doc-sync Update this header and folder INDEX.md when this file changes.
- */
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { ConfigProvider, App as AntdApp } from 'antd';
-import zhCN from 'antd/locale/zh_CN';
-import MainLayout from './layouts/MainLayout';
-import Home from './pages/Home';
-import Industry from './pages/Industry';
-import Talent from './pages/Talent';
-import Tech from './pages/Tech';
-import Funding from './pages/Funding';
-import Policy from './pages/Policy';
-import About from './pages/About';
-import Screen from './pages/Screen';
-import ListCenter from './pages/ListCenter';
-import ReportCenter from './pages/ReportCenter';
-import AlertCenter from './pages/AlertCenter';
-import './styles/global.css';
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import MainLayout from '@/layouts/MainLayout'
+import ScreenLayout from '@/layouts/ScreenLayout'
+import Login from '@/pages/Login'
+import Home from '@/pages/Home'
+import Industry from '@/pages/Industry'
+import Talent from '@/pages/Talent'
+import Innovation from '@/pages/Innovation'
+import Funding from '@/pages/Funding'
+import Policy from '@/pages/Policy'
+import Solutions from '@/pages/Solutions'
+import About from '@/pages/About'
+import ScreenHome from '@/pages/Screen/ScreenHome'
+import ScreenIndustry from '@/pages/Screen/ScreenIndustry'
+import ScreenTalent from '@/pages/Screen/ScreenTalent'
 
-const App: React.FC = () => {
+export default function App() {
   return (
-    <ConfigProvider
-      locale={zhCN}
-      theme={{
-        token: {
-          colorPrimary: '#2468F2',
-          colorInfo: '#2468F2',
-          colorSuccess: '#2F8F6B',
-          colorWarning: '#D89A2B',
-          colorError: '#C94A4A',
-          borderRadius: 16,
-          fontFamily: '"PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Noto Sans SC", Inter, "Helvetica Neue", Arial, sans-serif',
-        },
-      }}
-    >
-      <AntdApp>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<MainLayout />}>
-              <Route index element={<Home />} />
-              <Route path="industry" element={<Industry />} />
-              <Route path="talent" element={<Talent />} />
-              <Route path="tech" element={<Tech />} />
-              <Route path="funding" element={<Funding />} />
-              <Route path="policy" element={<Policy />} />
-              <Route path="about" element={<About />} />
-              <Route path="screen/*" element={<Screen />} />
-              <Route path="list" element={<ListCenter />} />
-              <Route path="reports" element={<ReportCenter />} />
-              <Route path="alerts" element={<AlertCenter />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </AntdApp>
-    </ConfigProvider>
-  );
-};
+    <BrowserRouter>
+      <Routes>
+        {/* 登录页 - 独立布局 */}
+        <Route path="/login" element={<Login />} />
 
-export default App;
+        {/* 网页版 - MainLayout */}
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<Home />} />
+          <Route path="industry" element={<Industry />} />
+          <Route path="talent" element={<Talent />} />
+          <Route path="innovation" element={<Innovation />} />
+          <Route path="funding" element={<Funding />} />
+          <Route path="policy" element={<Policy />} />
+          <Route path="solutions" element={<Solutions />} />
+          <Route path="about" element={<About />} />
+        </Route>
+
+        {/* 大屏模式 - ScreenLayout */}
+        <Route path="/screen" element={<ScreenLayout />}>
+          <Route index element={<ScreenHome />} />
+          <Route path="industry" element={<ScreenIndustry />} />
+          <Route path="talent" element={<ScreenTalent />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
+}

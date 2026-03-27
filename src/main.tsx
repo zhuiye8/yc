@@ -1,16 +1,29 @@
-/**
- * @input { StrictMode } from 'react', { createRoot } from 'react-dom/client', { App } from './App'
- * @output 应用挂载副作用，将 React 根组件渲染到 #root DOM 节点
- * @position 应用入口文件，StrictMode 包裹 + createRoot 挂载
- * @doc-sync Update this header and folder INDEX.md when this file changes.
- */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import { ConfigProvider, App as AntApp } from 'antd'
+import zhCN from 'antd/locale/zh_CN'
+import dayjs from 'dayjs'
+import 'dayjs/locale/zh-cn'
+import App from './App'
+import './styles/global.scss'
+
+dayjs.locale('zh-cn')
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ConfigProvider
+      locale={zhCN}
+      theme={{
+        token: {
+          colorPrimary: '#2468F2',
+          borderRadius: 8,
+          fontFamily: '"PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Noto Sans SC", Inter, "Helvetica Neue", Arial, sans-serif',
+        },
+      }}
+    >
+      <AntApp>
+        <App />
+      </AntApp>
+    </ConfigProvider>
   </StrictMode>,
 )
