@@ -25,8 +25,7 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
   const response = await fetch(fullUrl, { ...init, headers })
 
   if (!response.ok) {
-    if (response.status === 401 && localStorage.getItem('token')) {
-      // token 过期才跳登录页，没有 token 时只是静默失败
+    if (response.status === 401) {
       localStorage.removeItem('token')
       window.location.href = '/login'
     }

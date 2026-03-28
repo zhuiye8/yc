@@ -60,7 +60,7 @@ export async function searchOrgs(
   const resp = await fetch(url, { method: 'GET', headers })
 
   if (!resp.ok) {
-    if (resp.status === 401 && localStorage.getItem('token')) {
+    if (resp.status === 401) {
       localStorage.removeItem('token')
       window.location.href = '/login'
     }

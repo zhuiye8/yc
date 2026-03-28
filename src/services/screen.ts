@@ -16,7 +16,7 @@ function getAuthHeaders(): Record<string, string> {
 
 async function handleResponse<T>(resp: Response): Promise<T> {
   if (!resp.ok) {
-    if (resp.status === 401 && localStorage.getItem('token')) {
+    if (resp.status === 401) {
       localStorage.removeItem('token')
       window.location.href = '/login'
     }

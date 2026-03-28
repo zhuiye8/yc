@@ -22,7 +22,7 @@ function getAuthHeaders(): Record<string, string> {
 /** 通用响应处理 */
 async function handleResponse<T>(resp: Response): Promise<T> {
   if (!resp.ok) {
-    if (resp.status === 401 && localStorage.getItem('token')) {
+    if (resp.status === 401) {
       localStorage.removeItem('token')
       window.location.href = '/login'
     }
