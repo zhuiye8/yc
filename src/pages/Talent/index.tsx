@@ -1,15 +1,27 @@
-import { useState } from 'react'
-import { Select } from 'antd'
+import { useState, lazy, Suspense } from 'react'
+import { Select, Spin } from 'antd'
 import HeroSection from '@/components/HeroSection'
 import TalentGraph from './TalentGraph'
 import TalentReport from './TalentReport'
 import talentBg from '@/assets/images/hero/talent-bg.jpg'
 import styles from './Talent.module.scss'
 
-const hotTags = ['生物医药', '新材料', '人工智能', '博士后', '高级工程师', '领军人才', '宜昌籍']
+const YichangTalents = lazy(() => import('./YichangTalents'))
+
+const hotTags = ['生物医药', '新材料', '人工智能', '博士后', '高级工程师', '领军人才']
 
 export default function Talent() {
-  const [activeTab, setActiveTab] = useState<'graph' | 'match' | 'report'>('graph')
+  const [activeTab, setActiveTab] = useState<'graph' | 'report'>('graph')
+  const [hometown, setHometown] = useState<'all' | 'yichang'>('all')
+  const [searchKeyword, setSearchKeyword] = useState('')
+
+  const isYichangMode = hometown === 'yichang'
+
+  const handleSearch = (keyword: string) => {
+    setSearchKeyword(keyword)
+    setActiveTab('graph')
+    setHometown('all')
+  }
 
   return (
     <div>
@@ -17,6 +29,7 @@ export default function Talent() {
         backgroundImage={talentBg}
         searchPlaceholder="搜索人才姓名、研究方向、所属机构..."
         hotTags={hotTags}
+        onSearch={handleSearch}
       />
 
       <div className={styles.tabBar}>
@@ -28,12 +41,6 @@ export default function Talent() {
             人才图谱
           </div>
           <div
-            className={`${styles.tab} ${activeTab === 'match' ? styles.active : styles.inactive}`}
-            onClick={() => setActiveTab('match')}
-          >
-            供需匹配
-          </div>
-          <div
             className={`${styles.tab} ${activeTab === 'report' ? styles.active : styles.inactive}`}
             onClick={() => setActiveTab('report')}
           >
@@ -42,16 +49,23 @@ export default function Talent() {
         </div>
 
         <div className={styles.tabRight}>
-          <Select defaultValue="all" style={{ width: 120 }} size="small" options={[
+          <Select defaultValue="all" style={{ width: 120 }} size="small" disabled options={[
             { value: 'all', label: '全部产业链' },
           ]} />
-          <Select defaultValue="all" style={{ width: 110 }} size="small" options={[
+          <Select defaultValue="all" style={{ width: 110 }} size="small" disabled options={[
             { value: 'all', label: '全部机构' },
           ]} />
-          <Select defaultValue="all" style={{ width: 110 }} size="small" options={[
-            { value: 'all', label: '全部籍贯' },
-          ]} />
-          <Select defaultValue="all" style={{ width: 110 }} size="small" options={[
+          <Select
+            value={hometown}
+            onChange={(v) => setHometown(v)}
+            style={{ width: 110 }}
+            size="small"
+            options={[
+              { value: 'all', label: '全部籍贯' },
+              { value: 'yichang', label: '宜昌' },
+            ]}
+          />
+          <Select defaultValue="all" style={{ width: 110 }} size="small" disabled options={[
             { value: 'all', label: '全部类型' },
           ]} />
         </div>
@@ -59,12 +73,14 @@ export default function Talent() {
 
       {activeTab === 'graph' && (
         <div className={styles.graphSection}>
-          <TalentGraph />
+          {isYichangMode ? (
+            <Suspense fallback={<div style={{ padding: 60, textAlign: 'center' }}><Spin size="large" /><div style={{ marginTop: 12, color: '#86909C' }}>加载宜昌人才数据...</div></div>}>
+              <YichangTalents />
+            </Suspense>
+          ) : (
+            <TalentGraph key={searchKeyword} searchKeyword={searchKeyword} />
+          )}
         </div>
-      )}
-
-      {activeTab === 'match' && (
-        <div style={{ padding: 60, textAlign: 'center', color: '#999', fontSize: 16 }}>供需匹配功能 — 待实现</div>
       )}
 
       {activeTab === 'report' && <TalentReport />}

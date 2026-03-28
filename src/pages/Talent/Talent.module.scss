@@ -66,7 +66,7 @@
 
 // 深色图谱区
 .graphArea {
-  min-height: 420px;
+  min-height: 460px;
   background: #050e1f;
   border-radius: $radius-lg;
   overflow: hidden;
@@ -197,4 +197,35 @@
   &.levelTop { background: #FFF1F0; color: #F26B4A; }
   &.levelHigh { background: #E6F7FF; color: #2468F2; }
   &.levelCore { background: #F0FFF4; color: #2BA471; }
+}
+
+// 当前人才详情卡片 — 与左侧图谱等高
+.talentDetailCard {
+  height: 460px;
+  display: flex;
+  flex-direction: column;
+}
+
+.talentDetailContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.talentAvatarLarge {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $primary-500 0%, #5A9CF7 100%);
+  color: $white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+// 高端人才榜 — 填满剩余空间
+.talentRankCard {
+  flex: 1;
 }

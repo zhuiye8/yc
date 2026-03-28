@@ -116,17 +116,18 @@
 
 .hotTag {
   padding: 4px 16px;
-  border: 1px solid $gray-300;
-  border-radius: 2px; // 直角
+  border: 1px solid #d6e4ff;
+  border-radius: 2px;
   font-size: $font-size-sm;
   color: $gray-700;
   cursor: pointer;
   transition: all 0.2s;
-  background: $white;
+  background: #f0f5ff;
 
   &:hover {
     color: $primary-500;
     border-color: $primary-500;
+    background: #e0ecff;
     background: $primary-50;
   }
 }

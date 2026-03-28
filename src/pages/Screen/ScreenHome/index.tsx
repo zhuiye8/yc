@@ -1,19 +1,11 @@
-import { useNavigate } from 'react-router-dom'
 import ReactECharts from 'echarts-for-react'
 import ScreenMap from '../components/ScreenMap'
-
-const tabs = [
-  { name: '产业布局', url: '/screen/industry' },
-  { name: '人才总览', url: '/screen/talent' },
-  { name: '创新资源', url: '/screen' },
-  { name: '资金概览', url: '/screen' },
-  { name: '政策全景', url: '/screen' },
-]
+import ScreenTabs from '../components/ScreenTabs'
 
 function getIndustryOption() {
   return {
     grid: { left: 10, right: 10, top: 30, bottom: 30, containLabel: true },
-    xAxis: { type: 'category' as const, data: ['湿电子化学品', '新能源电池', '化学制药', '合成生物', '船舶制造', '人工智能'], axisLabel: { color: '#B0C4DE', fontSize: 10, rotate: 15 }, axisLine: { lineStyle: { color: '#1a3a6a' } } },
+    xAxis: { type: 'category' as const, data: ['湿电子化学品', '新能源新材料', '先进制剂', '酵母发酵', '船舶制造', '人工智能'], axisLabel: { color: '#B0C4DE', fontSize: 10, rotate: 15 }, axisLine: { lineStyle: { color: '#1a3a6a' } } },
     yAxis: { type: 'value' as const, axisLabel: { color: '#B0C4DE', fontSize: 10 }, splitLine: { lineStyle: { color: '#1a3a6a' } } },
     legend: { data: ['强链', '弱链', '缺链'], textStyle: { color: '#B0C4DE', fontSize: 10 }, top: 0 },
     series: [
@@ -42,21 +34,48 @@ function getFundsOption() {
   }
 }
 
+const gradientNum = {
+  fontWeight: 700,
+  background: 'linear-gradient(135deg, #f8d06b 0%, #FF8A00 100%)',
+  WebkitBackgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
+}
+
+function StatCard({ value, text }: { value: string | number; text: string }) {
+  return (
+    <div style={{
+      flex: 1, textAlign: 'center', padding: '10px 4px',
+      backgroundImage: 'url(/images/screen/tab.png)',
+      backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat',
+    }}>
+      <div style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.3rem)', ...gradientNum }}>
+        {typeof value === 'number' ? value.toLocaleString() : value}
+      </div>
+      <div style={{ fontSize: 10, color: '#AFABAB', marginTop: 2 }}>{text}</div>
+    </div>
+  )
+}
+
 const talentData = {
   total: 490032,
   items: [
-    { text: '宜昌籍人才总数', value: 23457 },
-    { text: '领军人才总数', value: 1235 },
-    { text: '创新人才总数', value: 41134 },
+    { text: '宜昌籍人才', value: 23457 },
+    { text: '领军人才', value: 1235 },
+    { text: '创新人才', value: 41134 },
     { text: '紧缺人才', value: 2752 },
   ],
 }
 
-const policyData = { total: 134, items: [{ text: '人才政策数', value: 44 }, { text: '可申报政策数', value: 56 }, { text: '到期政策数', value: 4 }] }
+const policyData = {
+  total: 134,
+  items: [
+    { text: '人才政策', value: 44 },
+    { text: '可申报', value: 56 },
+    { text: '到期预警', value: 4 },
+  ],
+}
 
 export default function ScreenHome() {
-  const navigate = useNavigate()
-
   return (
     <div className="main-content">
       {/* 左侧栏 */}
@@ -67,19 +86,19 @@ export default function ScreenHome() {
             <ReactECharts option={getIndustryOption()} style={{ height: '100%' }} />
           </div>
         </div>
+
         <div className="left-bottom">
           <div className="left-bottom-title" />
-          <div style={{ padding: '0 12px' }}>
-            <div style={{ fontSize: 'clamp(1.4rem, 3vw, 2.2rem)', fontWeight: 700, background: 'linear-gradient(135deg, #f8d06b 0%, #FF8A00 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              {talentData.total.toLocaleString()}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '0 12px' }}>
+            <div style={{ textAlign: 'center', marginBottom: 12 }}>
+              <div style={{ fontSize: 'clamp(1.6rem, 3.5vw, 2.6rem)', ...gradientNum }}>
+                {talentData.total.toLocaleString()}
+              </div>
+              <div style={{ fontSize: 12, color: '#B0C4DE' }}>人才总数</div>
             </div>
-            <div style={{ fontSize: 12, color: '#B0C4DE', marginBottom: 8 }}>人才总数</div>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, width: '100%' }}>
               {talentData.items.map(i => (
-                <div key={i.text} style={{ flex: 1, textAlign: 'center', padding: '6px 2px', backgroundImage: `url(/src/assets/images/screen/tab.png)`, backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat' }}>
-                  <div style={{ fontSize: 'clamp(0.8rem, 1.5vw, 1.2rem)', fontWeight: 700, background: 'linear-gradient(135deg, #f8d06b 0%, #FF8A00 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{i.value.toLocaleString()}</div>
-                  <div style={{ fontSize: 10, color: '#AFABAB' }}>{i.text}</div>
-                </div>
+                <StatCard key={i.text} value={i.value} text={i.text} />
               ))}
             </div>
           </div>
@@ -88,11 +107,7 @@ export default function ScreenHome() {
 
       {/* 中间栏 */}
       <div className="middle-column">
-        <div className="middle-top">
-          {tabs.map(t => (
-            <span key={t.name} className="tab-item" onClick={() => navigate(t.url)}>{t.name}</span>
-          ))}
-        </div>
+        <ScreenTabs />
         <div className="middle-center">
           <div className="map-container">
             <ScreenMap />
@@ -108,25 +123,26 @@ export default function ScreenHome() {
             <ReactECharts option={getInnovationOption()} style={{ height: '100%' }} />
           </div>
         </div>
+
         <div className="right-middle">
           <div className="right-middle-title" />
           <div style={{ flex: 1, minHeight: 0, padding: '0 8px' }}>
             <ReactECharts option={getFundsOption()} style={{ height: '100%' }} />
           </div>
         </div>
+
         <div className="right-bottom">
           <div className="right-bottom-title" />
-          <div style={{ padding: '0 12px' }}>
-            <div style={{ fontSize: 'clamp(1.4rem, 3vw, 2.2rem)', fontWeight: 700, background: 'linear-gradient(135deg, #f8d06b 0%, #FF8A00 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              {policyData.total}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '0 12px' }}>
+            <div style={{ textAlign: 'center', marginBottom: 12 }}>
+              <div style={{ fontSize: 'clamp(1.6rem, 3.5vw, 2.6rem)', ...gradientNum }}>
+                {policyData.total}
+              </div>
+              <div style={{ fontSize: 12, color: '#B0C4DE' }}>政策总数</div>
             </div>
-            <div style={{ fontSize: 12, color: '#B0C4DE', marginBottom: 8 }}>政策总数</div>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 6, width: '100%' }}>
               {policyData.items.map(i => (
-                <div key={i.text} style={{ flex: 1, textAlign: 'center', padding: '6px 2px', backgroundImage: `url(/src/assets/images/screen/tab.png)`, backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat' }}>
-                  <div style={{ fontSize: 'clamp(0.8rem, 1.5vw, 1.2rem)', fontWeight: 700, background: 'linear-gradient(135deg, #f8d06b 0%, #FF8A00 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{i.value}</div>
-                  <div style={{ fontSize: 10, color: '#AFABAB' }}>{i.text}</div>
-                </div>
+                <StatCard key={i.text} value={i.value} text={i.text} />
               ))}
             </div>
           </div>

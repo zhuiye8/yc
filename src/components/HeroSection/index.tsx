@@ -52,7 +52,11 @@ export default function HeroSection({
             <div className={styles.hotTags}>
               <span className={styles.hotLabel}>热门搜索：</span>
               {hotTags.map((tag) => (
-                <span key={tag} className={styles.hotTag}>{tag}</span>
+                <span key={tag} className={styles.hotTag} onClick={() => {
+                  const input = document.querySelector<HTMLInputElement>(`.${styles.searchInput}`)
+                  if (input) input.value = tag
+                  if (onSearch) onSearch(tag)
+                }} style={{ cursor: 'pointer' }}>{tag}</span>
               ))}
             </div>
           )}

@@ -6,14 +6,19 @@ interface LoginRequest {
 }
 
 interface LoginResponse {
-  token: string
+  accessToken?: string
+  token?: string
+  tokenType?: string
+  expiresIn?: number
   [key: string]: unknown
 }
 
 export async function login(data: LoginRequest): Promise<LoginResponse> {
   const res = await api.post<LoginResponse>('/auth/token', data)
-  if (res.token) {
-    localStorage.setItem('token', res.token)
+  // 服务端返回 accessToken 字段
+  const token = res.accessToken || res.token
+  if (token) {
+    localStorage.setItem('token', token)
   }
   return res
 }

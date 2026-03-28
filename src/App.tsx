@@ -35,9 +35,12 @@ export default function App() {
 
         {/* 大屏模式 - ScreenLayout */}
         <Route path="/screen" element={<ScreenLayout />}>
-          <Route index element={<ScreenHome />} />
+          <Route index element={<ScreenIndustry />} />
           <Route path="industry" element={<ScreenIndustry />} />
           <Route path="talent" element={<ScreenTalent />} />
+          <Route path="innovation" element={<ScreenHome />} />
+          <Route path="funds" element={<ScreenHome />} />
+          <Route path="policy" element={<ScreenHome />} />
         </Route>
       </Routes>
     </BrowserRouter>
