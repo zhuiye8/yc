@@ -69,7 +69,6 @@ export default function ScreenIndustry() {
   const [city, setCity] = useState<string | undefined>(undefined)
   const loadIdRef = useRef(0)
 
-  const chainLabel = chainOptions[selectedChain].label
   const chainSearchKey = chainOptions[selectedChain].searchKey
 
   const handleViewChange = useCallback((view: 'china' | 'yichang') => {
