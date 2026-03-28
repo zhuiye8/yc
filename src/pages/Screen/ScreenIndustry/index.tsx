@@ -6,12 +6,12 @@ import { searchOrgs } from '@/services/industry'
 import { searchExperts } from '@/services/talent'
 
 const chainOptions = [
-  { key: 'wetchem', label: '湿电子化学品' },
-  { key: 'newenergy', label: '新能源新材料' },
-  { key: 'pharma', label: '先进制剂与高端仿制药' },
-  { key: 'yeast', label: '酵母发酵与功能成分制造' },
-  { key: 'ship', label: '内河绿色智能船舶制造' },
-  { key: 'ai', label: '人工智能' },
+  { key: 'wetchem', label: '湿电子化学品', searchKey: '电子化学品 OR 半导体材料 OR 湿电子' },
+  { key: 'newenergy', label: '新能源新材料', searchKey: '新能源 OR 新材料 OR 电池 OR 储能' },
+  { key: 'pharma', label: '先进制剂与高端仿制药', searchKey: '制药 OR 仿制药 OR 生物医药 OR 药物制剂' },
+  { key: 'yeast', label: '酵母发酵与功能成分制造', searchKey: '酵母 OR 发酵 OR 生物工程 OR 功能食品' },
+  { key: 'ship', label: '内河绿色智能船舶制造', searchKey: '船舶 OR 造船 OR 航运 OR 船舶制造' },
+  { key: 'ai', label: '人工智能', searchKey: '人工智能' },
 ]
 
 // 企业类型分布图 option（完全复制旧项目 distribution.jsx）
@@ -70,6 +70,7 @@ export default function ScreenIndustry() {
   const loadIdRef = useRef(0)
 
   const chainLabel = chainOptions[selectedChain].label
+  const chainSearchKey = chainOptions[selectedChain].searchKey
 
   const handleViewChange = useCallback((view: 'china' | 'yichang') => {
     setCity(view === 'yichang' ? '宜昌' : undefined)
@@ -81,7 +82,7 @@ export default function ScreenIndustry() {
 
     // 企业（200条样本：前10给列表，全部做TAGS统计）
     setOrgLoading(true)
-    searchOrgs(chainLabel, 0, 200, city).then(res => {
+    searchOrgs(chainSearchKey, 0, 200, city).then(res => {
       if (id !== loadIdRef.current) return
       const d = res?.data as Record<string, unknown> | undefined
       const list = (d?.orgRecommend || []) as Record<string, unknown>[]
@@ -114,7 +115,7 @@ export default function ScreenIndustry() {
 
     // 人才
     setTalentLoading(true)
-    searchExperts(chainLabel, 0, 12, city).then(res => {
+    searchExperts(chainSearchKey, 0, 12, city).then(res => {
       if (id !== loadIdRef.current) return
       const d = res?.data as Record<string, unknown> | undefined
       const list = (d?.expertsRecommend || []) as Record<string, unknown>[]
@@ -129,7 +130,7 @@ export default function ScreenIndustry() {
       setIndicators(prev => ({ ...prev, talentTotal: total }))
       setTalentLoading(false)
     }).catch(() => { if (id === loadIdRef.current) setTalentLoading(false) })
-  }, [chainLabel, city])
+  }, [chainSearchKey, city])
 
   return (
     <div className="main-content industry-container">
@@ -208,7 +209,7 @@ export default function ScreenIndustry() {
         <ScreenTabs />
         <div className="middle-center">
           <div className="map-container">
-            <ScreenMap ckey={chainLabel} onViewChange={handleViewChange} />
+            <ScreenMap ckey={chainSearchKey} onViewChange={handleViewChange} />
           </div>
         </div>
       </div>
