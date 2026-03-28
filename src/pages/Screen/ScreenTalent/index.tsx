@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import ReactECharts from 'echarts-for-react'
 import ScreenMap from '../components/ScreenMap'
 import ScreenTabs from '../components/ScreenTabs'
-import { getCkeyMap, getAreaStatistics, type ProvinceData } from '@/services/screen'
+import { getCkeyMap, type ProvinceData } from '@/services/screen'
 import { searchExperts } from '@/services/talent'
 import talentGapData from '@/data/talent-gap.json'
 
@@ -193,7 +193,6 @@ export default function ScreenTalent() {
   const [nationwideData, setNationwideData] = useState<ProvinceData[]>([])
   const [nationwideTotal, setNationwideTotal] = useState(0)
   const [yichangData, setYichangData] = useState<ProvinceData[]>([])
-  const [totalTalent, setTotalTalent] = useState(0)
   const [chainTalentData, setChainTalentData] = useState(
     chainLabels.map((name, i) => ({ name, value: 0, color: chainColors[i] }))
   )
@@ -206,10 +205,6 @@ export default function ScreenTalent() {
     getCkeyMap('人才').then(data => {
       setNationwideData(data.sort((a, b) => b.value - a.value))
       setNationwideTotal(data.reduce((s, d) => s + d.value, 0))
-    }).catch(() => {})
-
-    getAreaStatistics('420500').then(data => {
-      setTotalTalent(Number(data['创新人才'] || data['重点人才'] || 0))
     }).catch(() => {})
 
     getCkeyMap('宜昌').then(data => {

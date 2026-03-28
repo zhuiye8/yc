@@ -22,7 +22,7 @@ import styles from './Industry.module.scss'
 interface IndustryGraphProps {
   chainKey: string
   selectedCity?: string
-  regionValue?: (string | number)[]
+  regionValue?: string[]
 }
 
 const chainKeyToLabel: Record<string, string> = {
@@ -58,7 +58,7 @@ function buildLabelMap(options: typeof regionOptions): Record<string, string> {
 }
 const regionLabelMap = buildLabelMap(regionOptions)
 
-function getCityFromCascader(val: (string | number)[]): string {
+function getCityFromCascader(val: string[]): string {
   if (val.length >= 2) {
     const label = regionLabelMap[String(val[1])] || ''
     return label.replace(/市$/, '')
@@ -81,7 +81,7 @@ interface ChainDrawerState {
   visible: boolean
   type: 'orgs' | 'experts'
   city: string
-  regionValue: (string | number)[]
+  regionValue: string[]
   loading: boolean
   data: Record<string, unknown>[]
   total: number
@@ -193,7 +193,7 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
     loadChainDrawerData(type, city, 1)
   }, [localCity, externalRegionValue, loadChainDrawerData])
 
-  const handleChainDrawerRegionChange = useCallback((val: (string | number)[]) => {
+  const handleChainDrawerRegionChange = useCallback((val: string[]) => {
     if (!val || val.length === 0 || val[0] === '__all__') {
       setChainDrawer(prev => {
         loadChainDrawerData(prev.type, '', 1)

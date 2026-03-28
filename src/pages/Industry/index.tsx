@@ -52,7 +52,7 @@ export default function Industry() {
   const { message } = App.useApp()
   const [activeTab, setActiveTab] = useState<'graph' | 'report'>('graph')
   const [selectedChain, setSelectedChain] = useState('ai')
-  const [regionValue, setRegionValue] = useState<(string | number)[]>(['hubei', 'yichang'])
+  const [regionValue, setRegionValue] = useState<string[]>(['hubei', 'yichang'])
   const [searchDrawer, setSearchDrawer] = useState<SearchDrawerState>({
     visible: false, keyword: '', loading: false,
     orgs: [], orgTotal: 0, experts: [], expertTotal: 0, activeTab: 'orgs',
@@ -72,7 +72,8 @@ export default function Industry() {
 
     searchExperts(keyword.trim(), 0, 20).then(res => {
       const d = res?.data as Record<string, unknown> | undefined
-      const list = (d?.expertsRecommend ?? d?.sources?.map((s: Record<string, unknown>) => s.source || s) ?? []) as Record<string, unknown>[]
+      const sources = d?.sources as Record<string, unknown>[] | undefined
+      const list = (d?.expertsRecommend ?? sources?.map((s) => (s.source || s) as Record<string, unknown>) ?? []) as Record<string, unknown>[]
       const total = (d?.total as number) || list.length
       setSearchDrawer(prev => ({ ...prev, experts: list, expertTotal: total, loading: false }))
     }).catch(() => {

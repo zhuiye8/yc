@@ -33,7 +33,7 @@ interface Props {
   nodeKeywords?: Record<string, { keywords: string[]; queryString: string }>
   selectedCity?: string
   /** 外部 Cascader 的 value，如 ['hubei', 'yichang'] */
-  regionValue?: (string | number)[]
+  regionValue?: string[]
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -58,7 +58,7 @@ function buildLabelMap(options: typeof regionOptions): Record<string, string> {
 const regionLabelMap = buildLabelMap(regionOptions)
 
 /** 从 Cascader value 解析出城市名（去掉"市"后缀） */
-function getCityFromCascader(val: (string | number)[]): string {
+function getCityFromCascader(val: string[]): string {
   if (val.length >= 2) {
     const label = regionLabelMap[String(val[1])] || ''
     return label.replace(/市$/, '')
@@ -141,7 +141,7 @@ interface DrawerState {
   nodeName: string
   queryString: string
   city: string           // 当前筛选城市，空串=全国
-  regionValue: (string | number)[]  // Cascader 的值
+  regionValue: string[]  // Cascader 的值
   loading: boolean
   data: Record<string, unknown>[]
   total: number
@@ -275,7 +275,7 @@ export default function IndustryChainGraph({ graphData, onNodeAction, nodeKeywor
     loadDrawerData(type, popover.queryString, city, 1)
   }, [popover, selectedCity, externalRegionValue, loadDrawerData])
 
-  const handleDrawerRegionChange = useCallback((val: (string | number)[]) => {
+  const handleDrawerRegionChange = useCallback((val: string[]) => {
     const newCity = getCityFromCascader(val)
     setDrawer(prev => {
       loadDrawerData(prev.type, prev.queryString, newCity, 1)
