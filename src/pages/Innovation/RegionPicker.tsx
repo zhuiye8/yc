@@ -3,17 +3,22 @@
  * 数据来源：阿里云 DataV GeoAtlas API
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Spin } from 'antd'
-import { LoadingOutlined, DownOutlined } from '@ant-design/icons'
+import { DownOutlined } from '@ant-design/icons'
 
-// 优先本地文件，fallback 到 DataV CDN
-const GEO_LOCAL = '/geo'
-const GEO_CDN = 'https://geo.datav.aliyun.com/areas_v3/bound'
+// 省市区列表数据（精简JSON，不含地理边界）
+const AREA_TREE_URL = '/geo/area-tree.json'
 
 interface AreaItem {
   name: string
   adcode: string
   hasChildren: boolean
+  children?: AreaItem[]
+}
+
+interface AreaTreeNode {
+  name: string
+  adcode: string
+  children?: AreaTreeNode[]
 }
 
 interface Props {
@@ -21,65 +26,51 @@ interface Props {
   onChange: (adcode: string, name: string, path: { adcode: string; name: string }[]) => void
 }
 
-// 缓存已加载的子区域
-const childrenCache = new Map<string, AreaItem[]>()
+// 完整省市区树（从 area-tree.json 加载）
+let areaTree: AreaItem[] | null = null
+let areaTreeLoading = false
+const areaTreeCallbacks: (() => void)[] = []
 
-async function loadChildren(adcode: string): Promise<AreaItem[]> {
-  if (childrenCache.has(adcode)) return childrenCache.get(adcode)!
-  // 尝试本地文件，失败则用CDN
-  for (const base of [GEO_LOCAL, GEO_CDN]) {
-    try {
-      const resp = await fetch(`${base}/${adcode}_full.json`)
-      if (!resp.ok) continue
-      const json = await resp.json()
-      const items: AreaItem[] = (json.features || []).map((f: { properties: { name: string; adcode: number } }) => ({
-        name: f.properties.name,
-        adcode: String(f.properties.adcode),
-        hasChildren: !String(f.properties.adcode).endsWith('00') ? false : true,
-      }))
-      childrenCache.set(adcode, items)
-      return items
-    } catch (_e) {
-      continue
-    }
-  }
-  return []
+function toAreaItems(nodes: AreaTreeNode[]): AreaItem[] {
+  return nodes.map(n => ({
+    name: n.name,
+    adcode: n.adcode,
+    hasChildren: !!(n.children && n.children.length > 0),
+    children: n.children ? toAreaItems(n.children) : undefined,
+  }))
 }
 
-// 预设省份列表（避免加载全国 GeoJSON 568KB）
-const defaultProvinces: AreaItem[] = [
-  { name: '北京市', adcode: '110000', hasChildren: true },
-  { name: '天津市', adcode: '120000', hasChildren: true },
-  { name: '河北省', adcode: '130000', hasChildren: true },
-  { name: '山西省', adcode: '140000', hasChildren: true },
-  { name: '内蒙古自治区', adcode: '150000', hasChildren: true },
-  { name: '辽宁省', adcode: '210000', hasChildren: true },
-  { name: '吉林省', adcode: '220000', hasChildren: true },
-  { name: '黑龙江省', adcode: '230000', hasChildren: true },
-  { name: '上海市', adcode: '310000', hasChildren: true },
-  { name: '江苏省', adcode: '320000', hasChildren: true },
-  { name: '浙江省', adcode: '330000', hasChildren: true },
-  { name: '安徽省', adcode: '340000', hasChildren: true },
-  { name: '福建省', adcode: '350000', hasChildren: true },
-  { name: '江西省', adcode: '360000', hasChildren: true },
-  { name: '山东省', adcode: '370000', hasChildren: true },
-  { name: '河南省', adcode: '410000', hasChildren: true },
-  { name: '湖北省', adcode: '420000', hasChildren: true },
-  { name: '湖南省', adcode: '430000', hasChildren: true },
-  { name: '广东省', adcode: '440000', hasChildren: true },
-  { name: '广西壮族自治区', adcode: '450000', hasChildren: true },
-  { name: '海南省', adcode: '460000', hasChildren: true },
-  { name: '重庆市', adcode: '500000', hasChildren: true },
-  { name: '四川省', adcode: '510000', hasChildren: true },
-  { name: '贵州省', adcode: '520000', hasChildren: true },
-  { name: '云南省', adcode: '530000', hasChildren: true },
-  { name: '西藏自治区', adcode: '540000', hasChildren: true },
-  { name: '陕西省', adcode: '610000', hasChildren: true },
-  { name: '甘肃省', adcode: '620000', hasChildren: true },
-  { name: '青海省', adcode: '630000', hasChildren: true },
-  { name: '宁夏回族自治区', adcode: '640000', hasChildren: true },
-  { name: '新疆维吾尔自治区', adcode: '650000', hasChildren: true },
-]
+async function ensureAreaTree(): Promise<AreaItem[]> {
+  if (areaTree) return areaTree
+  if (areaTreeLoading) {
+    return new Promise(resolve => {
+      areaTreeCallbacks.push(() => resolve(areaTree || []))
+    })
+  }
+  areaTreeLoading = true
+  try {
+    const resp = await fetch(AREA_TREE_URL)
+    const json: AreaTreeNode[] = await resp.json()
+    areaTree = toAreaItems(json)
+  } catch (_e) {
+    areaTree = []
+  }
+  areaTreeLoading = false
+  areaTreeCallbacks.forEach(cb => cb())
+  areaTreeCallbacks.length = 0
+  return areaTree
+}
+
+function findByAdcode(items: AreaItem[], adcode: string): AreaItem | null {
+  for (const item of items) {
+    if (item.adcode === adcode) return item
+    if (item.children) {
+      const found = findByAdcode(item.children, adcode)
+      if (found) return found
+    }
+  }
+  return null
+}
 
 const colStyle: React.CSSProperties = {
   width: 160,
@@ -101,13 +92,22 @@ const itemStyle: React.CSSProperties = {
 
 export default function RegionPicker({ value, onChange }: Props) {
   const [open, setOpen] = useState(false)
+  const [provinces, setProvinces] = useState<AreaItem[]>([])
   const [selectedProv, setSelectedProv] = useState<string | null>(null)
   const [selectedCity, setSelectedCity] = useState<string | null>(null)
-  const [cities, setCities] = useState<AreaItem[]>([])
-  const [districts, setDistricts] = useState<AreaItem[]>([])
-  const [loadingCities, setLoadingCities] = useState(false)
-  const [loadingDistricts, setLoadingDistricts] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
+
+  // 加载省市区树
+  useEffect(() => {
+    ensureAreaTree().then(tree => {
+      setProvinces(tree)
+      // 默认展开湖北
+      if (value.adcode.startsWith('4205') || value.adcode.startsWith('4200')) {
+        setSelectedProv('420000')
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // 点击外部关闭
   useEffect(() => {
@@ -121,30 +121,16 @@ export default function RegionPicker({ value, onChange }: Props) {
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  // 默认展开湖北省→宜昌市
-  useEffect(() => {
-    if (value.adcode.startsWith('4205')) {
-      expandProvince('420000')
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const cities = selectedProv ? (findByAdcode(provinces, selectedProv)?.children || []) : []
+  const districts = selectedCity ? (findByAdcode(provinces, selectedCity)?.children || []) : []
 
-  const expandProvince = useCallback(async (adcode: string) => {
+  const expandProvince = useCallback((adcode: string) => {
     setSelectedProv(adcode)
     setSelectedCity(null)
-    setDistricts([])
-    setLoadingCities(true)
-    const items = await loadChildren(adcode)
-    setCities(items)
-    setLoadingCities(false)
   }, [])
 
-  const expandCity = useCallback(async (adcode: string) => {
+  const expandCity = useCallback((adcode: string) => {
     setSelectedCity(adcode)
-    setLoadingDistricts(true)
-    const items = await loadChildren(adcode)
-    setDistricts(items)
-    setLoadingDistricts(false)
   }, [])
 
   const handleSelect = useCallback((item: AreaItem, level: 'province' | 'city' | 'district') => {
@@ -152,11 +138,11 @@ export default function RegionPicker({ value, onChange }: Props) {
     if (level === 'province') {
       pathArr.push({ adcode: item.adcode, name: item.name })
     } else if (level === 'city') {
-      const prov = defaultProvinces.find(p => p.adcode === selectedProv)
+      const prov = provinces.find(p => p.adcode === selectedProv)
       if (prov) pathArr.push({ adcode: prov.adcode, name: prov.name })
       pathArr.push({ adcode: item.adcode, name: item.name })
     } else {
-      const prov = defaultProvinces.find(p => p.adcode === selectedProv)
+      const prov = provinces.find(p => p.adcode === selectedProv)
       if (prov) pathArr.push({ adcode: prov.adcode, name: prov.name })
       const city = cities.find(c => c.adcode === selectedCity)
       if (city) pathArr.push({ adcode: city.adcode, name: city.name })
@@ -164,7 +150,7 @@ export default function RegionPicker({ value, onChange }: Props) {
     }
     onChange(item.adcode, item.name, pathArr)
     setOpen(false)
-  }, [selectedProv, selectedCity, cities, onChange])
+  }, [provinces, selectedProv, selectedCity, cities, onChange])
 
   const isSelected = (adcode: string) => value.adcode === adcode
 
@@ -209,7 +195,7 @@ export default function RegionPicker({ value, onChange }: Props) {
               </span>
               <span style={{ flex: 1, fontWeight: isSelected('100000') ? 600 : 400 }}>全国</span>
             </div>
-            {defaultProvinces.map(prov => (
+            {provinces.map(prov => (
               <div
                 key={prov.adcode}
                 style={{ ...itemStyle, background: selectedProv === prov.adcode ? '#f0f7ff' : isSelected(prov.adcode) ? '#e6f4ff' : undefined }}
@@ -234,11 +220,9 @@ export default function RegionPicker({ value, onChange }: Props) {
           </div>
 
           {/* 市列 */}
-          {selectedProv && (
+          {selectedProv && cities.length > 0 && (
             <div style={colStyle}>
-              {loadingCities ? (
-                <div style={{ padding: 20, textAlign: 'center' }}><Spin indicator={<LoadingOutlined spin />} size="small" /></div>
-              ) : cities.map(city => (
+              {cities.map(city => (
                 <div
                   key={city.adcode}
                   style={{ ...itemStyle, background: selectedCity === city.adcode ? '#f0f7ff' : isSelected(city.adcode) ? '#e6f4ff' : undefined }}
@@ -268,9 +252,7 @@ export default function RegionPicker({ value, onChange }: Props) {
           {/* 区列 */}
           {selectedCity && districts.length > 0 && (
             <div style={{ ...colStyle, borderRight: 'none' }}>
-              {loadingDistricts ? (
-                <div style={{ padding: 20, textAlign: 'center' }}><Spin indicator={<LoadingOutlined spin />} size="small" /></div>
-              ) : districts.map(dist => (
+              {districts.map(dist => (
                 <div
                   key={dist.adcode}
                   style={{ ...itemStyle, background: isSelected(dist.adcode) ? '#e6f4ff' : undefined }}
