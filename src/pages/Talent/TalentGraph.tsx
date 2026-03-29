@@ -459,12 +459,12 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>
                       {String(c.CNAME || '未知')}
-                      {c.TITLE && <Tag color="blue" style={{ marginLeft: 6, fontSize: 11 }}>{(c.TITLE as string[])?.[0] || c.TITLE}</Tag>}
-                      {c.H && <Tag style={{ marginLeft: 4, fontSize: 11 }}>H:{String(c.H)}</Tag>}
+                      {c.TITLE ? <Tag color="blue" style={{ marginLeft: 6, fontSize: 11 }}>{String(Array.isArray(c.TITLE) ? (c.TITLE as string[])[0] : c.TITLE)}</Tag> : null}
+                      {c.H ? <Tag style={{ marginLeft: 4, fontSize: 11 }}>H:{String(c.H)}</Tag> : null}
                     </div>
                     <div style={{ fontSize: 12, color: '#888', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {String(c.AORG || '')}
-                      {c.DIRECTION && <span style={{ marginLeft: 8, color: '#aaa' }}>{String(c.DIRECTION).slice(0, 30)}</span>}
+                      {c.DIRECTION ? <span style={{ marginLeft: 8, color: '#aaa' }}>{String(c.DIRECTION).slice(0, 30)}</span> : null}
                     </div>
                   </div>
                 </div>

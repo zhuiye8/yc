@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons'
 import HeroSection from '@/components/HeroSection'
 import ReportPanel from '@/components/ReportPanel'
+import ResourceHeatMap from './ResourceHeatMap'
 import innovationBg from '@/assets/images/hero/innovation-bg.jpg'
 import styles from './Innovation.module.scss'
 
@@ -105,22 +106,19 @@ export default function Innovation() {
             </div>
           ))}
         </div>
-        <div className={styles.tabRight}>
-          <span className={styles.filterLabel}>产业链</span>
-          <Select defaultValue="green-chem" style={{ width: 140 }} size="small" options={[
-            { value: 'green-chem', label: '绿色化工' },
-            { value: 'ai', label: '人工智能' },
-          ]} />
-        </div>
+        {activeTab !== 'resource' && (
+          <div className={styles.tabRight}>
+            <span className={styles.filterLabel}>产业链</span>
+            <Select defaultValue="green-chem" style={{ width: 140 }} size="small" options={[
+              { value: 'green-chem', label: '绿色化工' },
+              { value: 'ai', label: '人工智能' },
+            ]} />
+          </div>
+        )}
       </div>
 
-      {/* 创新资源 — 热力图（待接口数据就绪后替换） */}
-      {activeTab === 'resource' && (
-        <div style={{ padding: '40px 0', textAlign: 'center', color: '#86909C' }}>
-          <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 8 }}>创新资源热力图</div>
-          <div style={{ fontSize: 13 }}>热力图接口已对接，宜昌区域数据接入中...</div>
-        </div>
-      )}
+      {/* 创新资源 — 热力图 */}
+      {activeTab === 'resource' && <ResourceHeatMap />}
 
       {/* 缺口对标 — 原创新资源的内容 */}
       {activeTab === 'gap' && (
