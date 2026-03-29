@@ -1,32 +1,23 @@
 /**
  * 产业链节点覆盖率缓存服务
  * 批量查询每个末端节点在指定城市是否有企业，计算覆盖率
+ * 同时返回每个节点的企业数，用于动态判定强/弱/缺链状态
  */
 import { searchOrgs } from './industry'
 
 export interface CoverageResult {
-  covered: number   // 有覆盖的节点数
-  total: number     // 总节点数
-  rate: number      // 覆盖率百分比
-  chainStatus: 'strong' | 'weak' | 'missing'  // 链整体状态
-  chainOrgTotal: number  // 该产业链在指定城市的企业总数
+  covered: number
+  total: number
+  rate: number
+  chainStatus: 'strong' | 'weak' | 'missing'
+  chainOrgTotal: number
+  /** 每个叶子节点名→宜昌企业数 */
+  nodeOrgCounts: Record<string, number>
 }
 
-// 内存缓存：key = chainKey + city
+// 内存缓存
 const cache = new Map<string, CoverageResult>()
-
-// 正在计算中的 Promise（防止重复请求）
 const pending = new Map<string, Promise<CoverageResult>>()
-
-/**
- * 获取产业链覆盖率
- * @param chainKey 产业链 key
- * @param nodeKeywords 节点→关键词映射
- * @param chainSearchKey 产业链宽关键词（用于查总企业数和判定链状态）
- * @param city 城市名（如"宜昌"），空串=全国
- * @param onProgress 进度回调
- */
-// 存储当前活跃的 onProgress 回调（支持 StrictMode 下 effect 重跑时替换回调）
 const progressCallbacks = new Map<string, (checked: number, total: number) => void>()
 
 export async function getChainCoverage(
@@ -38,29 +29,25 @@ export async function getChainCoverage(
 ): Promise<CoverageResult> {
   const cacheKey = `${chainKey}:${city}`
 
-  // 注册/替换进度回调（即使正在计算中，新回调也能接收进度）
   if (onProgress) {
     progressCallbacks.set(cacheKey, onProgress)
   }
 
-  // 1. 检查缓存
   if (cache.has(cacheKey)) {
     progressCallbacks.delete(cacheKey)
     return cache.get(cacheKey)!
   }
 
-  // 2. 如果正在计算，等待结果（新回调已注册，computeCoverage 会用最新回调）
   if (pending.has(cacheKey)) {
     return pending.get(cacheKey)!
   }
 
-  // 3. 启动计算 — 用代理回调，总是调最新注册的回调
   const proxyProgress = (checked: number, total: number) => {
     const cb = progressCallbacks.get(cacheKey)
     cb?.(checked, total)
   }
 
-  const promise = computeCoverage(chainKey, nodeKeywords, chainSearchKey, city, proxyProgress)
+  const promise = computeCoverage(nodeKeywords, chainSearchKey, city, proxyProgress)
   pending.set(cacheKey, promise)
 
   try {
@@ -73,7 +60,6 @@ export async function getChainCoverage(
   }
 }
 
-/** 清除指定产业链的缓存 */
 export function clearCoverageCache(chainKey?: string) {
   if (chainKey) {
     for (const key of cache.keys()) {
@@ -84,10 +70,32 @@ export function clearCoverageCache(chainKey?: string) {
   }
 }
 
+/** 根据企业数判定节点状态 */
+export function getNodeStatus(orgCount: number): 'strong' | 'weak' | 'missing' {
+  if (orgCount === 0) return 'missing'
+  if (orgCount <= 20) return 'weak'
+  return 'strong'
+}
+
+/**
+ * 根据子节点状态聚合父节点状态
+ * - 全部缺链 → 缺链
+ * - 有缺有非缺 → 弱链
+ * - 全部非缺（强+弱混合）→ 弱链
+ * - 全部强链 → 强链
+ */
+export function aggregateStatus(childStatuses: ('strong' | 'weak' | 'missing')[]): 'strong' | 'weak' | 'missing' {
+  if (childStatuses.length === 0) return 'missing'
+  const allMissing = childStatuses.every(s => s === 'missing')
+  if (allMissing) return 'missing'
+  const allStrong = childStatuses.every(s => s === 'strong')
+  if (allStrong) return 'strong'
+  return 'weak'
+}
+
 // ---------- 内部实现 ----------
 
 async function computeCoverage(
-  _chainKey: string,
   nodeKeywords: Record<string, { keywords: string[]; queryString: string }>,
   chainSearchKey: string,
   city: string,
@@ -95,12 +103,13 @@ async function computeCoverage(
 ): Promise<CoverageResult> {
   const nodes = Object.entries(nodeKeywords)
   const total = nodes.length
+  const nodeOrgCounts: Record<string, number> = {}
 
   if (total === 0) {
-    return { covered: 0, total: 0, rate: 0, chainStatus: 'missing', chainOrgTotal: 0 }
+    return { covered: 0, total: 0, rate: 0, chainStatus: 'missing', chainOrgTotal: 0, nodeOrgCounts }
   }
 
-  // 先查产业链整体的企业数（用于判定强弱缺链）
+  // 先查产业链整体企业数
   let chainOrgTotal = 0
   try {
     const res = await searchOrgs(chainSearchKey, 0, 1, city || undefined)
@@ -110,14 +119,11 @@ async function computeCoverage(
     // ignore
   }
 
-  // 判定链状态
-  const chainStatus: 'strong' | 'weak' | 'missing' =
-    chainOrgTotal === 0 ? 'missing' :
-    chainOrgTotal <= 20 ? 'weak' : 'strong'
+  const chainStatus = getNodeStatus(chainOrgTotal)
 
   // 分批查询每个节点
-  const BATCH_SIZE = 5       // 每批并发数（5个/s）
-  const BATCH_DELAY = 1000   // 批间隔（1秒）
+  const BATCH_SIZE = 5
+  const BATCH_DELAY = 1000
   let covered = 0
   let checked = 0
 
@@ -125,29 +131,31 @@ async function computeCoverage(
     const batch = nodes.slice(i, i + BATCH_SIZE)
 
     const results = await Promise.allSettled(
-      batch.map(([, mapping]) =>
+      batch.map(([nodeName, mapping]) =>
         searchOrgs(mapping.queryString, 0, 1, city || undefined)
           .then(res => {
             const d = res?.data as Record<string, unknown> | undefined
-            return (d?.total as number) || 0
+            const count = (d?.total as number) || 0
+            return { nodeName, count }
           })
-          .catch(() => 0)
+          .catch(() => ({ nodeName, count: 0 }))
       )
     )
 
     for (const r of results) {
       checked++
-      if (r.status === 'fulfilled' && r.value > 0) {
-        covered++
+      if (r.status === 'fulfilled') {
+        const { nodeName, count } = r.value
+        nodeOrgCounts[nodeName] = count
+        if (count > 0) covered++
       }
     }
 
-    // 先让出事件循环让 React 渲染进度，再延迟
     onProgress?.(checked, total)
     await new Promise(resolve => setTimeout(resolve, i + BATCH_SIZE < nodes.length ? BATCH_DELAY : 0))
   }
 
   const rate = total > 0 ? (covered / total) * 100 : 0
 
-  return { covered, total, rate, chainStatus, chainOrgTotal }
+  return { covered, total, rate, chainStatus, chainOrgTotal, nodeOrgCounts }
 }

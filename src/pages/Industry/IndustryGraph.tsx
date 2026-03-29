@@ -110,16 +110,17 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
   const chainSearchKey = chainKeyToSearchKey[chainKey] || chainLabel
   const localCity = selectedCity || '宜昌'
 
-  // ========== 覆盖率 + 链状态 ==========
+  // ========== 覆盖率 + 链状态 + 节点企业数 ==========
   const [coverageState, setCoverageState] = useState<{
     loading: boolean; checked: number; covered: number; total: number; rate: number;
     chainStatus: 'strong' | 'weak' | 'missing'; chainOrgTotal: number;
-  }>({ loading: false, checked: 0, covered: 0, total: 0, rate: 0, chainStatus: 'strong', chainOrgTotal: 0 })
+    nodeOrgCounts: Record<string, number>;
+  }>({ loading: false, checked: 0, covered: 0, total: 0, rate: 0, chainStatus: 'strong', chainOrgTotal: 0, nodeOrgCounts: {} })
 
   useEffect(() => {
     if (!nodeKeywords || !chainSearchKey) return
     const nodeCount = Object.keys(nodeKeywords).length
-    setCoverageState(s => ({ ...s, loading: true, checked: 0, covered: 0, total: nodeCount }))
+    setCoverageState(s => ({ ...s, loading: true, checked: 0, covered: 0, total: nodeCount, nodeOrgCounts: {} }))
 
     let cancelled = false
     getChainCoverage(
@@ -130,6 +131,7 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
       setCoverageState({
         loading: false, checked: result.total, covered: result.covered, total: result.total,
         rate: result.rate, chainStatus: result.chainStatus, chainOrgTotal: result.chainOrgTotal,
+        nodeOrgCounts: result.nodeOrgCounts,
       })
     }).catch((_e) => {
       if (!cancelled) setCoverageState(s => ({ ...s, loading: false }))
@@ -259,6 +261,16 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
             <span><span className={styles.legendDot} style={{ background: '#2468F2' }} /> 强链</span>
             <span><span className={styles.legendDot} style={{ background: '#7BA3FA' }} /> 弱链</span>
             <span><span className={styles.legendDot} style={{ background: '#BFC8D6' }} /> 缺链</span>
+            {coverageState.loading && (
+              <span style={{
+                marginLeft: 12, fontSize: 12, color: '#faad14',
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                animation: 'pulse 1.5s ease-in-out infinite',
+              }}>
+                <LoadingOutlined spin style={{ fontSize: 12 }} />
+                正在统计{localCity}强弱缺链 ({coverageState.checked}/{coverageState.total})
+              </span>
+            )}
           </div>
           <IndustryChainGraph
             key={chainKey}
@@ -266,6 +278,8 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
             nodeKeywords={nodeKeywords}
             selectedCity={selectedCity}
             regionValue={externalRegionValue}
+            nodeOrgCounts={coverageState.nodeOrgCounts}
+            analyzing={coverageState.loading}
           />
         </div>
 

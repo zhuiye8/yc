@@ -232,3 +232,15 @@
 .chain-stream-col::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* 分析中状态 - 呼吸动画 */
+@keyframes analyzingPulse {
+  0%, 100% { opacity: 1; border-color: #faad14; }
+  50% { opacity: 0.5; border-color: #ffd666; }
+}
+
+.chain-node.analyzing {
+  animation: analyzingPulse 1.5s ease-in-out infinite;
+  border-style: dashed !important;
+  background: linear-gradient(135deg, #fffbe6 0%, #fff 100%) !important;
+}

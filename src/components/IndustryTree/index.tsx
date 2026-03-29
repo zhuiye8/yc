@@ -14,6 +14,7 @@ import { orgDrawerColumns, expertDrawerColumns } from '@/components/IndustryDraw
 import type { IndustryGraphNode } from '@/mock/data'
 import { searchOrgs } from '@/services/industry'
 import { searchExperts } from '@/services/talent'
+import { getNodeStatus, aggregateStatus } from '@/services/coverageCache'
 import { regionOptions } from '@/mock/regions'
 import './IndustryTree.css'
 
@@ -32,15 +33,18 @@ interface Props {
   onNodeAction?: (action: 'enterprises' | 'talent' | 'addList', node: IndustryGraphNode) => void
   nodeKeywords?: Record<string, { keywords: string[]; queryString: string }>
   selectedCity?: string
-  /** 外部 Cascader 的 value，如 ['hubei', 'yichang'] */
   regionValue?: string[]
+  /** 每个叶子节点的宜昌企业数（来自覆盖率分析） */
+  nodeOrgCounts?: Record<string, number>
+  /** 是否正在分析中 */
+  analyzing?: boolean
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  strong: '#2468F2', weak: '#7BA3FA', missing: '#BFC8D6',
+  strong: '#2468F2', weak: '#7BA3FA', missing: '#BFC8D6', analyzing: '#faad14',
 }
 const STATUS_LABELS: Record<string, string> = {
-  strong: '强链', weak: '弱链', missing: '缺链',
+  strong: '强链', weak: '弱链', missing: '缺链', analyzing: '分析中',
 }
 
 // 构建 value->label 映射
@@ -68,16 +72,17 @@ function getCityFromCascader(val: string[]): string {
 
 // ========== 节点组件 ==========
 function TreeNode({
-  node, depth, expandedNodes, onToggle, onLeafClick, compact,
+  node, depth, expandedNodes, onToggle, onLeafClick, compact, getStatus,
 }: {
   node: IndustryGraphNode; depth: number; expandedNodes: Set<string>
   onToggle: (id: string) => void; onLeafClick: (node: IndustryGraphNode, el: HTMLElement) => void
-  compact: boolean
+  compact: boolean; getStatus: (node: IndustryGraphNode) => string
 }) {
   const hasChildren = node.children && node.children.length > 0
   const isExpanded = expandedNodes.has(node.id)
-  const nodeColor = STATUS_COLORS[node.status] || '#2468F2'
-  const isDashed = node.status === 'missing'
+  const effectiveStatus = getStatus(node)
+  const nodeColor = STATUS_COLORS[effectiveStatus] || '#2468F2'
+  const isDashed = effectiveStatus === 'missing'
 
   let displayName = node.name
   if (depth === 0) displayName = displayName.replace(/^(上游|中游|下游)[：:]/, '')
@@ -91,12 +96,12 @@ function TreeNode({
   return (
     <div className="chain-node-group">
       <div
-        className={`chain-node ${isExpanded ? 'expanded' : ''} ${depth === 0 ? 'root-node' : ''}`}
+        className={`chain-node ${isExpanded ? 'expanded' : ''} ${depth === 0 ? 'root-node' : ''} ${effectiveStatus === 'analyzing' ? 'analyzing' : ''}`}
         onClick={handleClick}
         style={{
           borderColor: nodeColor,
           borderStyle: isDashed ? 'dashed' : 'solid',
-          color: node.status === 'missing' ? '#999' : nodeColor,
+          color: effectiveStatus === 'missing' ? '#999' : effectiveStatus === 'analyzing' ? '#faad14' : nodeColor,
           fontSize: compact ? 11 : 12,
         }}
         title={displayName}
@@ -112,7 +117,7 @@ function TreeNode({
             <div key={child.id} className="chain-child-row">
               <div className="chain-connector"><div className="chain-connector-h" /></div>
               <TreeNode node={child} depth={depth + 1} expandedNodes={expandedNodes}
-                onToggle={onToggle} onLeafClick={onLeafClick} compact={compact} />
+                onToggle={onToggle} onLeafClick={onLeafClick} compact={compact} getStatus={getStatus} />
             </div>
           ))}
         </div>
@@ -149,9 +154,28 @@ interface DrawerState {
 }
 
 // ========== 主组件 ==========
-export default function IndustryChainGraph({ graphData, onNodeAction, nodeKeywords, selectedCity, regionValue: externalRegionValue }: Props) {
+export default function IndustryChainGraph({ graphData, onNodeAction, nodeKeywords, selectedCity, regionValue: externalRegionValue, nodeOrgCounts, analyzing }: Props) {
   const { message } = App.useApp()
   const [focusedStream, setFocusedStream] = useState<StreamKey | null>(null)
+
+  // 动态计算节点状态（自底向上聚合）
+  const getEffectiveStatus = useCallback((node: IndustryGraphNode): string => {
+    if (analyzing) return 'analyzing'
+    if (!nodeOrgCounts || Object.keys(nodeOrgCounts).length === 0) return node.status
+
+    const hasChildren = node.children && node.children.length > 0
+    if (!hasChildren) {
+      // 叶子节点：直接用企业数判定
+      const count = nodeOrgCounts[node.name]
+      if (count === undefined) return node.status // 未查到的保持原状态
+      return getNodeStatus(count)
+    }
+    // 父节点：递归获取所有子节点状态后聚合
+    const childStatuses = (node.children || []).map(c => getEffectiveStatus(c))
+    const validStatuses = childStatuses.filter(s => s !== 'analyzing') as ('strong' | 'weak' | 'missing')[]
+    if (validStatuses.length === 0) return analyzing ? 'analyzing' : node.status
+    return aggregateStatus(validStatuses)
+  }, [nodeOrgCounts, analyzing])
 
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
     const ids = new Set<string>()
@@ -316,7 +340,7 @@ export default function IndustryChainGraph({ graphData, onNodeAction, nodeKeywor
                   <div className="chain-tree-content">
                     <TreeNode node={graphData[sk].root} depth={0} expandedNodes={expandedNodes}
                       onToggle={handleToggle} onLeafClick={handleLeafClick}
-                      compact={focusedStream !== null && !isFocused} />
+                      compact={focusedStream !== null && !isFocused} getStatus={getEffectiveStatus} />
                   </div>
                 </div>
               </div>
