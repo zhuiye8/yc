@@ -91,13 +91,12 @@ export default function ResourceHeatMap() {
         registeredMaps.current.add(mapName)
         setMapLoading(false)
         return mapName
-      } catch {
+      } catch (_e) {
         continue
       }
     }
     setMapLoading(false)
     return null
-    }
   }, [])
 
   // 加载统计数据（接口）

@@ -39,7 +39,7 @@ async function loadChildren(adcode: string): Promise<AreaItem[]> {
       }))
       childrenCache.set(adcode, items)
       return items
-    } catch {
+    } catch (_e) {
       continue
     }
   }
