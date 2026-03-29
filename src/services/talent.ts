@@ -60,6 +60,18 @@ export interface GraphNode {
   [key: string]: unknown
 }
 
+/** 接口返回的原始关系（startid/endid） */
+export interface GraphRelation {
+  startid: string
+  endid: string
+  cnt?: number
+  type?: string
+  attr?: string
+  class?: string
+  [key: string]: unknown
+}
+
+/** 前端使用的连线格式（source/target） */
 export interface GraphLink {
   source: string
   target: string
@@ -72,7 +84,7 @@ export interface GraphResult {
   data?: {
     sources?: {
       nodes?: GraphNode[]
-      links?: GraphLink[]
+      relations?: GraphRelation[]
     }
   }
 }

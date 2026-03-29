@@ -14,6 +14,7 @@ import IndustryChainGraph from '@/components/IndustryTree'
 import { industryChainGraphData } from '@/mock/industryChainGraphData'
 import { searchOrgs } from '@/services/industry'
 import { searchExperts } from '@/services/talent'
+import { getChainCoverage, clearCoverageCache } from '@/services/coverageCache'
 import { regionOptions } from '@/mock/regions'
 import industryKeywords from '@/data/industry-keywords.json'
 import { orgDrawerColumns, expertDrawerColumns } from '@/components/IndustryDrawerColumns'
@@ -108,6 +109,39 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
   const chainLabel = chainKeyToLabel[chainKey] || ''
   const chainSearchKey = chainKeyToSearchKey[chainKey] || chainLabel
   const localCity = selectedCity || '宜昌'
+
+  // ========== 覆盖率 + 链状态 ==========
+  const [coverageState, setCoverageState] = useState<{
+    loading: boolean; checked: number; covered: number; total: number; rate: number;
+    chainStatus: 'strong' | 'weak' | 'missing'; chainOrgTotal: number;
+  }>({ loading: false, checked: 0, covered: 0, total: 0, rate: 0, chainStatus: 'strong', chainOrgTotal: 0 })
+
+  useEffect(() => {
+    if (!nodeKeywords || !chainSearchKey) return
+    const nodeCount = Object.keys(nodeKeywords).length
+    setCoverageState(s => ({ ...s, loading: true, checked: 0, covered: 0, total: nodeCount }))
+
+    let cancelled = false
+    getChainCoverage(
+      chainKey, nodeKeywords, chainSearchKey, localCity,
+      (checked, total) => { if (!cancelled) setCoverageState(s => ({ ...s, checked, total })) },
+    ).then(result => {
+      if (cancelled) return
+      setCoverageState({
+        loading: false, checked: result.total, covered: result.covered, total: result.total,
+        rate: result.rate, chainStatus: result.chainStatus, chainOrgTotal: result.chainOrgTotal,
+      })
+    }).catch((_e) => {
+      if (!cancelled) setCoverageState(s => ({ ...s, loading: false }))
+    })
+
+    return () => { cancelled = true }
+  }, [chainKey, localCity, nodeKeywords, chainSearchKey])
+
+  // 地区变化时清缓存
+  useEffect(() => {
+    clearCoverageCache()
+  }, [localCity])
 
   // ========== 链上企业/人才（默认使用地区选择器的城市） ==========
   const [chainList, setChainList] = useState<ChainListState>({
@@ -212,10 +246,8 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
     return <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>暂无该产业链图谱数据</div>
   }
 
-  // 本地化率
-  const localizationRate = chainList.orgTotal > 0
-    ? ((chainList.localOrgTotal / chainList.orgTotal) * 100)
-    : 0
+  // 本地化率（节点覆盖率）
+  const localizationRate = coverageState.rate
   const localizationRateStr = localizationRate > 0 ? localizationRate.toFixed(1) : '0'
 
   return (
@@ -303,22 +335,36 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
           <div className={styles.progressBar}>
             <div className={styles.progressFill} style={{ width: '72.5%', background: '#F26B4A' }} />
           </div>
-          <div className={styles.statSub}>较上月下降3.2%，需关注缺链环节</div>
+          <div className={styles.statSub}>较上月下降3.2%，需关注缺链产业</div>
         </div>
 
         <div className={styles.panelCard}>
           <div className={styles.panelTitle}>
             <HomeOutlined className={styles.icon} />
-            本地化率
+            本地化率（节点覆盖）
           </div>
           <div className={styles.statValue} style={{ color: '#2468F2' }}>
-            {chainList.loading ? '...' : `${localizationRateStr}%`}
+            {coverageState.loading
+              ? <span style={{ fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Spin indicator={<LoadingOutlined spin style={{ fontSize: 16 }} />} />
+                  分析中 {coverageState.checked}/{coverageState.total}
+                </span>
+              : `${localizationRateStr}%`
+            }
           </div>
           <div className={styles.progressBar}>
-            <div className={styles.progressFill} style={{ width: `${Math.min(localizationRate, 100)}%` }} />
+            <div className={styles.progressFill} style={{
+              width: coverageState.loading
+                ? `${coverageState.total > 0 ? (coverageState.checked / coverageState.total) * 100 : 0}%`
+                : `${Math.min(localizationRate, 100)}%`,
+              transition: 'width 0.3s ease',
+            }} />
           </div>
           <div className={styles.statSub}>
-            {localCity}企业 {chainList.localOrgTotal} 家 / 全国 {chainList.orgTotal} 家
+            {coverageState.loading
+              ? `正在分析${localCity}产业覆盖情况...`
+              : `${localCity}覆盖 ${coverageState.covered} / ${coverageState.total} 个产业`
+            }
           </div>
         </div>
 

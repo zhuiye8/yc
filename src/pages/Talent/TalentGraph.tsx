@@ -19,6 +19,7 @@ import {
   getCkeyIndustry,
   type GraphNode,
   type GraphLink,
+  type GraphRelation,
 } from '@/services/talent'
 import styles from './Talent.module.scss'
 
@@ -174,79 +175,75 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
   const [graphNodes, setGraphNodes] = useState<GraphNode[]>([])
   const [graphLinks, setGraphLinks] = useState<GraphLink[]>([])
   const [coopTalents, setCoopTalents] = useState<CoopTalent[]>([])
-  const [topTalents, setTopTalents] = useState<{ name: string; org: string; field: string; h: number }[]>([])
+  const [topTalents, setTopTalents] = useState<{ name: string; org: string; field: string; h: number; raw: Record<string, unknown> }[]>([])
   const [fieldData, setFieldData] = useState<{ name: string; value: number }[]>(defaultFieldData)
   const [trendData, setTrendData] = useState<TrendData>(defaultTrend)
   const [graphLoading, setGraphLoading] = useState(false)
   const [searching, setSearching] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
-  const handleSearch = useCallback(async (keyword: string) => {
-    if (!keyword.trim()) return
+  // 重名候选列表
+  const [candidates, setCandidates] = useState<Record<string, unknown>[]>([])
+  const [showCandidates, setShowCandidates] = useState(false)
+
+  /** 从搜索结果中提取统一格式的专家列表 */
+  const parseExperts = (resData: Record<string, unknown> | undefined): Record<string, unknown>[] => {
+    if (Array.isArray(resData?.expertsRecommend)) {
+      return resData.expertsRecommend as Record<string, unknown>[]
+    } else if (Array.isArray(resData?.sources)) {
+      return (resData.sources as Record<string, unknown>[]).map(s => {
+        const src = (s.source || s) as Record<string, unknown>
+        return src
+      })
+    }
+    return []
+  }
+
+  /** 选中某个候选人后加载完整数据 */
+  const selectCandidate = useCallback(async (expert: Record<string, unknown>, allExperts: Record<string, unknown>[], keyword: string) => {
+    setShowCandidates(false)
+    setCandidates([])
+    setSearching(true)
+    // 创建新的 AbortController，取消之前的请求
     abortRef.current?.abort()
     const ac = new AbortController()
     abortRef.current = ac
-    setSearching(true)
 
     try {
-      const result = await searchExperts(keyword.trim(), 0, 20)
-      if (ac.signal.aborted) return
+    const auid = String(expert.ID || '')
+    const name = String(expert.CNAME || '')
+    const org = String(expert.AORG || '')
+    const field = (expert.CATE as string[])?.[0] || ''
+    const h = Number(expert.H || 0)
+    const direction = String(expert.DIRECTION || '')
+    const title = (expert.TITLE as string[])?.[0] || ''
 
-      const resData = result?.data as Record<string, unknown> | undefined
+    // 提取前10个关键词
+    const expertKeywords = ((expert.KEYWORDS || []) as { KEYWORD?: string }[])
+      .slice(0, 10)
+      .map(k => k.KEYWORD || '')
+      .filter(Boolean)
 
-      // 兼容两种响应结构:
-      // 搜关键词 → data.expertsRecommend: [{ID, CNAME, ...}]
-      // 搜人名   → data.sources: [{indexId, source: {ID, CNAME, ...}}]
-      let experts: Record<string, unknown>[] = []
-      if (Array.isArray(resData?.expertsRecommend)) {
-        experts = resData.expertsRecommend as Record<string, unknown>[]
-      } else if (Array.isArray(resData?.sources)) {
-        experts = (resData.sources as Record<string, unknown>[]).map(s => {
-          const src = (s.source || s) as Record<string, unknown>
-          return src
-        })
-      }
+    setCurrentTalent({
+      auid, name, org, field, hIndex: h,
+      papers: Number(expert.QIKAN || 0),
+      patents: Number(expert.ZHUANLI || 0),
+      achievements: Number(expert.CHENGGUO || 0),
+      direction, title, background: '', keywords: expertKeywords,
+    })
 
-      if (experts.length === 0) {
-        message.info('未找到相关人才')
-        setSearching(false)
-        return
-      }
-
-      const first = experts[0]
-      const auid = String(first.ID || '')
-      const name = String(first.CNAME || '')
-      const org = String(first.AORG || '')
-      const field = (first.CATE as string[])?.[0] || ''
-      const h = Number(first.H || 0)
-      const direction = String(first.DIRECTION || '')
-      const title = (first.TITLE as string[])?.[0] || ''
-
-      // 提取前10个关键词
-      const firstKeywords = ((first.KEYWORDS || []) as { KEYWORD?: string }[])
-        .slice(0, 10)
-        .map(k => k.KEYWORD || '')
-        .filter(Boolean)
-
-      setCurrentTalent({
-        auid, name, org, field, hIndex: h,
-        papers: Number(first.QIKAN || 0),
-        patents: Number(first.ZHUANLI || 0),
-        achievements: Number(first.CHENGGUO || 0),
-        direction, title, background: '', keywords: firstKeywords,
-      })
-
-      // 高端人才榜
-      setTopTalents(experts.slice(0, 6).map(e => ({
+    // 高端人才榜
+    setTopTalents(allExperts.slice(0, 6).map(e => ({
         name: String(e.CNAME || ''),
         org: String(e.AORG || ''),
         field: (e.CATE as string[])?.[0] || '',
         h: Number(e.H || 0),
+        raw: e,
       })))
 
-      // 研究方向分布 — 从所有专家的 KEYWORDS 聚合
-      const kwCount: Record<string, number> = {}
-      experts.forEach(e => {
+    // 研究方向分布 — 从所有专家的 KEYWORDS 聚合
+    const kwCount: Record<string, number> = {}
+    allExperts.forEach(e => {
         const kws = (e.KEYWORDS || []) as { NUM?: number; KEYWORD?: string }[]
         kws.forEach(kw => {
           if (kw.KEYWORD && kw.KEYWORD.length >= 2 && kw.KEYWORD.length <= 10) {
@@ -287,7 +284,14 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
       const graphResult = await getTalentGraph(auid, 1, 20).catch(() => null)
       if (ac.signal.aborted) return
       setGraphNodes(graphResult?.data?.sources?.nodes || [])
-      setGraphLinks(graphResult?.data?.sources?.links || [])
+      // 接口返回 relations（startid/endid），映射为前端的 source/target 格式
+      const relations: GraphRelation[] = graphResult?.data?.sources?.relations || []
+      setGraphLinks(relations.map(r => ({
+        source: r.startid,
+        target: r.endid,
+        value: r.cnt || 1,
+        ...r,
+      })))
       setGraphLoading(false)
 
       // 加载详情
@@ -319,6 +323,7 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
       // 加载合作人才
       const coopRes = await getCoopTalentList(auid).catch(() => null)
       if (ac.signal.aborted) return
+      let coopList: CoopTalent[] = []
       if (coopRes) {
         const d = coopRes as Record<string, unknown>
         let list: Record<string, unknown>[] = []
@@ -328,18 +333,69 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
           if (Array.isArray(inner.list)) list = inner.list
           else if (Array.isArray(inner.records)) list = inner.records
         }
-        setCoopTalents(list.slice(0, 6).map(c => ({
+        coopList = list.slice(0, 6).map(c => ({
           name: String(c.name || c.CNAME || ''),
           org: String(c.org || c.AORG || ''),
           field: String(c.cate || c.CATE || c.field || ''),
-        })))
+        }))
       }
-    } catch {
-      if (!ac.signal.aborted) message.error('搜索失败，请稍后重试')
+      // fallback：接口无数据时从图谱节点提取合作者
+      if (coopList.length === 0 && relations.length > 0) {
+        const graphPersonNodes = (graphResult?.data?.sources?.nodes || [])
+          .filter((n: Record<string, unknown>) => n.class === 'PERSON' && String(n.id) !== auid)
+        coopList = graphPersonNodes.slice(0, 6).map((n: Record<string, unknown>) => ({
+          name: String(n.name || ''),
+          org: String(n.org || ''),
+          field: '',
+        }))
+      }
+      setCoopTalents(coopList)
+    } catch (_e) {
+      if (!ac.signal.aborted) message.error('加载失败，请稍后重试')
     } finally {
       if (!ac.signal.aborted) setSearching(false)
     }
   }, [message])
+
+  /** 搜索入口：多结果时展示候选列表，单结果自动选中 */
+  const handleSearch = useCallback(async (keyword: string) => {
+    if (!keyword.trim()) return
+    abortRef.current?.abort()
+    const ac = new AbortController()
+    abortRef.current = ac
+    setSearching(true)
+    setShowCandidates(false)
+    setCandidates([])
+
+    try {
+      const result = await searchExperts(keyword.trim(), 0, 20)
+      if (ac.signal.aborted) return
+
+      const resData = result?.data as Record<string, unknown> | undefined
+      const experts = parseExperts(resData)
+
+      if (experts.length === 0) {
+        message.info('未找到相关人才')
+        setSearching(false)
+        return
+      }
+
+      // 多个结果时展示候选列表让用户选择
+      if (experts.length > 1) {
+        setCandidates(experts.slice(0, 20))
+        setShowCandidates(true)
+        setSearching(false)
+        return
+      }
+
+      // 只有1个结果时自动选中
+      await selectCandidate(experts[0], experts, keyword.trim())
+    } catch (_e) {
+      if (!ac.signal.aborted) message.error('搜索失败，请稍后重试')
+    } finally {
+      if (!ac.signal.aborted) setSearching(false)
+    }
+  }, [message, selectCandidate])
 
   useEffect(() => {
     handleSearch(searchKeyword || '人工智能')
@@ -370,7 +426,54 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
     <div className={styles.twoColumnLayout}>
       {/* 左列 */}
       <div className={styles.leftColumn}>
-        <div className={styles.graphArea}>
+        <div className={styles.graphArea} style={{ position: 'relative' }}>
+          {/* 重名候选列表 */}
+          {showCandidates && candidates.length > 0 && (
+            <div style={{
+              position: 'absolute', top: 8, left: 8, right: 8, zIndex: 100,
+              background: '#fff', borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              maxHeight: 360, overflow: 'auto', padding: '8px 0',
+            }}>
+              <div style={{ padding: '4px 16px 8px', fontSize: 13, color: '#999', borderBottom: '1px solid #f0f0f0' }}>
+                优先显示前 {candidates.length} 位相关人才，请选择：
+              </div>
+              {candidates.map((c, i) => (
+                <div
+                  key={i}
+                  style={{
+                    padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12,
+                    borderBottom: '1px solid #f8f8f8', transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#f0f5ff' }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = '' }}
+                  onClick={() => {
+                    selectCandidate(c, candidates, String(c.CNAME || ''))
+                  }}
+                >
+                  <div style={{
+                    width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #2468F2, #5A9CF7)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 14, fontWeight: 600, flexShrink: 0,
+                  }}>
+                    {String(c.CNAME || '?').slice(0, 1)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>
+                      {String(c.CNAME || '未知')}
+                      {c.TITLE && <Tag color="blue" style={{ marginLeft: 6, fontSize: 11 }}>{(c.TITLE as string[])?.[0] || c.TITLE}</Tag>}
+                      {c.H && <Tag style={{ marginLeft: 4, fontSize: 11 }}>H:{String(c.H)}</Tag>}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#888', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {String(c.AORG || '')}
+                      {c.DIRECTION && <span style={{ marginLeft: 8, color: '#aaa' }}>{String(c.DIRECTION).slice(0, 30)}</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div style={{ padding: '8px 16px', textAlign: 'center' }}>
+                <span style={{ color: '#999', fontSize: 12, cursor: 'pointer' }} onClick={() => setShowCandidates(false)}>关闭</span>
+              </div>
+            </div>
+          )}
           {graphLoading || searching ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 420 }}>
               <Spin indicator={<LoadingOutlined spin style={{ fontSize: 32, color: '#5A9CF7' }} />} />
@@ -464,26 +567,6 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
           )}
         </div>
 
-        {/* 合作人才 */}
-        <div className={styles.panelCard}>
-          <div className={styles.panelTitle}><TeamOutlined className={styles.icon} />合作人才</div>
-          <div className={styles.cooperateList}>
-            {coopTalents.length > 0 ? coopTalents.map((t, i) => (
-              <div key={i} className={styles.cooperateItem}>
-                <div>
-                  <div className={styles.name}>{t.name}</div>
-                  <div className={styles.institution}>{t.org}</div>
-                </div>
-                {t.field && <span className={styles.field}>{t.field}</span>}
-              </div>
-            )) : (
-              <div style={{ padding: 16, textAlign: 'center', color: '#999', fontSize: 13 }}>
-                {currentTalent ? '暂无合作人才数据' : '搜索人才后显示合作者'}
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* 高端人才榜 */}
         <div className={`${styles.panelCard} ${styles.talentRankCard}`}>
           <div className={styles.panelTitle}><TrophyOutlined className={styles.icon} />高端人才榜</div>
@@ -494,7 +577,11 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
                 <div key={i} className={styles.rankItem}>
                   <span className={`${styles.rankNum} ${i === 0 ? styles.top1 : i === 1 ? styles.top2 : i === 2 ? styles.top3 : ''}`}>{i + 1}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 500, color: '#1D2129', fontSize: 13 }}>{t.name}</div>
+                    <div
+                      style={{ fontWeight: 500, color: '#2468F2', fontSize: 13, cursor: 'pointer' }}
+                      title={`点击查看 ${t.name} 的详情`}
+                      onClick={() => selectCandidate(t.raw, topTalents.map(x => x.raw), t.name)}
+                    >{t.name}</div>
                     <div style={{ fontSize: 11, color: '#86909C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.org}>
                       {t.org}
                     </div>
@@ -507,6 +594,29 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
               )
             }) : (
               <div style={{ padding: 20, textAlign: 'center', color: '#999', fontSize: 13 }}>搜索后显示排名</div>
+            )}
+          </div>
+        </div>
+
+        {/* 合作人才 */}
+        <div className={`${styles.panelCard} ${styles.talentRankCard}`}>
+          <div className={styles.panelTitle}><TeamOutlined className={styles.icon} />合作人才</div>
+          <div className={styles.rankList}>
+            {coopTalents.length > 0 ? coopTalents.map((t, i) => (
+              <div key={i} className={styles.rankItem}>
+                <span className={`${styles.rankNum} ${i === 0 ? styles.top1 : i === 1 ? styles.top2 : i === 2 ? styles.top3 : ''}`}>{i + 1}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 500, color: '#1D2129', fontSize: 13 }}>{t.name}</div>
+                  <div style={{ fontSize: 11, color: '#86909C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.org}>
+                    {t.org}
+                  </div>
+                </div>
+                {t.field && <Tag color="green" style={{ fontSize: 11, margin: 0, borderRadius: 10, lineHeight: '18px', padding: '0 6px' }}>{t.field}</Tag>}
+              </div>
+            )) : (
+              <div style={{ padding: 20, textAlign: 'center', color: '#999', fontSize: 13 }}>
+                {currentTalent ? '暂无合作人才数据' : '搜索人才后显示合作者'}
+              </div>
             )}
           </div>
         </div>

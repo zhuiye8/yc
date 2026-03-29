@@ -114,7 +114,16 @@ export default function Innovation() {
         </div>
       </div>
 
+      {/* 创新资源 — 热力图（待接口数据就绪后替换） */}
       {activeTab === 'resource' && (
+        <div style={{ padding: '40px 0', textAlign: 'center', color: '#86909C' }}>
+          <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 8 }}>创新资源热力图</div>
+          <div style={{ fontSize: 13 }}>热力图接口已对接，宜昌区域数据接入中...</div>
+        </div>
+      )}
+
+      {/* 缺口对标 — 原创新资源的内容 */}
+      {activeTab === 'gap' && (
         <div className={styles.content}>
           {/* 上区：缺口表格 + 热度榜 */}
           <div className={styles.topRow}>
@@ -179,10 +188,6 @@ export default function Innovation() {
             </div>
           </div>
         </div>
-      )}
-
-      {activeTab === 'gap' && (
-        <div style={{ padding: 60, textAlign: 'center', color: '#999' }}>缺口对标详情 — 待实现</div>
       )}
 
       {activeTab === 'report' && <ReportPanel menuItems={reportMenuItems} />}

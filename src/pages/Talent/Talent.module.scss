@@ -45,6 +45,7 @@
 .twoColumnLayout {
   display: flex;
   gap: $space-xl;
+  align-items: stretch;
 }
 
 // 左列：图谱 + 研究方向分布 + 研究方向趋势
@@ -53,9 +54,10 @@
   display: flex;
   flex-direction: column;
   gap: $space-lg;
+  min-width: 0;
 }
 
-// 右列：当前人才 + 合作人才 + 紧缺方向Top + 高端人才榜
+// 右列：当前人才 + 合作人才 + 高端人才榜
 .rightColumn {
   width: 300px;
   flex-shrink: 0;
@@ -155,11 +157,12 @@
   }
 }
 
-// 排名列表（紧缺方向Top / 高端人才榜）
+// 排名列表（合作人才 / 高端人才榜）
 .rankList {
   display: flex;
   flex-direction: column;
   gap: $space-sm;
+  flex: 1;
 }
 
 .rankItem {
@@ -199,11 +202,12 @@
   &.levelCore { background: #F0FFF4; color: #2BA471; }
 }
 
-// 当前人才详情卡片 — 与左侧图谱等高
+// 当前人才详情卡片 — 固定高度与左侧图谱对齐
 .talentDetailCard {
   height: 460px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .talentDetailContent {
@@ -211,6 +215,12 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  overflow-y: auto;
+  min-height: 0; // flex子项允许收缩
+
+  // 隐藏滚动条但保留滚动功能
+  &::-webkit-scrollbar { width: 3px; }
+  &::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 3px; }
 }
 
 .talentAvatarLarge {
@@ -225,7 +235,9 @@
   flex-shrink: 0;
 }
 
-// 高端人才榜 — 填满剩余空间
+// 合作人才 + 高端人才榜 — 各占剩余空间一半
 .talentRankCard {
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }

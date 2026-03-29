@@ -4,8 +4,10 @@ import {
   DesktopOutlined,
   BellOutlined,
   UserOutlined,
+  LogoutOutlined,
 } from '@ant-design/icons'
-import { Badge } from 'antd'
+import { Badge, Dropdown } from 'antd'
+import { logout } from '@/services/auth'
 import logo from '@/assets/images/logo.png'
 import styles from './MainLayout.module.scss'
 
@@ -58,10 +60,20 @@ export default function Header() {
               <BellOutlined style={{ fontSize: 16 }} />
             </Badge>
           </div>
-          <div className={styles.headerAction}>
-            <UserOutlined />
-            <span>管理员</span>
-          </div>
+          <Dropdown
+            menu={{
+              items: [
+                { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', danger: true },
+              ],
+              onClick: ({ key }) => { if (key === 'logout') logout() },
+            }}
+            placement="bottomRight"
+          >
+            <div className={styles.headerAction} style={{ cursor: 'pointer' }}>
+              <UserOutlined />
+              <span>管理员</span>
+            </div>
+          </Dropdown>
         </div>
       </div>
     </header>

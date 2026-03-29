@@ -3,6 +3,7 @@ import { Select, Spin } from 'antd'
 import HeroSection from '@/components/HeroSection'
 import TalentGraph from './TalentGraph'
 import TalentReport from './TalentReport'
+import SupplyDemand from './SupplyDemand'
 import talentBg from '@/assets/images/hero/talent-bg.jpg'
 import styles from './Talent.module.scss'
 
@@ -11,14 +12,16 @@ const YichangTalents = lazy(() => import('./YichangTalents'))
 const hotTags = ['生物医药', '新材料', '人工智能', '博士后', '高级工程师', '领军人才']
 
 export default function Talent() {
-  const [activeTab, setActiveTab] = useState<'graph' | 'report'>('graph')
+  const [activeTab, setActiveTab] = useState<'graph' | 'supply' | 'report'>('graph')
   const [hometown, setHometown] = useState<'all' | 'yichang'>('all')
   const [searchKeyword, setSearchKeyword] = useState('')
+  const [searchCounter, setSearchCounter] = useState(0)
 
   const isYichangMode = hometown === 'yichang'
 
   const handleSearch = (keyword: string) => {
     setSearchKeyword(keyword)
+    setSearchCounter(c => c + 1)
     setActiveTab('graph')
     setHometown('all')
   }
@@ -39,6 +42,12 @@ export default function Talent() {
             onClick={() => setActiveTab('graph')}
           >
             人才图谱
+          </div>
+          <div
+            className={`${styles.tab} ${activeTab === 'supply' ? styles.active : styles.inactive}`}
+            onClick={() => setActiveTab('supply')}
+          >
+            供需匹配
           </div>
           <div
             className={`${styles.tab} ${activeTab === 'report' ? styles.active : styles.inactive}`}
@@ -78,10 +87,12 @@ export default function Talent() {
               <YichangTalents />
             </Suspense>
           ) : (
-            <TalentGraph key={searchKeyword} searchKeyword={searchKeyword} />
+            <TalentGraph key={`${searchKeyword}-${searchCounter}`} searchKeyword={searchKeyword} />
           )}
         </div>
       )}
+
+      {activeTab === 'supply' && <SupplyDemand />}
 
       {activeTab === 'report' && <TalentReport />}
     </div>

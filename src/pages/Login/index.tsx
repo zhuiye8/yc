@@ -7,13 +7,13 @@ import styles from './Login.module.scss'
 
 export default function Login() {
   const navigate = useNavigate()
-  const [username, setUsername] = useState('i3dev')
-  const [secret, setSecret] = useState('woeuty#WHU!027')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const handleLogin = async () => {
-    if (!username || !secret) {
+    if (!username || !password) {
       setError('请输入账号和密码')
       return
     }
@@ -22,10 +22,10 @@ export default function Login() {
     setError('')
 
     try {
-      await login({ username, secret })
+      await login(username, password)
       navigate('/')
-    } catch {
-      setError('登录失败，请检查账号密码')
+    } catch (e) {
+      setError((e as Error).message || '登录失败，请检查账号密码')
     } finally {
       setLoading(false)
     }
@@ -81,8 +81,8 @@ export default function Login() {
               <input
                 type="password"
                 placeholder="请输入密码"
-                value={secret}
-                onChange={(e) => setSecret(e.target.value)}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={handleKeyDown}
               />
             </div>
