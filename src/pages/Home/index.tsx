@@ -23,10 +23,10 @@ export default function Home() {
   const [stats, setStats] = useState(defaultStats)
 
   useEffect(() => {
-    getAreaStatistics('420500').then(data => {
-      const enterprise = typeof data['科技企业'] === 'number' ? data['科技企业'] as number : 0
-      const talent = typeof data['创新人才'] === 'number' ? data['创新人才'] as number : 0
-      const tech = typeof data['技术标准'] === 'number' ? data['技术标准'] as number : 0
+    getAreaStatistics('4205').then(data => {
+      const enterprise = typeof data['科技企业'] === 'string' ? parseInt(data['科技企业'] as string) : (data['科技企业'] as number) || 0
+      const talent = (data['创新人才'] as number) || 0
+      const tech = (data['技术标准'] as number) || 0
 
       setStats([
         { number: enterprise ? formatNumber(enterprise) : '29189', unit: enterprise >= 10000 ? '家' : '家', label: '企业总数', colorClass: 'color0' },

@@ -56,7 +56,9 @@ export interface AreaStatistics {
  * 返回各类资源总数：科技企业、重点人才、专利、论文、标准等
  */
 export async function getAreaStatistics(areacode: string): Promise<AreaStatistics> {
-  const url = `${BASE_URL}/api/wf/talent-resourceStatistics?areacode=${encodeURIComponent(areacode)}`
+  // 使用 queryString=(AREACODE:xx*) 格式，支持省市区通配
+  const qs = areacode === '*' ? '*' : `(AREACODE:${areacode}*)`
+  const url = `${BASE_URL}/api/wf/talent-resourceStatistics?queryString=${encodeURIComponent(qs)}`
   const resp = await fetch(url, { method: 'GET', headers: getAuthHeaders() })
   return handleResponse<AreaStatistics>(resp)
 }
