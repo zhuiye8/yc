@@ -6,7 +6,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Spin } from 'antd'
 import { LoadingOutlined, DownOutlined } from '@ant-design/icons'
 
-const GEO_BASE = 'https://geo.datav.aliyun.com/areas_v3/bound'
+// 优先本地文件，fallback 到 DataV CDN
+const GEO_LOCAL = '/geo'
+const GEO_CDN = 'https://geo.datav.aliyun.com/areas_v3/bound'
 
 interface AreaItem {
   name: string
@@ -24,20 +26,24 @@ const childrenCache = new Map<string, AreaItem[]>()
 
 async function loadChildren(adcode: string): Promise<AreaItem[]> {
   if (childrenCache.has(adcode)) return childrenCache.get(adcode)!
-  try {
-    const resp = await fetch(`${GEO_BASE}/${adcode}_full.json`)
-    if (!resp.ok) return []
-    const json = await resp.json()
-    const items: AreaItem[] = (json.features || []).map((f: { properties: { name: string; adcode: number; childrenNum?: number } }) => ({
-      name: f.properties.name,
-      adcode: String(f.properties.adcode),
-      hasChildren: !String(f.properties.adcode).endsWith('00') ? false : true,
-    }))
-    childrenCache.set(adcode, items)
-    return items
-  } catch {
-    return []
+  // 尝试本地文件，失败则用CDN
+  for (const base of [GEO_LOCAL, GEO_CDN]) {
+    try {
+      const resp = await fetch(`${base}/${adcode}_full.json`)
+      if (!resp.ok) continue
+      const json = await resp.json()
+      const items: AreaItem[] = (json.features || []).map((f: { properties: { name: string; adcode: number } }) => ({
+        name: f.properties.name,
+        adcode: String(f.properties.adcode),
+        hasChildren: !String(f.properties.adcode).endsWith('00') ? false : true,
+      }))
+      childrenCache.set(adcode, items)
+      return items
+    } catch {
+      continue
+    }
   }
+  return []
 }
 
 // 预设省份列表（避免加载全国 GeoJSON 568KB）

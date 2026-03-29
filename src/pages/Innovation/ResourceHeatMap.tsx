@@ -12,8 +12,9 @@ import * as echarts from 'echarts'
 import { api } from '@/services/api'
 import RegionPicker from './RegionPicker'
 
-// DataV GeoJSON base URL
-const GEO_BASE = 'https://geo.datav.aliyun.com/areas_v3/bound'
+// GeoJSON: 优先本地，fallback CDN
+const GEO_LOCAL = '/geo'
+const GEO_CDN = 'https://geo.datav.aliyun.com/areas_v3/bound'
 
 function formatNum(n: number): string {
   if (n >= 100000000) return (n / 100000000).toFixed(1) + '亿'
@@ -69,35 +70,33 @@ export default function ResourceHeatMap() {
   // 当前层级
   const currentLevel = path[path.length - 1]
 
-  // 加载 GeoJSON 并注册到 ECharts
+  // 加载 GeoJSON 并注册到 ECharts（优先本地，fallback CDN）
   const loadGeoJSON = useCallback(async (adcode: string) => {
     const mapName = `map_${adcode}`
     if (registeredMaps.current.has(mapName)) return mapName
 
     setMapLoading(true)
-    try {
-      const url = `${GEO_BASE}/${adcode}_full.json`
-      const resp = await fetch(url)
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-      const json = await resp.json()
-      echarts.registerMap(mapName, json)
-      registeredMaps.current.add(mapName)
-      return mapName
-    } catch (_e) {
-      // 如果 _full 不存在（区级），尝试无 _full
+    const urls = [
+      `${GEO_LOCAL}/${adcode}_full.json`,
+      `${GEO_CDN}/${adcode}_full.json`,
+      `${GEO_LOCAL}/${adcode}.json`,
+      `${GEO_CDN}/${adcode}.json`,
+    ]
+    for (const url of urls) {
       try {
-        const url = `${GEO_BASE}/${adcode}.json`
         const resp = await fetch(url)
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+        if (!resp.ok) continue
         const json = await resp.json()
         echarts.registerMap(mapName, json)
         registeredMaps.current.add(mapName)
+        setMapLoading(false)
         return mapName
-      } catch (_e2) {
-        return null
+      } catch {
+        continue
       }
-    } finally {
-      setMapLoading(false)
+    }
+    setMapLoading(false)
+    return null
     }
   }, [])
 
