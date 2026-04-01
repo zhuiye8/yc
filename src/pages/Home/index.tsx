@@ -1,45 +1,38 @@
-import { useState, useEffect } from 'react'
-import { getAreaStatistics } from '@/services/screen'
+import { useNavigate } from 'react-router-dom'
 import homeBg from '@/assets/images/hero/home-bg.jpg'
 import searchIcon from '@/assets/images/icons/小图标_16.png'
 import styles from './Home.module.scss'
 
-function formatNumber(n: number): string {
-  if (n >= 10000) {
-    return (n / 10000).toFixed(1).replace(/\.0$/, '') + '万'
-  }
-  return String(n)
-}
-
 const defaultStats = [
-  { number: '29189', unit: '家', label: '企业总数', colorClass: 'color0' },
-  { number: '458000', unit: '人', label: '人才总数', colorClass: 'color1' },
-  { number: '4980', unit: '项', label: '技术标准', colorClass: 'color2' },
-  { number: '290', unit: '项', label: '融资工具', colorClass: 'color3' },
-  { number: '326', unit: '项', label: '申报政策', colorClass: 'color4' },
+  { number: '200万', unit: '家', label: '企业总数', colorClass: 'color0', link: '/industry' },
+  { number: '4000万', unit: '人', label: '人才总数', colorClass: 'color1', link: '/talent' },
+  { number: '300万', unit: '项', label: '技术标准', colorClass: 'color2', link: '/innovation' },
+  { number: '257', unit: '款', label: '金融产品', colorClass: 'color3', link: '/funding' },
+  { number: '41', unit: '项', label: '申报政策', colorClass: 'color4', link: '/policy' },
 ]
 
 export default function Home() {
-  const [stats, setStats] = useState(defaultStats)
+  const navigate = useNavigate()
+  const stats = defaultStats
 
-  useEffect(() => {
-    getAreaStatistics('4205').then(data => {
-      const enterprise = typeof data['科技企业'] === 'string' ? parseInt(data['科技企业'] as string) : (data['科技企业'] as number) || 0
-      const talent = (data['创新人才'] as number) || 0
-      const tech = (data['技术标准'] as number) || 0
+  // useEffect(() => {
+  //   getAreaStatistics('4205').then(data => {
+  //     const enterprise = typeof data['科技企业'] === 'string' ? parseInt(data['科技企业'] as string) : (data['科技企业'] as number) || 0
+  //     const talent = (data['创新人才'] as number) || 0
+  //     const tech = (data['技术标准'] as number) || 0
 
-      setStats([
-        { number: enterprise ? formatNumber(enterprise) : '29189', unit: enterprise >= 10000 ? '家' : '家', label: '企业总数', colorClass: 'color0' },
-        { number: talent ? formatNumber(talent) : '458000', unit: talent >= 10000 ? '人' : '人', label: '人才总数', colorClass: 'color1' },
-        { number: tech ? formatNumber(tech) : '4980', unit: tech >= 10000 ? '项' : '项', label: '技术标准', colorClass: 'color2' },
-        { number: '290', unit: '项', label: '融资工具', colorClass: 'color3' },
-        { number: '41', unit: '项', label: '申报政策', colorClass: 'color4' },
-      ])
-    }).catch(() => {
-      // Keep defaults on error, but update 申报政策 to 41
-      setStats(prev => prev.map(s => s.label === '申报政策' ? { ...s, number: '41' } : s))
-    })
-  }, [])
+  //     setStats([
+  //       { number: enterprise ? formatNumber(enterprise) : '29189', unit: '家', label: '企业总数', colorClass: 'color0', link: '/industry' },
+  //       { number: talent ? formatNumber(talent) : '458000', unit: '人', label: '人才总数', colorClass: 'color1', link: '/talent' },
+  //       { number: tech ? formatNumber(tech) : '4980', unit: '项', label: '技术标准', colorClass: 'color2', link: '/innovation' },
+  //       { number: '257', unit: '款', label: '金融产品', colorClass: 'color3', link: '/funding' },
+  //       { number: '41', unit: '项', label: '申报政策', colorClass: 'color4', link: '/policy' },
+  //     ])
+  //   }).catch(() => {
+  //     // Keep defaults on error, but update 申报政策 to 41
+  //     setStats(prev => prev.map(s => s.label === '申报政策' ? { ...s, number: '41' } : s))
+  //   })
+  // }, [])
 
   return (
     <div className={styles.page}>
@@ -65,7 +58,7 @@ export default function Home() {
       <div className={styles.stats}>
         <div className={styles.statsRow}>
           {stats.map((item) => (
-            <div key={item.label} className={styles.statItem}>
+            <div key={item.label} className={styles.statItem} onClick={() => item.link && navigate(item.link)} style={{ cursor: 'pointer' }}>
               <div className={`${styles.statNumber} ${styles[item.colorClass]}`}>
                 {item.number}
                 <span className={styles.statUnit}>{item.unit}</span>

@@ -1,26 +1,21 @@
-/**
- * 产业图谱组件 — 纯 React + CSS
- * - 默认展示2层（根+一级），点击展开下级
- * - 三列布局，聚焦某列时宽度变化
- * - 浮窗：4个统计（企业/本地企业/人才/本地人才）+ 查看按钮
- * - 抽屉：点击"查看相关企业/人才"展开右侧列表，地区与外部选择器同步
- */
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Button, Typography, App, Spin, Drawer, Cascader, Table } from 'antd'
-import { Tag } from 'antd'
-import { PlusOutlined, LoadingOutlined, BankOutlined, TeamOutlined, EnvironmentOutlined } from '@ant-design/icons'
+import { App, Button, Cascader, Drawer, Spin, Table, Tag, Typography } from 'antd'
+import { BankOutlined, EnvironmentOutlined, LoadingOutlined, PlusOutlined, TeamOutlined } from '@ant-design/icons'
+import { Graph, treeToGraphData } from '@antv/g6'
+import type { GraphData, Graph as G6Graph, IElementEvent } from '@antv/g6'
 import { orgDrawerColumns, expertDrawerColumns } from '@/components/IndustryDrawerColumns'
 import type { IndustryGraphNode } from '@/mock/data'
+import { regionOptions } from '@/mock/regions'
+import { aggregateStatus, getNodeStatus } from '@/services/coverageCache'
 import { searchOrgs } from '@/services/industry'
 import { searchExperts } from '@/services/talent'
-import { getNodeStatus, aggregateStatus } from '@/services/coverageCache'
-import { regionOptions } from '@/mock/regions'
 import './IndustryTree.css'
 
 const { Text } = Typography
 
 type StreamKey = 'upstream' | 'midstream' | 'downstream'
+type NodeStatus = 'strong' | 'weak' | 'missing' | 'analyzing'
 
 interface IndustryGraphSet {
   upstream: { label: string; root: IndustryGraphNode }
@@ -34,99 +29,11 @@ interface Props {
   nodeKeywords?: Record<string, { keywords: string[]; queryString: string }>
   selectedCity?: string
   regionValue?: string[]
-  /** 每个叶子节点的宜昌企业数（来自覆盖率分析） */
   nodeOrgCounts?: Record<string, number>
-  /** 是否正在分析中 */
   analyzing?: boolean
+  analysisLabel?: string
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  strong: '#2468F2', weak: '#7BA3FA', missing: '#BFC8D6', analyzing: '#faad14',
-}
-const STATUS_LABELS: Record<string, string> = {
-  strong: '强链', weak: '弱链', missing: '缺链', analyzing: '分析中',
-}
-
-// 构建 value->label 映射
-function buildLabelMap(options: typeof regionOptions): Record<string, string> {
-  const map: Record<string, string> = {}
-  const walk = (items: typeof regionOptions) => {
-    items?.forEach((item) => {
-      if (item.value && item.label) map[String(item.value)] = String(item.label)
-      if (item.children) walk(item.children as typeof regionOptions)
-    })
-  }
-  walk(options)
-  return map
-}
-const regionLabelMap = buildLabelMap(regionOptions)
-
-/** 从 Cascader value 解析出城市名（去掉"市"后缀） */
-function getCityFromCascader(val: string[]): string {
-  if (val.length >= 2) {
-    const label = regionLabelMap[String(val[1])] || ''
-    return label.replace(/市$/, '')
-  }
-  return ''
-}
-
-// ========== 节点组件 ==========
-function TreeNode({
-  node, depth, expandedNodes, onToggle, onLeafClick, compact, getStatus,
-}: {
-  node: IndustryGraphNode; depth: number; expandedNodes: Set<string>
-  onToggle: (id: string) => void; onLeafClick: (node: IndustryGraphNode, el: HTMLElement) => void
-  compact: boolean; getStatus: (node: IndustryGraphNode) => string
-}) {
-  const hasChildren = node.children && node.children.length > 0
-  const isExpanded = expandedNodes.has(node.id)
-  const effectiveStatus = getStatus(node)
-  const nodeColor = STATUS_COLORS[effectiveStatus] || '#2468F2'
-  const isDashed = effectiveStatus === 'missing'
-
-  let displayName = node.name
-  if (depth === 0) displayName = displayName.replace(/^(上游|中游|下游)[：:]/, '')
-
-  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation()
-    if (hasChildren) onToggle(node.id)
-    else onLeafClick(node, e.currentTarget)
-  }, [hasChildren, node, onToggle, onLeafClick])
-
-  return (
-    <div className="chain-node-group">
-      <div
-        className={`chain-node ${isExpanded ? 'expanded' : ''} ${depth === 0 ? 'root-node' : ''} ${effectiveStatus === 'analyzing' ? 'analyzing' : ''}`}
-        onClick={handleClick}
-        style={{
-          borderColor: nodeColor,
-          borderStyle: isDashed ? 'dashed' : 'solid',
-          color: effectiveStatus === 'missing' ? '#999' : effectiveStatus === 'analyzing' ? '#faad14' : nodeColor,
-          fontSize: compact ? 11 : 12,
-        }}
-        title={displayName}
-      >
-        <span className="chain-node-text">{displayName}</span>
-        {hasChildren && (
-          <span className={`chain-node-arrow ${isExpanded ? 'arrow-down' : ''}`}>›</span>
-        )}
-      </div>
-      {hasChildren && isExpanded && (
-        <div className="chain-children">
-          {node.children!.map(child => (
-            <div key={child.id} className="chain-child-row">
-              <div className="chain-connector"><div className="chain-connector-h" /></div>
-              <TreeNode node={child} depth={depth + 1} expandedNodes={expandedNodes}
-                onToggle={onToggle} onLeafClick={onLeafClick} compact={compact} getStatus={getStatus} />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ========== 浮窗数据状态 ==========
 interface PopoverData {
   node: IndustryGraphNode
   screenX: number
@@ -139,290 +46,728 @@ interface PopoverData {
   localExpertTotal: number
 }
 
-// ========== 抽屉状态 ==========
 interface DrawerState {
   visible: boolean
   type: 'orgs' | 'experts'
   nodeName: string
   queryString: string
-  city: string           // 当前筛选城市，空串=全国
-  regionValue: string[]  // Cascader 的值
+  city: string
+  regionValue: string[]
   loading: boolean
   data: Record<string, unknown>[]
   total: number
   page: number
 }
 
-// ========== 主组件 ==========
-export default function IndustryChainGraph({ graphData, onNodeAction, nodeKeywords, selectedCity, regionValue: externalRegionValue, nodeOrgCounts, analyzing }: Props) {
-  const { message } = App.useApp()
-  const [focusedStream, setFocusedStream] = useState<StreamKey | null>(null)
+interface StreamTreeNode {
+  id: string
+  label: string
+  status: NodeStatus
+  hasChildren: boolean
+  depth: number
+  nodeWidth: number
+  nodeHeight: number
+  originalNode: IndustryGraphNode
+  children?: StreamTreeNode[]
+}
 
-  // 动态计算节点状态（自底向上聚合）
-  const getEffectiveStatus = useCallback((node: IndustryGraphNode): string => {
+interface StreamGraphProps {
+  streamKey: StreamKey
+  root: IndustryGraphNode
+  getStatus: (node: IndustryGraphNode) => NodeStatus
+  collapsedIds: Set<string>
+  onToggleNode: (stream: StreamKey, nodeId: string) => void
+  onLeafClick: (node: IndustryGraphNode, event: IElementEvent) => void
+  onCanvasClick: () => void
+}
+
+const STREAM_GRAPH_HEIGHT = 520
+
+const STREAMS: StreamKey[] = ['upstream', 'midstream', 'downstream']
+const STREAM_LABELS: Record<StreamKey, string> = {
+  upstream: '上游',
+  midstream: '中游',
+  downstream: '下游',
+}
+
+const STATUS_COLORS: Record<NodeStatus, { fill: string; stroke: string; text: string; shadow: string }> = {
+  strong: {
+    fill: '#2f6ef1',
+    stroke: '#2f6ef1',
+    text: '#ffffff',
+    shadow: 'rgba(47, 110, 241, 0.28)',
+  },
+  weak: {
+    fill: '#52c565',
+    stroke: '#52c565',
+    text: '#ffffff',
+    shadow: 'rgba(82, 197, 101, 0.22)',
+  },
+  missing: {
+    fill: '#b4c0ce',
+    stroke: '#b4c0ce',
+    text: '#ffffff',
+    shadow: 'rgba(180, 192, 206, 0.2)',
+  },
+  analyzing: {
+    fill: '#f6c24a',
+    stroke: '#f6c24a',
+    text: '#ffffff',
+    shadow: 'rgba(246, 194, 74, 0.22)',
+  },
+}
+
+const STATUS_LABELS: Record<NodeStatus, string> = {
+  strong: '强链',
+  weak: '弱链',
+  missing: '缺链',
+  analyzing: '分析中',
+}
+
+function stripStreamPrefix(name: string) {
+  return name.replace(/^(上游|中游|下游)[：:]/, '').trim()
+}
+
+function getNodeSize(label: string, depth: number) {
+  const textLength = Array.from(label).length
+  const width = Math.min(226, Math.max(depth === 0 ? 136 : 96, textLength * 15 + 36))
+  const height = depth === 0 ? 44 : 36
+
+  return { width, height }
+}
+
+function normalizeNodeName(name: string) {
+  return name.replace(/[\s：:]/g, '').trim()
+}
+
+function buildLabelMap(options: typeof regionOptions): Record<string, string> {
+  const map: Record<string, string> = {}
+
+  const walk = (items: typeof regionOptions) => {
+    items.forEach((item) => {
+      if (item.value && item.label) map[String(item.value)] = String(item.label)
+      if (item.children) walk(item.children as typeof regionOptions)
+    })
+  }
+
+  walk(options)
+  return map
+}
+
+const regionLabelMap = buildLabelMap(regionOptions)
+const allRegionOptions = [{ value: '__all__', label: '全国' }, ...regionOptions]
+
+function getCityFromCascader(value: string[]) {
+  if (value.length >= 2) {
+    const label = regionLabelMap[String(value[1])] || ''
+    return label.replace(/市$/, '')
+  }
+
+  return ''
+}
+
+function collectInitialCollapsedIds(node: IndustryGraphNode, depth = 0, acc: string[] = []) {
+  if (!node.children?.length) return acc
+
+  if (depth >= 1) acc.push(node.id)
+  node.children.forEach((child) => collectInitialCollapsedIds(child, depth + 1, acc))
+  return acc
+}
+
+function buildInitialCollapsedState(graphData: IndustryGraphSet): Record<StreamKey, string[]> {
+  return {
+    upstream: collectInitialCollapsedIds(graphData.upstream.root),
+    midstream: collectInitialCollapsedIds(graphData.midstream.root),
+    downstream: collectInitialCollapsedIds(graphData.downstream.root),
+  }
+}
+
+function buildTreeNode(
+  node: IndustryGraphNode,
+  depth: number,
+  collapsedIds: Set<string>,
+  getStatus: (node: IndustryGraphNode) => NodeStatus,
+): StreamTreeNode {
+  const label = depth === 0 ? stripStreamPrefix(node.name) : node.name
+  const { width, height } = getNodeSize(label, depth)
+  const hasChildren = Boolean(node.children?.length)
+  const children = hasChildren && !collapsedIds.has(node.id)
+    ? node.children!.map((child) => buildTreeNode(child, depth + 1, collapsedIds, getStatus))
+    : undefined
+
+  return {
+    id: node.id,
+    label,
+    status: getStatus(node),
+    hasChildren,
+    depth,
+    nodeWidth: width,
+    nodeHeight: height,
+    originalNode: node,
+    children,
+  }
+}
+
+function buildGraphData(
+  root: IndustryGraphNode,
+  collapsedIds: Set<string>,
+  getStatus: (node: IndustryGraphNode) => NodeStatus,
+): GraphData {
+  const tree = buildTreeNode(root, 0, collapsedIds, getStatus)
+
+  return treeToGraphData(tree, {
+    getChildren: (node) => node.children || [],
+    getNodeData: (node, depth) => {
+      const { children, ...rest } = node
+      return {
+        ...rest,
+        depth,
+        children: children?.map((child) => child.id) || [],
+      }
+    },
+    getEdgeData: (source, target) => ({
+      id: `${source.id}-${target.id}`,
+      source: source.id,
+      target: target.id,
+    }),
+  })
+}
+
+function getGraphNodeStyle(datum: Record<string, unknown>) {
+  const status = (datum.status as NodeStatus) || 'strong'
+  const colors = STATUS_COLORS[status]
+  const depth = Number(datum.depth || 0)
+  const width = Number(datum.nodeWidth || 88)
+  const height = Number(datum.nodeHeight || (depth === 0 ? 38 : 30))
+  const isMissing = status === 'missing'
+
+  return {
+    size: [width, height] as [number, number],
+    radius: Math.round(height / 2),
+    fill: colors.fill,
+    stroke: colors.stroke,
+    lineWidth: isMissing ? 1.2 : 1,
+    lineDash: isMissing ? [4, 3] : undefined,
+    shadowColor: colors.shadow,
+    shadowBlur: depth === 0 ? 14 : 10,
+    shadowOffsetY: 4,
+    labelText: String(datum.label || ''),
+    labelPlacement: 'center' as const,
+    labelFill: colors.text,
+    labelFontSize: depth === 0 ? 17 : 14,
+    labelFontWeight: depth === 0 ? 700 : 600,
+    labelMaxWidth: `${Math.max(88, width - 20)}px`,
+    labelWordWrap: true,
+    labelWordWrapWidth: Math.max(88, width - 20),
+  }
+}
+
+function StreamGraph({
+  streamKey,
+  root,
+  getStatus,
+  collapsedIds,
+  onToggleNode,
+  onLeafClick,
+  onCanvasClick,
+}: StreamGraphProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const graphRef = useRef<G6Graph | null>(null)
+  const onToggleRef = useRef(onToggleNode)
+  const onLeafClickRef = useRef(onLeafClick)
+  const onCanvasClickRef = useRef(onCanvasClick)
+  const [width, setWidth] = useState(0)
+
+  onToggleRef.current = onToggleNode
+  onLeafClickRef.current = onLeafClick
+  onCanvasClickRef.current = onCanvasClick
+
+  const graphData = useMemo(
+    () => buildGraphData(root, collapsedIds, getStatus),
+    [root, collapsedIds, getStatus],
+  )
+
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (!entry) return
+
+      const nextWidth = Math.floor(entry.contentRect.width)
+
+      setWidth((prev) => (prev === nextWidth ? prev : nextWidth))
+    })
+
+    observer.observe(containerRef.current)
+
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!containerRef.current || width === 0) return
+
+    let graph = graphRef.current
+
+    if (!graph) {
+      graph = new Graph({
+        container: containerRef.current,
+        width,
+        height: STREAM_GRAPH_HEIGHT,
+        autoResize: false,
+        zoomRange: [0.5, 2.4],
+        autoFit: {
+          type: 'view',
+          options: {
+            when: 'always',
+            direction: 'both',
+          },
+        },
+        animation: false,
+        padding: [20, 28, 20, 28],
+        node: {
+          type: 'rect',
+          style: (datum) => getGraphNodeStyle(datum as Record<string, unknown>),
+        },
+        edge: {
+          type: 'cubic-horizontal',
+          style: {
+            stroke: '#c8dcff',
+            lineWidth: 1.5,
+            opacity: 0.96,
+          },
+        },
+        layout: {
+          type: 'compact-box',
+          direction: 'LR',
+          getWidth: (datum: Record<string, unknown>) => Number(datum.nodeWidth || 88),
+          getHeight: (datum: Record<string, unknown>) => Number(datum.nodeHeight || 30),
+          getHGap: (datum: Record<string, unknown>) => (Number(datum.depth || 0) === 0 ? 64 : 54),
+          getVGap: (datum: Record<string, unknown>) => (Number(datum.depth || 0) <= 1 ? 44 : 34),
+        },
+        data: graphData,
+        behaviors: ['drag-canvas', 'zoom-canvas'],
+      })
+
+      graph.on('canvas:click', () => {
+        onCanvasClickRef.current()
+      })
+
+      graph.on('node:click', (event: IElementEvent) => {
+        const targetId = String(event.target.id || '')
+        if (!targetId) return
+
+        const datum = graph?.getNodeData(targetId) as (Record<string, unknown> & {
+          originalNode?: IndustryGraphNode
+          hasChildren?: boolean
+        }) | undefined
+
+        if (!datum?.originalNode) return
+
+        if (datum.hasChildren) {
+          onToggleRef.current(streamKey, targetId)
+          return
+        }
+
+        onLeafClickRef.current(datum.originalNode, event)
+      })
+
+      graphRef.current = graph
+    }
+
+    graph.resize(width, STREAM_GRAPH_HEIGHT)
+    graph.setData(graphData)
+
+    void (async () => {
+      await graph.render()
+      await graph.fitView({ when: 'always', direction: 'both' })
+      await graph.fitCenter()
+    })()
+  }, [graphData, streamKey, width])
+
+  useEffect(() => {
+    return () => {
+      graphRef.current?.destroy()
+      graphRef.current = null
+    }
+  }, [])
+
+  return <div ref={containerRef} className="chain-stream-graph" />
+}
+
+export default function IndustryChainGraph({
+  graphData,
+  onNodeAction,
+  nodeKeywords,
+  selectedCity,
+  regionValue: externalRegionValue,
+  nodeOrgCounts,
+  analyzing,
+  analysisLabel,
+}: Props) {
+  const { message } = App.useApp()
+  const abortRef = useRef<AbortController | null>(null)
+  const [collapsedByStream, setCollapsedByStream] = useState<Record<StreamKey, string[]>>(() => buildInitialCollapsedState(graphData))
+  const [popover, setPopover] = useState<PopoverData | null>(null)
+  const [drawer, setDrawer] = useState<DrawerState>({
+    visible: false,
+    type: 'orgs',
+    nodeName: '',
+    queryString: '',
+    city: '',
+    regionValue: [],
+    loading: false,
+    data: [],
+    total: 0,
+    page: 1,
+  })
+
+  useEffect(() => {
+    setCollapsedByStream(buildInitialCollapsedState(graphData))
+    setPopover(null)
+    setDrawer((prev) => ({ ...prev, visible: false }))
+  }, [graphData])
+
+  const getEffectiveStatus = useCallback((node: IndustryGraphNode): NodeStatus => {
     if (analyzing) return 'analyzing'
     if (!nodeOrgCounts || Object.keys(nodeOrgCounts).length === 0) return node.status
 
-    const hasChildren = node.children && node.children.length > 0
+    const hasChildren = Boolean(node.children?.length)
     if (!hasChildren) {
-      // 叶子节点：直接用企业数判定
-      const count = nodeOrgCounts[node.name]
-      if (count === undefined) return node.status // 未查到的保持原状态
-      return getNodeStatus(count)
+      let count = nodeOrgCounts[node.name]
+
+      if (count === undefined) {
+        const normalizedName = normalizeNodeName(node.name)
+        for (const [key, value] of Object.entries(nodeOrgCounts)) {
+          if (normalizeNodeName(key) === normalizedName) {
+            count = value
+            break
+          }
+        }
+      }
+
+      if (count === undefined) return node.status
+      return getNodeStatus(count) as NodeStatus
     }
-    // 父节点：递归获取所有子节点状态后聚合
-    const childStatuses = (node.children || []).map(c => getEffectiveStatus(c))
-    const validStatuses = childStatuses.filter(s => s !== 'analyzing') as ('strong' | 'weak' | 'missing')[]
+
+    const childStatuses = (node.children || []).map((child) => getEffectiveStatus(child))
+    const validStatuses = childStatuses.filter((status) => status !== 'analyzing') as Array<'strong' | 'weak' | 'missing'>
+
     if (validStatuses.length === 0) return analyzing ? 'analyzing' : node.status
-    return aggregateStatus(validStatuses)
-  }, [nodeOrgCounts, analyzing])
+    return aggregateStatus(validStatuses) as NodeStatus
+  }, [analyzing, nodeOrgCounts])
 
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
-    const ids = new Set<string>()
-    ;(['upstream', 'midstream', 'downstream'] as StreamKey[]).forEach(sk => {
-      ids.add(graphData[sk].root.id)
-    })
-    return ids
-  })
-
-  const [popover, setPopover] = useState<PopoverData | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
-
-  // 抽屉
-  const [drawer, setDrawer] = useState<DrawerState>({
-    visible: false, type: 'orgs', nodeName: '', queryString: '',
-    city: '', regionValue: [], loading: false, data: [], total: 0, page: 1,
-  })
-
-  // 切换产业链时关闭浮窗和抽屉
-  useEffect(() => {
+  const handleToggleNode = useCallback((stream: StreamKey, nodeId: string) => {
     setPopover(null)
-    setDrawer(d => ({ ...d, visible: false }))
-  }, [graphData])
+    setCollapsedByStream((prev) => {
+      const nextSet = new Set(prev[stream])
 
-  const handleToggle = useCallback((nodeId: string) => {
-    setExpandedNodes(prev => {
-      const next = new Set(prev)
-      if (next.has(nodeId)) next.delete(nodeId)
-      else next.add(nodeId)
-      return next
+      if (nextSet.has(nodeId)) nextSet.delete(nodeId)
+      else nextSet.add(nodeId)
+
+      return {
+        ...prev,
+        [stream]: Array.from(nextSet),
+      }
     })
   }, [])
 
-  const handleLeafClick = useCallback((node: IndustryGraphNode, el: HTMLElement) => {
-    const rect = el.getBoundingClientRect()
-    const screenX = Math.min(rect.right + 8, window.innerWidth - 340)
-    const screenY = Math.max(10, Math.min(rect.top - 10, window.innerHeight - 320))
-
+  const handleLeafClick = useCallback((node: IndustryGraphNode, event: IElementEvent) => {
     abortRef.current?.abort()
-    const ac = new AbortController()
-    abortRef.current = ac
+    const controller = new AbortController()
+    abortRef.current = controller
 
     const mapping = nodeKeywords?.[node.name]
+    const clientX = typeof event.client?.x === 'number' ? event.client.x : 0
+    const clientY = typeof event.client?.y === 'number' ? event.client.y : 0
+
+    const screenX = Math.min(clientX + 12, window.innerWidth - 340)
+    const screenY = Math.max(12, Math.min(clientY - 16, window.innerHeight - 320))
 
     if (!mapping) {
       setPopover({
-        node, screenX, screenY, loading: false, queryString: '',
-        orgTotal: 0, localOrgTotal: 0, expertTotal: 0, localExpertTotal: 0,
+        node,
+        screenX,
+        screenY,
+        loading: false,
+        queryString: '',
+        orgTotal: 0,
+        localOrgTotal: 0,
+        expertTotal: 0,
+        localExpertTotal: 0,
       })
       return
     }
 
     setPopover({
-      node, screenX, screenY, loading: true, queryString: mapping.queryString,
-      orgTotal: 0, localOrgTotal: 0, expertTotal: 0, localExpertTotal: 0,
+      node,
+      screenX,
+      screenY,
+      loading: true,
+      queryString: mapping.queryString,
+      orgTotal: 0,
+      localOrgTotal: 0,
+      expertTotal: 0,
+      localExpertTotal: 0,
     })
 
-    const qs = mapping.queryString
-    const localCity = selectedCity || '宜昌'
+    const currentCity = selectedCity || '宜昌'
 
-    // 并行发4个请求，全部使用 city 筛选
-    Promise.all([
-      searchOrgs(qs, 0, 1).catch(() => null),                 // 全国企业
-      searchOrgs(qs, 0, 1, localCity).catch(() => null),       // 本地企业
-      searchExperts(qs, 0, 1).catch(() => null),               // 全国人才
-      searchExperts(qs, 0, 1, localCity).catch(() => null),    // 本地人才
+    void Promise.all([
+      searchOrgs(mapping.queryString, 0, 1).catch(() => null),
+      searchOrgs(mapping.queryString, 0, 1, currentCity).catch(() => null),
+      searchExperts(mapping.queryString, 0, 1).catch(() => null),
+      searchExperts(mapping.queryString, 0, 1, currentCity).catch(() => null),
     ]).then(([orgAll, orgLocal, expertAll, expertLocal]) => {
-      if (ac.signal.aborted) return
+      if (controller.signal.aborted) return
 
-      const getOrgTotal = (res: Record<string, unknown> | null): number => {
-        const d = res?.data as Record<string, unknown> | undefined
-        return (d?.total as number) || 0
-      }
-      const getExpertTotal = (res: Record<string, unknown> | null): number => {
-        const d = res?.data as Record<string, unknown> | undefined
-        return (d?.total as number) || 0
+      const getOrgTotal = (result: Record<string, unknown> | null) => {
+        const data = result?.data as Record<string, unknown> | undefined
+        return Number(data?.total || 0)
       }
 
-      setPopover(prev => prev ? {
-        ...prev,
-        loading: false,
-        orgTotal: getOrgTotal(orgAll),
-        localOrgTotal: getOrgTotal(orgLocal),
-        expertTotal: getExpertTotal(expertAll),
-        localExpertTotal: getExpertTotal(expertLocal),
-      } : null)
+      const getExpertTotal = (result: Record<string, unknown> | null) => {
+        const data = result?.data as Record<string, unknown> | undefined
+        return Number(data?.total || 0)
+      }
+
+      setPopover((prev) => {
+        if (!prev) return null
+
+        return {
+          ...prev,
+          loading: false,
+          orgTotal: getOrgTotal(orgAll),
+          localOrgTotal: getOrgTotal(orgLocal),
+          expertTotal: getExpertTotal(expertAll),
+          localExpertTotal: getExpertTotal(expertLocal),
+        }
+      })
     })
   }, [nodeKeywords, selectedCity])
 
-  // ========== 抽屉数据加载 ==========
-  const loadDrawerData = useCallback((type: 'orgs' | 'experts', qs: string, city: string, page: number) => {
-    setDrawer(d => ({ ...d, loading: true }))
+  const loadDrawerData = useCallback((type: 'orgs' | 'experts', queryString: string, city: string, page: number) => {
+    setDrawer((prev) => ({ ...prev, loading: true }))
     const from = (page - 1) * 10
 
-    const fetcher = type === 'orgs'
-      ? searchOrgs(qs, from, 10, city || undefined)
-      : searchExperts(qs, from, 10, city || undefined)
+    const request = type === 'orgs'
+      ? searchOrgs(queryString, from, 10, city || undefined)
+      : searchExperts(queryString, from, 10, city || undefined)
 
-    fetcher.then(res => {
-      const d = res?.data as Record<string, unknown> | undefined
-      const list = (d?.orgRecommend ?? d?.expertsRecommend ?? d?.items ?? []) as Record<string, unknown>[]
-      const total = (d?.total as number) || list.length
-      setDrawer(prev => ({ ...prev, loading: false, data: list, total, page }))
+    void request.then((result) => {
+      const data = result?.data as Record<string, unknown> | undefined
+      const list = (data?.orgRecommend ?? data?.expertsRecommend ?? data?.items ?? []) as Record<string, unknown>[]
+      const total = Number(data?.total || list.length)
+
+      setDrawer((prev) => ({
+        ...prev,
+        loading: false,
+        data: list,
+        total,
+        page,
+      }))
     }).catch(() => {
-      setDrawer(prev => ({ ...prev, loading: false, data: [], total: 0 }))
+      setDrawer((prev) => ({
+        ...prev,
+        loading: false,
+        data: [],
+        total: 0,
+      }))
     })
   }, [])
 
   const openDrawer = useCallback((type: 'orgs' | 'experts') => {
     if (!popover) return
+
     const city = selectedCity || '宜昌'
-    const rv = externalRegionValue || ['hubei', 'yichang']
+    const region = externalRegionValue || ['hubei', 'yichang']
+
     setDrawer({
-      visible: true, type,
+      visible: true,
+      type,
       nodeName: popover.node.name,
       queryString: popover.queryString,
-      city, regionValue: rv,
-      loading: true, data: [], total: 0, page: 1,
+      city,
+      regionValue: region,
+      loading: true,
+      data: [],
+      total: 0,
+      page: 1,
     })
+
     setPopover(null)
     loadDrawerData(type, popover.queryString, city, 1)
-  }, [popover, selectedCity, externalRegionValue, loadDrawerData])
+  }, [externalRegionValue, loadDrawerData, popover, selectedCity])
 
-  const handleDrawerRegionChange = useCallback((val: string[]) => {
-    const newCity = getCityFromCascader(val)
-    setDrawer(prev => {
-      loadDrawerData(prev.type, prev.queryString, newCity, 1)
-      return { ...prev, city: newCity, regionValue: val, page: 1 }
+  const handleDrawerRegionChange = useCallback((value: string[]) => {
+    const nextCity = getCityFromCascader(value)
+
+    setDrawer((prev) => {
+      loadDrawerData(prev.type, prev.queryString, nextCity, 1)
+      return {
+        ...prev,
+        city: nextCity,
+        regionValue: value,
+        page: 1,
+      }
     })
   }, [loadDrawerData])
 
-  const streams: StreamKey[] = ['upstream', 'midstream', 'downstream']
-  const headers = ['上 游', '中 游', '下 游']
-
-  // "全国"选项 — Cascader 不支持空值, 用特殊标记
-  const allRegionOptions = [
-    { value: '__all__', label: '全国' },
-    ...regionOptions,
-  ]
+  const popoverStatus = popover
+    ? (popover.loading ? 'analyzing' : getEffectiveStatus(popover.node))
+    : null
 
   return (
     <>
-      <div className="chain-graph-container" onClick={(e) => {
-        const t = e.target as HTMLElement
-        if (t.classList.contains('chain-graph-container') || t.classList.contains('chain-stream-col')) {
-          setPopover(null)
-        }
-      }}>
-        <div className="chain-graph-columns">
-          {streams.map((sk, idx) => {
-            const isFocused = focusedStream === sk
-            return (
-              <div key={sk} style={{ display: 'contents' }}>
-                {idx > 0 && <div className="chain-stream-separator">›</div>}
-                <div className={`chain-stream-col ${isFocused ? 'focused' : ''}`}>
-                  <div className="chain-stream-header"
-                    onClick={() => setFocusedStream(prev => prev === sk ? null : sk)}>
-                    <span className="chain-header-line" />
-                    <span className="chain-header-text">{headers[idx]}</span>
-                    <span className="chain-header-line" />
-                  </div>
-                  <div className="chain-tree-content">
-                    <TreeNode node={graphData[sk].root} depth={0} expandedNodes={expandedNodes}
-                      onToggle={handleToggle} onLeafClick={handleLeafClick}
-                      compact={focusedStream !== null && !isFocused} getStatus={getEffectiveStatus} />
-                  </div>
-                </div>
+      <div className="chain-graph-shell" onClick={() => setPopover(null)}>
+        <div className="chain-legend-row">
+          <div className="chain-legend-bar">
+          <span className="chain-legend-item">
+            <span className="chain-legend-icon chain-legend-strong" />
+            强链
+          </span>
+          <span className="chain-legend-item">
+            <span className="chain-legend-icon chain-legend-weak" />
+            弱链
+          </span>
+          <span className="chain-legend-item">
+            <span className="chain-legend-icon chain-legend-missing" />
+            缺链
+          </span>
+          </div>
+          {analysisLabel && (
+            <div className={`chain-analysis-tip${analyzing ? ' is-loading' : ''}`}>
+              {analyzing && <LoadingOutlined spin />}
+              <span>{analysisLabel}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="chain-stage">
+          <div className="chain-stage-header">
+            {STREAMS.map((stream) => (
+              <div key={stream} className={`chain-stage-pill stream-${stream}`}>
+                {STREAM_LABELS[stream]}
               </div>
-            )
-          })}
+            ))}
+          </div>
+
+          <div className="chain-stage-body">
+            {STREAMS.map((stream) => (
+              <div key={stream} className={`chain-stage-column stream-${stream}`} onClick={(event) => event.stopPropagation()}>
+                <StreamGraph
+                  streamKey={stream}
+                  root={graphData[stream].root}
+                  getStatus={getEffectiveStatus}
+                  collapsedIds={new Set(collapsedByStream[stream])}
+                  onToggleNode={handleToggleNode}
+                  onLeafClick={handleLeafClick}
+                  onCanvasClick={() => setPopover(null)}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* ========== 节点浮窗 ========== */}
       {popover && createPortal(
-        <div className="chain-popover-portal"
-          style={{ left: popover.screenX, top: popover.screenY }}>
+        <div className="chain-popover-portal" style={{ left: popover.screenX, top: popover.screenY }}>
           <div className="chain-popover-header">
-            <Text strong style={{ fontSize: 15 }}>{popover.node.name}</Text>
-            <Tag color={STATUS_COLORS[popover.node.status]}>{STATUS_LABELS[popover.node.status]}</Tag>
+            <Text strong style={{ fontSize: 15 }}>
+              {popover.node.name}
+            </Text>
+            <Tag color={STATUS_COLORS[popoverStatus || 'strong'].fill}>
+              {STATUS_LABELS[popoverStatus || 'strong']}
+            </Tag>
           </div>
 
           {popover.loading ? (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div className="chain-popover-loading">
               <Spin indicator={<LoadingOutlined spin />} size="small" />
-              <div style={{ color: '#999', fontSize: 12, marginTop: 6 }}>搜索中...</div>
+              <div className="chain-popover-tip">检索中...</div>
             </div>
           ) : popover.queryString ? (
             <>
               <div className="chain-popover-stats">
-                <div>企业 <Text strong style={{ color: '#2468F2' }}>{popover.orgTotal.toLocaleString()}</Text> 家 | 本地企业 <Text strong style={{ color: '#F26B4A' }}>{popover.localOrgTotal.toLocaleString()}</Text> 家</div>
-                <div>人才 <Text strong style={{ color: '#2468F2' }}>{popover.expertTotal.toLocaleString()}</Text> 位 | 本地人才 <Text strong style={{ color: '#F26B4A' }}>{popover.localExpertTotal.toLocaleString()}</Text> 位</div>
+                <div>
+                  企业 <Text strong style={{ color: '#2468F2' }}>{popover.orgTotal.toLocaleString()}</Text> 家
+                  {' '}| 本地企业 <Text strong style={{ color: '#F26B4A' }}>{popover.localOrgTotal.toLocaleString()}</Text> 家
+                </div>
+                <div>
+                  人才 <Text strong style={{ color: '#2468F2' }}>{popover.expertTotal.toLocaleString()}</Text> 位
+                  {' '}| 本地人才 <Text strong style={{ color: '#F26B4A' }}>{popover.localExpertTotal.toLocaleString()}</Text> 位
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                <Button type="link" size="small" icon={<BankOutlined />}
-                  onClick={() => openDrawer('orgs')}>查看相关企业</Button>
-                <Button type="link" size="small" icon={<TeamOutlined />}
-                  onClick={() => openDrawer('experts')}>查看相关人才</Button>
+              <div className="chain-popover-actions">
+                <Button type="link" size="small" icon={<BankOutlined />} onClick={() => openDrawer('orgs')}>
+                  查看相关企业
+                </Button>
+                <Button type="link" size="small" icon={<TeamOutlined />} onClick={() => openDrawer('experts')}>
+                  查看相关人才
+                </Button>
               </div>
             </>
           ) : (
-            <div style={{ textAlign: 'center', color: '#999', padding: '16px 0', fontSize: 13 }}>暂无关键词映射</div>
+            <div className="chain-popover-empty">暂无关键词映射</div>
           )}
 
-          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between' }}>
-            <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => {
-              message.success(`已将"${popover.node.name}"加入清单`)
-              onNodeAction?.('addList', popover.node)
-              setPopover(null)
-            }}>加入清单</Button>
-            <Button type="text" size="small" onClick={() => setPopover(null)} style={{ color: '#999' }}>关闭</Button>
+          <div className="chain-popover-footer">
+            <Button
+              type="primary"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                message.success(`已将“${popover.node.name}”加入清单`)
+                onNodeAction?.('addList', popover.node)
+                setPopover(null)
+              }}
+            >
+              加入清单
+            </Button>
+            <Button type="text" size="small" onClick={() => setPopover(null)} style={{ color: '#8a94a6' }}>
+              关闭
+            </Button>
           </div>
         </div>,
-        document.body
+        document.body,
       )}
 
-      {/* ========== 右侧抽屉 ========== */}
       <Drawer
-        title={
+        title={(
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {drawer.type === 'orgs' ? <BankOutlined /> : <TeamOutlined />}
             <span>{drawer.nodeName} - {drawer.type === 'orgs' ? '相关企业' : '相关人才'}</span>
             {drawer.total > 0 && <Tag color="blue">{drawer.total.toLocaleString()}</Tag>}
           </div>
-        }
+        )}
         open={drawer.visible}
-        onClose={() => setDrawer(d => ({ ...d, visible: false }))}
+        onClose={() => setDrawer((prev) => ({ ...prev, visible: false }))}
         width={860}
         destroyOnClose
       >
-        {/* 地区筛选 — 与外部选择器同款 Cascader */}
         <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
           <EnvironmentOutlined style={{ color: '#2468F2' }} />
           <span style={{ fontSize: 13, color: '#666' }}>地区筛选：</span>
           <Cascader
             options={allRegionOptions}
             value={drawer.regionValue.length > 0 ? drawer.regionValue : ['__all__']}
-            onChange={(val) => {
-              if (!val || val.length === 0 || val[0] === '__all__') {
-                // 选了"全国"
-                setDrawer(prev => {
+            onChange={(value) => {
+              const nextValue = (value || []) as string[]
+
+              if (nextValue.length === 0 || nextValue[0] === '__all__') {
+                setDrawer((prev) => {
                   loadDrawerData(prev.type, prev.queryString, '', 1)
-                  return { ...prev, city: '', regionValue: [], page: 1 }
+                  return {
+                    ...prev,
+                    city: '',
+                    regionValue: [],
+                    page: 1,
+                  }
                 })
-              } else {
-                handleDrawerRegionChange(val)
+                return
               }
+
+              handleDrawerRegionChange(nextValue)
             }}
             changeOnSelect
             size="small"
@@ -431,11 +776,10 @@ export default function IndustryChainGraph({ graphData, onNodeAction, nodeKeywor
           />
         </div>
 
-        {/* 数据表格 */}
         <Table
           columns={drawer.type === 'orgs' ? orgDrawerColumns : expertDrawerColumns}
           dataSource={drawer.data}
-          rowKey={(_, i) => String(i)}
+          rowKey={(_, index) => String(index)}
           loading={drawer.loading}
           size="small"
           pagination={{
@@ -444,9 +788,9 @@ export default function IndustryChainGraph({ graphData, onNodeAction, nodeKeywor
             pageSize: 10,
             showSizeChanger: false,
             showTotal: () => `共 ${drawer.total.toLocaleString()} 条`,
-            onChange: (p) => {
-              loadDrawerData(drawer.type, drawer.queryString, drawer.city, p)
-              setDrawer(prev => ({ ...prev, page: p }))
+            onChange: (page) => {
+              loadDrawerData(drawer.type, drawer.queryString, drawer.city, page)
+              setDrawer((prev) => ({ ...prev, page }))
             },
           }}
         />

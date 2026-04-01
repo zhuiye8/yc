@@ -1,14 +1,19 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
-  AppstoreOutlined,
-  DesktopOutlined,
-  BellOutlined,
-  UserOutlined,
   LogoutOutlined,
+  StarOutlined,
+  FileTextOutlined,
+  BellOutlined,
+  HeartOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons'
 import { Badge, Dropdown } from 'antd'
 import { logout } from '@/services/auth'
 import logo from '@/assets/images/logo.png'
+import iconMenu from '@/assets/images/icons/小图标_11.png'
+import iconScreen from '@/assets/images/icons/小图标_13.png'
+import iconBell from '@/assets/images/icons/小图标_06.png'
+import iconUser from '@/assets/images/icons/小图标_08.png'
 import styles from './MainLayout.module.scss'
 
 const menuItems = [
@@ -47,30 +52,68 @@ export default function Header() {
         </nav>
 
         <div className={styles.headerRight}>
-          <div className={styles.headerAction}>
-            <AppstoreOutlined />
-            <span>快捷菜单</span>
-          </div>
-          <div className={styles.headerAction} onClick={() => navigate('/screen')}>
-            <DesktopOutlined />
-            <span>大屏模式</span>
-          </div>
-          <div className={styles.headerAction}>
-            <Badge count={3} size="small">
-              <BellOutlined style={{ fontSize: 16 }} />
-            </Badge>
-          </div>
           <Dropdown
             menu={{
               items: [
-                { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', danger: true },
+                {
+                  key: '/list',
+                  label: '我的清单',
+                  icon: <StarOutlined style={{ color: '#1890ff', fontSize: 16 }} />,
+                },
+                {
+                  key: '/reports',
+                  label: '报告中心',
+                  icon: <FileTextOutlined style={{ color: '#1890ff', fontSize: 16 }} />,
+                },
+                {
+                  key: '/alerts',
+                  label: '预警中心',
+                  icon: <BellOutlined style={{ color: '#1890ff', fontSize: 16 }} />,
+                },
+                {
+                  key: '/favorites',
+                  label: '收藏',
+                  icon: <HeartOutlined style={{ color: '#1890ff', fontSize: 16 }} />,
+                },
+                {
+                  key: '/recent',
+                  label: '最近访问',
+                  icon: <ClockCircleOutlined style={{ color: '#1890ff', fontSize: 16 }} />,
+                },
               ],
-              onClick: ({ key }) => { if (key === 'logout') logout() },
+              onClick: ({ key }) => navigate(key),
             }}
             placement="bottomRight"
           >
             <div className={styles.headerAction} style={{ cursor: 'pointer' }}>
-              <UserOutlined />
+              <img src={iconMenu} alt="" style={{ width: 16, height: 16 }} />
+              <span>快捷菜单 ▼</span>
+            </div>
+          </Dropdown>
+
+          <div className={styles.headerAction} onClick={() => navigate('/screen')}>
+            <img src={iconScreen} alt="" style={{ width: 16, height: 16 }} />
+            <span>大屏模式</span>
+          </div>
+
+          <div className={styles.headerAction}>
+            <Badge count={3} size="small">
+              <img src={iconBell} alt="" style={{ width: 16, height: 16 }} />
+            </Badge>
+            <span>消息</span>
+          </div>
+
+          <Dropdown
+            menu={{
+              items: [{ key: 'logout', icon: <LogoutOutlined />, label: '退出登录', danger: true }],
+              onClick: ({ key }) => {
+                if (key === 'logout') logout()
+              },
+            }}
+            placement="bottomRight"
+          >
+            <div className={styles.headerAction} style={{ cursor: 'pointer' }}>
+              <img src={iconUser} alt="" style={{ width: 16, height: 16 }} />
               <span>管理员</span>
             </div>
           </Dropdown>

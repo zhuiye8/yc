@@ -31,14 +31,14 @@
   text-align: center;
   font-size: $font-size-sm;
   color: $gray-400;
-  margin-bottom: $space-xl;
+  margin-bottom: $space-2xl;
 }
 
 .introText {
   font-size: $font-size-base;
   color: $gray-600;
   line-height: 2;
-  margin-bottom: $space-2xl;
+  margin-bottom: $space-3xl;
   text-indent: 2em;
 }
 
@@ -46,7 +46,7 @@
 .bannerCards {
   display: flex;
   gap: $space-lg;
-  margin-bottom: $space-3xl;
+  margin-bottom: $space-4xl;
 }
 
 .bannerCard {
@@ -101,14 +101,14 @@
 .bannerDesc {
   font-size: $font-size-sm;
   color: rgba(255, 255, 255, 0.8);
-  line-height: 1.6;
+  line-height: 2;
 }
 
 // 当前版本 + 已上线能力 两栏
 .twoCol {
   display: flex;
   gap: $space-3xl;
-  margin-bottom: $space-3xl;
+  margin-bottom: $space-4xl;
 }
 
 .colItem {
@@ -160,7 +160,7 @@
 // 数据更新指标 — 三等分平铺
 .metricsRow {
   display: flex;
-  margin-bottom: $space-3xl;
+  margin-bottom: $space-4xl;
   padding: $space-xl 0;
 }
 
@@ -216,7 +216,7 @@
 .goalCards {
   display: flex;
   gap: $space-lg;
-  margin-bottom: $space-3xl;
+  margin-bottom: $space-4xl;
 }
 
 // 卡片按素材比例 279:337
@@ -259,7 +259,7 @@
   z-index: 1;
   font-size: $font-size-xs;
   color: $gray-500;
-  line-height: 1.6;
+  line-height: 2;
 }
 
 // 使用帮助
@@ -272,14 +272,14 @@
 .helpCard {
   flex: 1;
   padding: $space-lg;
-  border: 1px solid $gray-200;
+  border: 1px solid $primary-500;
   border-radius: $radius-md;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
   font-size: $font-size-base;
   color: $gray-700;
-  &:hover { border-color: $primary-500; color: $primary-500; }
+  &:hover { border-color: $primary-600; color: $primary-500; box-shadow: $shadow-md; }
 }
 
 .helpNote {

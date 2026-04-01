@@ -1,26 +1,23 @@
 import { useState } from 'react'
 import { Select, Table, Tag, Button } from 'antd'
-import {
-  ExperimentOutlined,
-  FireOutlined,
-  BankOutlined,
-  FileTextOutlined,
-} from '@ant-design/icons'
+import { ExperimentOutlined } from '@ant-design/icons'
 import HeroSection from '@/components/HeroSection'
-import ReportPanel from '@/components/ReportPanel'
 import ResourceHeatMap from './ResourceHeatMap'
+import InnovationReport from './InnovationReport'
 import innovationBg from '@/assets/images/hero/innovation-bg.jpg'
+import innovationTechnologyHeatIcon from '@/assets/images/icons/innovation-technology-heat-icon.png'
+import innovationPatentListIcon from '@/assets/images/icons/innovation-patent-list-icon.png'
+import innovationCoreEnterprisesIcon from '@/assets/images/icons/innovation-core-enterprises-icon.png'
 import styles from './Innovation.module.scss'
 
 const hotTags = ['基因编辑', '固态电池', '碳纤维', '智能传感', '绿色催化', '氢能', 'AI制药']
 
-// 缺口对标表格数据
 const gapData = [
   { id: '1', name: '高纯光刻胶', chain: '新材料', chainColor: 'orange', level: '严重', levelColor: 'red', local: '2家', national: '45家', suggestion: '引进核心技术团队' },
-  { id: '2', name: '生物制品生产工艺', chain: '生物医药', chainColor: 'blue', level: '较大', levelColor: 'orange', local: '5家', national: '38家', suggestion: '产学研联合攻关' },
-  { id: '3', name: '高精度传感器芯片', chain: '装备制造', chainColor: 'purple', level: '较大', levelColor: 'orange', local: '3家', national: '52家', suggestion: '与头部企业合作' },
+  { id: '2', name: '生物制品生产工艺', chain: '生物医药', chainColor: 'blue', level: '较大', levelColor: 'orange', local: '5家', national: '38家', suggestion: '推动产学研联合攻关' },
+  { id: '3', name: '高精度传感器芯片', chain: '装备制造', chainColor: 'purple', level: '较大', levelColor: 'orange', local: '3家', national: '52家', suggestion: '对接头部企业合作' },
   { id: '4', name: '氢燃料电池膜', chain: '清洁能源', chainColor: 'green', level: '中等', levelColor: 'gold', local: '8家', national: '28家', suggestion: '引进技术许可' },
-  { id: '5', name: '高性能催化剂', chain: '绿色化工', chainColor: 'cyan', level: '轻微', levelColor: 'default', local: '12家', national: '35家', suggestion: '自主研发强化' },
+  { id: '5', name: '高性能催化剂', chain: '绿色化工', chainColor: 'cyan', level: '轻微', levelColor: 'default', local: '12家', national: '35家', suggestion: '强化自主研发' },
 ]
 
 const gapColumns = [
@@ -30,7 +27,10 @@ const gapColumns = [
   { title: '本地主体', dataIndex: 'local', key: 'local', width: 80 },
   { title: '全国主体', dataIndex: 'national', key: 'national', width: 80 },
   { title: '补链建议', dataIndex: 'suggestion', key: 'suggestion', ellipsis: true },
-  { title: '操作', key: 'action', width: 160,
+  {
+    title: '操作',
+    key: 'action',
+    width: 160,
     render: () => (
       <span style={{ display: 'flex', gap: 4 }}>
         <Button type="link" size="small" style={{ padding: 0 }}>查看对标主体</Button>
@@ -40,10 +40,10 @@ const gapColumns = [
   },
 ]
 
-// 专利列表
 const patentData = Array.from({ length: 10 }, (_, i) => ({
-  id: `pat${i}`, name: i === 0 ? '一种基因编辑载体的制备方法' : '绿色催化剂制备及应用方法',
-  applicant: i === 0 ? '宜昌人福药业公司' : '宜化集团',
+  id: `pat${i}`,
+  name: i === 0 ? '一种基因编辑载体的制备方法' : '绿色催化剂制备及应用方法',
+  applicant: i === 0 ? '宜昌人福药业有限公司' : '宜化集团',
   date: i === 0 ? '2025-11-15' : '2025-12-05',
   type: '发明',
   ipc: i === 0 ? 'A61K' : 'B01J',
@@ -59,7 +59,6 @@ const patentColumns = [
   { title: '状态', dataIndex: 'status', key: 'status', width: 60, render: (v: string) => <span>● {v}</span> },
 ]
 
-// 技术热度榜
 const hotTopics = [
   { name: '基因编辑技术', color: '#F26B4A', tag: '热门', tagColor: '#FFF1F0', tagText: '#F26B4A' },
   { name: '高性能碳纤维', color: '#F59E5A', tag: '热门', tagColor: '#FFF7E6', tagText: '#F59E5A' },
@@ -68,21 +67,13 @@ const hotTopics = [
   { name: '固态电池技术', color: '#F26B4A', tag: '热门', tagColor: '#FFF1F0', tagText: '#F26B4A' },
 ]
 
-// 核心企业
 const coreOrgs = [
   { name: '三峡实验室', type: '科研机构', typeColor: 'blue', patent: 178, project: 45, paper: 256 },
-  { name: '三峡实验室', type: '高校', typeColor: 'green', patent: 178, project: 45, paper: 256 },
-  { name: '三峡实验室', type: '企业', typeColor: 'orange', patent: 178, project: 45, paper: 256 },
-  { name: '三峡实验室', type: '企业', typeColor: 'orange', patent: 178, project: 45, paper: 256 },
-  { name: '三峡实验室', type: '企业', typeColor: 'orange', patent: 178, project: 45, paper: 256 },
-  { name: '三峡实验室', type: '企业', typeColor: 'orange', patent: 178, project: 45, paper: 256 },
-]
-
-const reportMenuItems = [
-  { key: 'analysis', label: '技术分析报告' },
-  { key: 'gap', label: '技术缺口对标' },
-  { key: 'trend', label: '技术趋势分析' },
-  { key: 'compete', label: '技术竞争力对标' },
+  { name: '三峡大学', type: '高校', typeColor: 'green', patent: 178, project: 45, paper: 256 },
+  { name: '宜化集团', type: '企业', typeColor: 'orange', patent: 178, project: 45, paper: 256 },
+  { name: '安琪酵母', type: '企业', typeColor: 'orange', patent: 178, project: 45, paper: 256 },
+  { name: '人福药业', type: '企业', typeColor: 'orange', patent: 178, project: 45, paper: 256 },
+  { name: '兴发集团', type: '企业', typeColor: 'orange', patent: 178, project: 45, paper: 256 },
 ]
 
 export default function Innovation() {
@@ -94,14 +85,18 @@ export default function Innovation() {
         backgroundImage={innovationBg}
         searchPlaceholder="搜索专利、标准、技术成果、科研项目..."
         hotTags={hotTags}
+        titleLine1="链接产学研资源"
+        titleLine2="让技术成果快速落地"
       />
 
       <div className={styles.tabBar}>
         <div className={styles.tabLeft}>
-          {(['resource', 'gap', 'report'] as const).map(tab => (
-            <div key={tab}
+          {(['resource', 'gap', 'report'] as const).map((tab) => (
+            <div
+              key={tab}
               className={`${styles.tab} ${activeTab === tab ? styles.active : styles.inactive}`}
-              onClick={() => setActiveTab(tab)}>
+              onClick={() => setActiveTab(tab)}
+            >
               {tab === 'resource' ? '创新资源' : tab === 'gap' ? '缺口对标' : '技术报告'}
             </div>
           ))}
@@ -109,21 +104,23 @@ export default function Innovation() {
         {activeTab !== 'resource' && (
           <div className={styles.tabRight}>
             <span className={styles.filterLabel}>产业链</span>
-            <Select defaultValue="green-chem" style={{ width: 140 }} size="small" options={[
-              { value: 'green-chem', label: '绿色化工' },
-              { value: 'ai', label: '人工智能' },
-            ]} />
+            <Select
+              defaultValue="green-chem"
+              style={{ width: 140 }}
+              size="small"
+              options={[
+                { value: 'green-chem', label: '绿色化工' },
+                { value: 'ai', label: '人工智能' },
+              ]}
+            />
           </div>
         )}
       </div>
 
-      {/* 创新资源 — 热力图 */}
       {activeTab === 'resource' && <ResourceHeatMap />}
 
-      {/* 缺口对标 — 原创新资源的内容 */}
       {activeTab === 'gap' && (
         <div className={styles.content}>
-          {/* 上区：缺口表格 + 热度榜 */}
           <div className={styles.topRow}>
             <div className={styles.topMain}>
               <div className={styles.panel}>
@@ -133,7 +130,7 @@ export default function Innovation() {
             <div className={styles.topSide}>
               <div className={styles.panel}>
                 <div className={styles.panelTitle}>
-                  <FireOutlined className={styles.icon} />
+                  <img src={innovationTechnologyHeatIcon} alt="" className={styles.iconImage} />
                   技术热度榜
                 </div>
                 {hotTopics.map((item, i) => (
@@ -148,25 +145,30 @@ export default function Innovation() {
             </div>
           </div>
 
-          {/* 下区：专利列表 + 核心企业 */}
           <div className={styles.bottomRow}>
             <div className={styles.bottomMain}>
               <div className={styles.panel}>
                 <div className={styles.panelHeader}>
                   <div className={styles.panelTitle} style={{ marginBottom: 0 }}>
-                    <FileTextOutlined className={styles.icon} />
+                    <img src={innovationPatentListIcon} alt="" className={styles.iconImage} />
                     专利列表
                   </div>
                   <a style={{ fontSize: 13, color: '#86909C' }}>查看全部 &gt;</a>
                 </div>
-                <Table columns={patentColumns} dataSource={patentData} rowKey="id" size="small"
-                  pagination={{ pageSize: 8, size: 'small' }} scroll={{ x: 600 }} />
+                <Table
+                  columns={patentColumns}
+                  dataSource={patentData}
+                  rowKey="id"
+                  size="small"
+                  pagination={{ pageSize: 8, size: 'small' }}
+                  scroll={{ x: 600 }}
+                />
               </div>
             </div>
             <div className={styles.bottomSide}>
               <div className={styles.panel}>
                 <div className={styles.panelTitle}>
-                  <BankOutlined className={styles.icon} />
+                  <img src={innovationCoreEnterprisesIcon} alt="" className={styles.iconImage} />
                   核心企业
                 </div>
                 {coreOrgs.map((org, i) => (
@@ -177,8 +179,8 @@ export default function Innovation() {
                     </div>
                     <div className={styles.orgMeta}>
                       <span>专利 {org.patent}</span>
-                      <span>项目{org.project}</span>
-                      <span>论文{org.paper}</span>
+                      <span>项目 {org.project}</span>
+                      <span>论文 {org.paper}</span>
                     </div>
                   </div>
                 ))}
@@ -188,7 +190,7 @@ export default function Innovation() {
         </div>
       )}
 
-      {activeTab === 'report' && <ReportPanel menuItems={reportMenuItems} />}
+      {activeTab === 'report' && <InnovationReport />}
     </div>
   )
 }

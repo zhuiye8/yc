@@ -1,6 +1,5 @@
 @use '@/styles/variables' as *;
 
-// 主 Tab 区
 .tabBar {
   max-width: 1400px;
   margin: 0 auto;
@@ -13,6 +12,8 @@
 .tabLeft {
   display: flex;
   gap: 0;
+  overflow: hidden;
+  border-radius: 6px;
 }
 
 .tab {
@@ -21,24 +22,23 @@
   cursor: pointer;
   transition: all 0.2s;
   color: $white;
+  border-radius: 0;
 
   &:first-child {
-    border-radius: $radius-full 0 0 $radius-full;
+    border-radius: 6px 0 0 6px;
   }
 
   &:last-child {
-    border-radius: 0 $radius-full $radius-full 0;
+    border-radius: 0 6px 6px 0;
   }
 
-  // 选中态：橙红色
   &.active {
-    background: #F26B4A;
+    background: linear-gradient(90deg, #fe896f 0%, #ff5a36 100%);
     color: $white;
   }
 
-  // 未选中态：蓝色
   &.inactive {
-    background: $primary-500;
+    background: #3194fd;
     color: $white;
   }
 
@@ -58,7 +58,6 @@
   color: $gray-500;
 }
 
-// 图谱视图 内容区
 .graphSection {
   max-width: 1400px;
   margin: 0 auto;
@@ -72,13 +71,12 @@
   line-height: 1.6;
 }
 
-// 整体两列布局：左（图谱+企业）右（指标+人才），底部对齐
+/* Two-column layout: graph and enterprises on the left, stats and talents on the right */
 .graphLayout {
   display: flex;
   gap: $space-xl;
 }
 
-// 左列：图谱 + 链上企业
 .leftColumn {
   flex: 1;
   display: flex;
@@ -94,7 +92,6 @@
   overflow: hidden;
 }
 
-// 三列树形图谱（React 自绘）
 .treeColumns {
   display: flex;
   gap: 0;
@@ -103,7 +100,6 @@
   padding-bottom: $space-md;
 }
 
-// 右列：指标 + 链上人才
 .sidePanel {
   width: 300px;
   flex-shrink: 0;
@@ -112,7 +108,6 @@
   gap: $space-lg;
 }
 
-// 侧面板卡片
 .panelCard {
   background: $white;
   border-radius: $radius-md;
@@ -134,6 +129,14 @@
   }
 }
 
+.iconImage {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+}
+
 .statValue {
   font-size: 32px;
   font-weight: 700;
@@ -145,8 +148,13 @@
   font-size: $font-size-sm;
   margin-left: $space-sm;
 
-  &.up { color: #e74c3c; }
-  &.down { color: $success; }
+  &.up {
+    color: #e74c3c;
+  }
+
+  &.down {
+    color: $success;
+  }
 }
 
 .statSub {
@@ -170,9 +178,8 @@
   transition: width 0.5s ease;
 }
 
-// 图例
 .legend {
-  display: flex;
+  display: none;
   gap: $space-lg;
   font-size: $font-size-sm;
   color: $gray-600;
@@ -192,7 +199,6 @@
   display: inline-block;
 }
 
-// 链上人才表格
 .talentHeader {
   display: flex;
   justify-content: space-between;
@@ -240,7 +246,14 @@
   }
 }
 
-// 企业双列表格
+.sectionIconImage {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+}
+
 .enterpriseGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -289,5 +302,26 @@
 
   &:hover {
     color: $primary-500;
+  }
+}
+
+.listAddButton {
+  height: 28px;
+  padding: 0 13px;
+  border-radius: 6px !important;
+  border-color: #2f74f6;
+  background: #2f74f6;
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 500;
+
+  &:hover,
+  &:focus {
+    border-color: #2768e5 !important;
+    background: #2768e5 !important;
+  }
+
+  :global(.ant-btn-icon) {
+    font-size: 12px;
   }
 }

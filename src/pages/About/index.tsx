@@ -9,10 +9,10 @@ import goalImg4 from '@/assets/images/icons/小图标_125.png'
 import styles from './About.module.scss'
 
 const goals = [
-  { img: goalImg1, title: '数据层', items: ['海量数据日均更新', '多源数据融合', '数据质量评估与治理闭环'] },
-  { img: goalImg2, title: '分析层', items: ['更精细的诊断模型', '可配置指标体系', '对标分析与趋势预测'] },
-  { img: goalImg3, title: '应用层', items: ['跨模块日益联动', '任务驱动运营', '多端展示与开放接口'] },
-  { img: goalImg4, title: '生态合作', items: ['数据合作', '工具集成', '联合运营与持续迭代'] },
+  { img: goalImg1, title: '数据层', color: '#2468F2', items: ['海量数据日均更新', '多源数据融合', '数据质量评估与治理闭环'] },
+  { img: goalImg2, title: '分析层', color: '#F5A623', items: ['更精细的诊断模型', '可配置指标体系', '对标分析与趋势预测'] },
+  { img: goalImg3, title: '应用层', color: '#2BA471', items: ['跨模块日益联动', '任务驱动运营', '多端展示与开放接口'] },
+  { img: goalImg4, title: '生态合作', color: '#C94A4A', items: ['数据合作', '工具集成', '联合运营与持续迭代'] },
 ]
 
 export default function About() {
@@ -116,9 +116,9 @@ export default function About() {
         <div className={styles.sectionSubtitle}>数据层 · 分析层 · 应用层 · 生态合作</div>
         <div className={styles.goalCards}>
           {goals.map(g => (
-            <div key={g.title} className={styles.goalCard}>
+            <div key={g.title} className={styles.goalCard} style={{ borderBottom: `3px solid ${g.color}` }}>
               <img src={g.img} alt="" className={styles.goalBg} />
-              <div className={styles.goalTitle}>{g.title}</div>
+              <div className={styles.goalTitle} style={{ color: g.color }}>{g.title}</div>
               <div className={styles.goalDesc}>
                 {g.items.map((item, i) => <div key={i}>{item}</div>)}
               </div>

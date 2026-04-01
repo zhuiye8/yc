@@ -1,0 +1,215 @@
+.graphRoot {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+}
+
+.graphCanvas {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+}
+
+.inlineSearch {
+  position: absolute;
+  top: 16px;
+  left: 18px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  width: 250px;
+  height: 38px;
+  padding: 0 6px 0 14px;
+  border: 1px solid rgba(62, 117, 226, 0.34);
+  border-radius: 999px;
+  background: rgba(9, 24, 49, 0.84);
+  box-shadow:
+    inset 0 0 0 1px rgba(111, 157, 255, 0.08),
+    0 8px 18px rgba(2, 12, 30, 0.26);
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: rgba(242, 248, 255, 0.92);
+  font-size: 13px;
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: rgba(182, 201, 232, 0.34);
+}
+
+.searchButton {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #4f8eff 0%, #2f6fff 100%);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(45, 110, 255, 0.32);
+}
+
+.searchDropdown {
+  position: absolute;
+  top: 60px;
+  left: 18px;
+  z-index: 4;
+  width: 320px;
+  max-height: 320px;
+  border: 1px solid rgba(86, 132, 224, 0.28);
+  border-radius: 16px;
+  background: rgba(8, 21, 44, 0.92);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 18px 32px rgba(2, 12, 30, 0.34);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.searchDropdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.searchDropdown::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.searchDropdown::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(126, 168, 244, 0.34);
+}
+
+.searchDropdown::-webkit-scrollbar-thumb:hover {
+  background: rgba(126, 168, 244, 0.48);
+}
+
+.searchOption {
+  width: 100%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  color: #eef6ff;
+}
+
+.searchOption + .searchOption {
+  border-top: 1px solid rgba(110, 145, 218, 0.12);
+}
+
+.searchOption:hover {
+  background: rgba(33, 74, 154, 0.28);
+}
+
+.optionAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #4d8cff 0%, #2f6fff 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.optionBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.optionTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.optionName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f6fbff;
+}
+
+.optionMeta {
+  font-size: 11px;
+  color: rgba(193, 215, 245, 0.72);
+}
+
+.optionOrg {
+  font-size: 11px;
+  color: rgba(193, 215, 245, 0.72);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optionTag {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(121, 192, 255, 0.42);
+  background: rgba(18, 55, 120, 0.4);
+  color: #9dd1ff;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.legend {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 62px;
+  height: 18px;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 10px;
+  line-height: 18px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(3, 16, 43, 0.28);
+}
+
+.legendCenter {
+  background: linear-gradient(180deg, #31d2ca 0%, #18baa8 100%);
+}
+
+.legendDirect {
+  background: linear-gradient(180deg, #ff745d 0%, #ff5a4c 100%);
+}
+
+.legendIndirect {
+  background: linear-gradient(180deg, #4b86ff 0%, #296af7 100%);
+}
+
+.legendRelated {
+  background: linear-gradient(180deg, #ffa95f 0%, #ff8b2d 100%);
+}

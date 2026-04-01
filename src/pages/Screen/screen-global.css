@@ -366,6 +366,135 @@
   background-image: url('/images/screen/gapcount-title.png');
 }
 
+/* ===== 创新资源页特殊样式 ===== */
+
+.innovation-container .left-column .left-top {
+  flex: 1.5;
+  background-image: url('/images/screen/funds.png');
+  background-size: contain;
+  background-position: bottom;
+  background-repeat: no-repeat;
+  min-height: 0;
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.innovation-container .left-column .left-top .left-top-title {
+  width: 100%;
+  height: 40px;
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  background-image: url('/images/screen/patent-title.png');
+  flex-shrink: 0;
+}
+
+.innovation-container .left-bottom {
+  background-image: url('/images/screen/funds.png');
+  background-size: contain;
+  background-position: bottom;
+}
+
+.innovation-container .left-bottom .left-bottom-title {
+  background-image: url('/images/screen/hotspot-title.png');
+}
+
+.innovation-container .right-top .right-top-title {
+  background-image: url('/images/screen/annual-trend-title.png');
+}
+
+.innovation-container .right-bottom .right-bottom-title {
+  background-image: url('/images/screen/resource-title.png');
+}
+
+/* ===== 资金概览页特殊样式 ===== */
+
+.funds-container .left-column .left-top {
+  flex: 1.5;
+  background-image: url('/images/screen/funds.png');
+  background-size: contain;
+  background-position: bottom;
+  background-repeat: no-repeat;
+  min-height: 0;
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.funds-container .left-column .left-top .left-top-title {
+  width: 100%;
+  height: 40px;
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  background-image: url('/images/screen/funds-indicator-title.png');
+  flex-shrink: 0;
+}
+
+.funds-container .left-bottom {
+  background-image: url('/images/screen/funds.png');
+  background-size: contain;
+  background-position: bottom;
+}
+
+.funds-container .left-bottom .left-bottom-title {
+  background-image: url('/images/screen/product-title.png');
+}
+
+.funds-container .right-top .right-top-title {
+  background-image: url('/images/screen/funds-overview-title.png');
+}
+
+.funds-container .right-bottom .right-bottom-title {
+  background-image: url('/images/screen/credict-title.png');
+}
+
+/* ===== 政策全景页特殊样式 ===== */
+
+.policy-container .left-column .left-top {
+  flex: 1.5;
+  background-image: url('/images/screen/funds.png');
+  background-size: contain;
+  background-position: bottom;
+  background-repeat: no-repeat;
+  min-height: 0;
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.policy-container .left-column .left-top .left-top-title {
+  width: 100%;
+  height: 40px;
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  background-image: url('/images/screen/policyoverview-title.png');
+  flex-shrink: 0;
+}
+
+.policy-container .left-bottom {
+  background-image: url('/images/screen/funds.png');
+  background-size: contain;
+  background-position: bottom;
+}
+
+.policy-container .left-bottom .left-bottom-title {
+  background-image: url('/images/screen/yichang-talent-title.png');
+}
+
+.policy-container .right-top {
+  flex: 4;
+}
+
+.policy-container .right-top .right-top-title {
+  background-image: url('/images/screen/policy-list-title.png');
+}
+
 /* ===== 滚动条美化 ===== */
 ::-webkit-scrollbar {
   width: 6px;

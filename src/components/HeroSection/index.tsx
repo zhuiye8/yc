@@ -6,6 +6,9 @@ interface HeroSectionProps {
   searchPlaceholder?: string
   hotTags?: string[]
   onSearch?: (value: string) => void
+  /** 覆盖背景图文字的标题（两行） */
+  titleLine1?: string
+  titleLine2?: string
 }
 
 export default function HeroSection({
@@ -13,6 +16,8 @@ export default function HeroSection({
   searchPlaceholder = '搜索...',
   hotTags = [],
   onSearch,
+  titleLine1,
+  titleLine2,
 }: HeroSectionProps) {
   const handleSearch = () => {
     const input = document.querySelector<HTMLInputElement>(`.${styles.searchInput}`)
@@ -31,6 +36,14 @@ export default function HeroSection({
         <div className={styles.heroBg}>
           <img src={backgroundImage} alt="" />
         </div>
+        {/* 覆盖标题文案（客户要求更换背景图上的文字） */}
+        {(titleLine1 || titleLine2) && (
+          <div className={styles.heroTitle}>
+            {titleLine1 && <div className={styles.heroTitleLine}>{titleLine1}</div>}
+            {titleLine2 && <div className={styles.heroTitleLine}>{titleLine2}</div>}
+            <div className={styles.heroTitleBar} />
+          </div>
+        )}
       </div>
 
       {/* 搜索容器：横跨 Hero 底部边缘 */}

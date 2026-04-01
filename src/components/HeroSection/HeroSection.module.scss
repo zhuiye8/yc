@@ -9,7 +9,7 @@
 .hero {
   position: relative;
   overflow: hidden;
-  min-height: 280px;
+  min-height: 480px;
 }
 
 .heroBg {
@@ -24,20 +24,45 @@
   }
 }
 
+// 覆盖标题文案
+.heroTitle {
+  position: absolute;
+  top: 50%;
+  left: 180px;
+  transform: translateY(-60%);
+  z-index: 2;
+}
+
+.heroTitleLine {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2468F2;
+  line-height: 1.5;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.heroTitleBar {
+  width: 40px;
+  height: 4px;
+  background: #2468F2;
+  border-radius: 2px;
+  margin-top: 12px;
+}
+
 // 搜索容器：绝对定位，横跨 Hero 底部边缘
 .searchContainer {
   position: absolute;
-  bottom: -100px; // 向下溢出 Hero
+  bottom: -80px; // 向下溢出 Hero
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px;
   padding: 0 $space-2xl;
 }
 
 .searchWrapper {
-  background: linear-gradient(180deg, rgba(225, 237, 255, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%);
+  background: linear-gradient(180deg, #dae5fc 0%, #ffffff 100%);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: $radius-md;
@@ -110,8 +135,9 @@
 .hotLabel {
   font-size: $font-size-sm;
   color: $gray-600;
-  font-weight: 500;
+  font-weight: 700;
   white-space: nowrap;
+  color: #000000;
 }
 
 .hotTag {

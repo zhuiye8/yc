@@ -9,24 +9,52 @@
   justify-content: space-between;
 }
 
-.tabLeft { display: flex; gap: 0; }
+.tabLeft {
+  display: flex;
+  gap: 0;
+  overflow: hidden;
+  border-radius: 6px;
+}
 
 .tab {
   padding: 8px 24px;
   font-size: $font-size-base;
   cursor: pointer;
   color: $white;
-  &:first-child { border-radius: $radius-full 0 0 $radius-full; }
-  &:last-child { border-radius: 0 $radius-full $radius-full 0; }
-  &.active { background: #F26B4A; }
-  &.inactive { background: $primary-500; }
-  &:hover { opacity: 0.9; }
+  border-radius: 0;
+
+  &:first-child {
+    border-radius: 6px 0 0 6px;
+  }
+
+  &:last-child {
+    border-radius: 0 6px 6px 0;
+  }
+
+  &.active {
+    background: linear-gradient(90deg, #fe896f 0%, #ff5a36 100%);
+  }
+
+  &.inactive {
+    background: #3194fd;
+  }
+
+  &:hover {
+    opacity: 0.9;
+  }
 }
 
-.tabRight { display: flex; align-items: center; gap: $space-md; }
-.filterLabel { font-size: $font-size-sm; color: $gray-500; }
+.tabRight {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+}
 
-// 提示条（全宽）
+.filterLabel {
+  font-size: $font-size-sm;
+  color: $gray-500;
+}
+
 .tipBar {
   max-width: 1400px;
   margin: $space-md auto 0;
@@ -34,24 +62,23 @@
 }
 
 .tipContent {
-  background: $primary-50;
+  background: #3194fd;
   border-radius: $radius-base;
   padding: $space-sm $space-lg;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: $font-size-sm;
-  color: $primary-500;
+  color: #fff;
 }
 
-// 内容区
 .content {
   max-width: 1400px;
   margin: 0 auto;
   padding: $space-lg $space-2xl $space-2xl;
 }
 
-// 两列布局：左(政策列表) 右(预警+更新)，等高
+/* Two columns: list on the left, subscriptions and updates on the right */
 .twoColumn {
   display: flex;
   gap: $space-xl;
@@ -62,7 +89,6 @@
   flex: 1;
   min-width: 0;
 
-  // 列表面板撑满左列高度
   .listPanel {
     height: 100%;
   }
@@ -83,7 +109,6 @@
   box-shadow: $shadow-sm;
 }
 
-// 左列的列表面板——不强制撑满，自然高度即可
 .listPanel {
   composes: panel;
 }
@@ -97,7 +122,17 @@
   align-items: center;
   gap: $space-sm;
 
-  .icon { color: $primary-500; }
+  .icon {
+    color: $primary-500;
+  }
+}
+
+.iconImage {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .listHeader {
@@ -114,7 +149,6 @@
   margin-bottom: $space-md;
 }
 
-// 预警订阅
 .alertItem {
   display: flex;
   justify-content: space-between;
@@ -123,7 +157,9 @@
   border-bottom: 1px solid $gray-100;
   font-size: $font-size-sm;
 
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .alertName {
@@ -137,7 +173,6 @@
   margin-top: 2px;
 }
 
-// 本周更新（撑满右列剩余空间，与左列底部对齐）
 .updatePanel {
   composes: panel;
   flex: 1;
@@ -148,7 +183,9 @@
   border-bottom: 1px solid $gray-100;
   font-size: $font-size-sm;
 
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .updateTitle {

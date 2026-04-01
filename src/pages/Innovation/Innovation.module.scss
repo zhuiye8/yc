@@ -9,23 +9,51 @@
   justify-content: space-between;
 }
 
-.tabLeft { display: flex; gap: 0; }
+.tabLeft {
+  display: flex;
+  gap: 0;
+  overflow: hidden;
+  border-radius: 6px;
+}
 
 .tab {
   padding: 8px 24px;
   font-size: $font-size-base;
   cursor: pointer;
   color: $white;
-  &:first-child { border-radius: $radius-full 0 0 $radius-full; }
-  &:last-child { border-radius: 0 $radius-full $radius-full 0; }
-  &:not(:first-child):not(:last-child) { border-radius: 0; }
-  &.active { background: #F26B4A; }
-  &.inactive { background: $primary-500; }
-  &:hover { opacity: 0.9; }
+  border-radius: 0;
+
+  &:first-child {
+    border-radius: 6px 0 0 6px;
+  }
+
+  &:last-child {
+    border-radius: 0 6px 6px 0;
+  }
+
+  &.active {
+    background: linear-gradient(90deg, #fe896f 0%, #ff5a36 100%);
+  }
+
+  &.inactive {
+    background: #3194fd;
+  }
+
+  &:hover {
+    opacity: 0.9;
+  }
 }
 
-.tabRight { display: flex; align-items: center; gap: $space-md; }
-.filterLabel { font-size: $font-size-sm; color: $gray-500; }
+.tabRight {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+}
+
+.filterLabel {
+  font-size: $font-size-sm;
+  color: $gray-500;
+}
 
 .content {
   max-width: 1400px;
@@ -33,7 +61,7 @@
   padding: $space-lg $space-2xl $space-2xl;
 }
 
-// 上区：缺口表格(左) + 热度榜(右)
+/* Top row: gap table on the left, heat list on the right */
 .topRow {
   display: flex;
   gap: $space-xl;
@@ -41,28 +69,35 @@
   align-items: stretch;
 }
 
-.topMain { flex: 1; min-width: 0; overflow: hidden; }
+.topMain {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
 
 .topSide {
   width: 300px;
   flex-shrink: 0;
 }
 
-// 下区：专利列表(左) + 核心企业(右)
+/* Bottom row: patent list on the left, core enterprises on the right */
 .bottomRow {
   display: flex;
   gap: $space-xl;
   align-items: stretch;
 }
 
-.bottomMain { flex: 1; min-width: 0; overflow: hidden; }
+.bottomMain {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
 
 .bottomSide {
   width: 300px;
   flex-shrink: 0;
 }
 
-// 通用面板
 .panel {
   background: $white;
   border-radius: $radius-md;
@@ -79,7 +114,18 @@
   display: flex;
   align-items: center;
   gap: $space-sm;
-  .icon { color: $primary-500; }
+
+  .icon {
+    color: $primary-500;
+  }
+}
+
+.iconImage {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .panelHeader {
@@ -89,7 +135,6 @@
   margin-bottom: $space-md;
 }
 
-// 技术热度榜
 .hotItem {
   display: flex;
   align-items: center;
@@ -97,7 +142,10 @@
   padding: $space-md 0;
   border-bottom: 1px solid $gray-100;
   font-size: $font-size-sm;
-  &:last-child { border-bottom: none; }
+
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .hotRank {
@@ -112,10 +160,22 @@
   flex-shrink: 0;
   color: $white;
 
-  &.rank1 { background: #F26B4A; }
-  &.rank2 { background: #F59E5A; }
-  &.rank3 { background: #FFC75A; }
-  &.rankDefault { background: $gray-300; color: $gray-600; }
+  &.rank1 {
+    background: #f26b4a;
+  }
+
+  &.rank2 {
+    background: #f59e5a;
+  }
+
+  &.rank3 {
+    background: #ffc75a;
+  }
+
+  &.rankDefault {
+    background: $gray-300;
+    color: $gray-600;
+  }
 }
 
 .hotDot {
@@ -125,7 +185,10 @@
   flex-shrink: 0;
 }
 
-.hotName { flex: 1; color: $gray-800; }
+.hotName {
+  flex: 1;
+  color: $gray-800;
+}
 
 .hotTag {
   font-size: $font-size-xs;
@@ -134,11 +197,13 @@
   white-space: nowrap;
 }
 
-// 核心企业
 .orgItem {
   padding: $space-md 0;
   border-bottom: 1px solid $gray-100;
-  &:last-child { border-bottom: none; }
+
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .orgName {

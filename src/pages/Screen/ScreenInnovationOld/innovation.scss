@@ -1,0 +1,178 @@
+.innovation-container {
+
+    .left-top {
+        flex: 1.5; 
+        background-image: url('/images/screen/funds.png');
+        background-size: contain;
+        background-position: bottom;
+        background-repeat: no-repeat;
+        min-height: 0;
+        margin: 8px 0;
+        overflow: hidden; // 添加 overflow: hidden
+        display: flex;
+        flex-direction: column;
+        min-width: 0; // 添加 min-width: 0
+
+        .left-top-title {
+            content: '';
+            width: 100%;
+            height: 40px;
+            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            pointer-events: none;
+            background-image: url('/images/screen/patent-title.png');
+            flex-shrink: 0; 
+        } 
+        
+        // Patent 组件容器
+        > :last-child {
+            flex: 1;
+            min-height: 0;
+            min-width: 0;
+            overflow: hidden;
+        }
+    }
+
+    .left-bottom {
+        flex: 1.5;
+        background-image: url('/images/screen/funds.png');
+        background-size: contain;
+        background-position: bottom;
+        background-repeat: no-repeat;
+        min-height: 0;
+        margin: 8px 0;
+        overflow: hidden; 
+        display: flex;
+        flex-direction: column;
+        min-width: 0; 
+
+        .left-bottom-title {
+            content: '';
+            width: 100%;
+            height: 40px;
+            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            pointer-events: none;
+            background-image: url('/images/screen/annual-trend-title.png');
+            flex-shrink: 0; 
+        }
+        
+        > :last-child {
+            flex: 1;
+            min-height: 0;
+            min-width: 0;
+            overflow: hidden;
+        }
+    }
+
+    .right-column {
+        display: flex;
+        flex-direction: column;
+        min-width: 0; 
+        overflow: hidden;
+        
+        .right-top {
+            flex: 2; 
+            background-image: url('/images/screen/funds.png');
+            background-size: contain;
+            background-position: bottom;
+            background-repeat: no-repeat;
+            min-height: 0;
+            margin: 8px 0;
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+            min-width: 0; 
+            
+            .right-top-title {
+                content: '';
+                width: 100%;
+                height: 40px;
+                background-size: 100% 100%;
+                background-position: center;
+                background-repeat: no-repeat;
+                pointer-events: none;
+                background-image: url('/images/screen/resource-title.png');
+                flex-shrink: 0; 
+            }
+            
+            > :last-child {
+                flex: 1;
+                min-height: 0;
+                min-width: 0;
+                overflow: hidden;
+            }
+        }
+
+        .right-bottom {
+            flex: 2; 
+            background-image: url('/images/screen/funds.png');
+            background-size: contain;
+            background-position: bottom;
+            background-repeat: no-repeat;
+            min-height: 0;
+            margin: 8px 0;
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+            min-width: 0; 
+            
+            .right-bottom-title {
+                content: '';
+                width: 100%;
+                height: 40px;
+                background-size: 100% 100%;
+                background-position: center;
+                background-repeat: no-repeat;
+                pointer-events: none;
+                background-image: url('/images/screen/hotspot-title.png');
+                flex-shrink: 0; 
+            }
+            
+            // Hotspot 组件容器
+            > :last-child {
+                flex: 1;
+                min-height: 0;
+                min-width: 0;
+                overflow: hidden;
+            }
+        }
+    }
+}
+
+.main-content {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+    
+    .left-column {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        min-width: 0;
+        overflow: hidden;
+    }
+    
+    .middle-column {
+        flex: 1.5;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        min-width: 0;
+        overflow: hidden;
+    }
+    
+    .right-column {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        min-width: 0;
+        overflow: hidden;
+    }
+}

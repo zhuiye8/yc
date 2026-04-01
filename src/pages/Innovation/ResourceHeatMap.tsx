@@ -269,7 +269,7 @@ export default function ResourceHeatMap() {
   const isMapReady = registeredMaps.current.has(`map_${currentLevel.adcode}`)
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 0' }}>
+    <div style={{ maxWidth: 1336, margin: '0 auto', padding: '24px 0' }}>
       {/* 标题栏：面包屑 + 地区选择器 */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',

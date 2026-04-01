@@ -10,9 +10,14 @@ import Funding from '@/pages/Funding'
 import Policy from '@/pages/Policy'
 import Solutions from '@/pages/Solutions'
 import About from '@/pages/About'
-import ScreenHome from '@/pages/Screen/ScreenHome'
+import ListCenter from '@/pages/ListCenter'
+import ReportCenter from '@/pages/ReportCenter'
+import AlertCenter from '@/pages/AlertCenter'
 import ScreenIndustry from '@/pages/Screen/ScreenIndustry'
 import ScreenTalent from '@/pages/Screen/ScreenTalent'
+import ScreenInnovationOld from '@/pages/Screen/ScreenInnovationOld/index.jsx'
+import ScreenFundsOld from '@/pages/Screen/ScreenFundsOld/index.jsx'
+import ScreenPolicyOld from '@/pages/Screen/ScreenPolicyOld/index.jsx'
 
 export default function App() {
   return (
@@ -31,6 +36,9 @@ export default function App() {
           <Route path="policy" element={<Policy />} />
           <Route path="solutions" element={<Solutions />} />
           <Route path="about" element={<About />} />
+          <Route path="list" element={<ListCenter />} />
+          <Route path="reports" element={<ReportCenter />} />
+          <Route path="alerts" element={<AlertCenter />} />
         </Route>
 
         {/* 大屏模式 - ScreenLayout */}
@@ -38,9 +46,9 @@ export default function App() {
           <Route index element={<ScreenIndustry />} />
           <Route path="industry" element={<ScreenIndustry />} />
           <Route path="talent" element={<ScreenTalent />} />
-          <Route path="innovation" element={<ScreenHome />} />
-          <Route path="funds" element={<ScreenHome />} />
-          <Route path="policy" element={<ScreenHome />} />
+          <Route path="innovation" element={<ScreenInnovationOld />} />
+          <Route path="funds" element={<ScreenFundsOld />} />
+          <Route path="policy" element={<ScreenPolicyOld />} />
         </Route>
       </Routes>
     </BrowserRouter>

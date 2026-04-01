@@ -9,22 +9,51 @@
   justify-content: space-between;
 }
 
-.tabLeft { display: flex; gap: 0; }
+.tabLeft {
+  display: flex;
+  gap: 0;
+  overflow: hidden;
+  border-radius: 6px;
+}
 
 .tab {
   padding: 8px 24px;
   font-size: $font-size-base;
   cursor: pointer;
   color: $white;
-  &:first-child { border-radius: $radius-full 0 0 $radius-full; }
-  &:last-child { border-radius: 0 $radius-full $radius-full 0; }
-  &.active { background: #F26B4A; }
-  &.inactive { background: $primary-500; }
-  &:hover { opacity: 0.9; }
+  border-radius: 0;
+
+  &:first-child {
+    border-radius: 6px 0 0 6px;
+  }
+
+  &:last-child {
+    border-radius: 0 6px 6px 0;
+  }
+
+  &.active {
+    background: linear-gradient(90deg, #fe896f 0%, #ff5a36 100%);
+  }
+
+  &.inactive {
+    background: #3194fd;
+  }
+
+  &:hover {
+    opacity: 0.9;
+  }
 }
 
-.tabRight { display: flex; align-items: center; gap: $space-md; }
-.filterLabel { font-size: $font-size-sm; color: $gray-500; }
+.tabRight {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+}
+
+.filterLabel {
+  font-size: $font-size-sm;
+  color: $gray-500;
+}
 
 .content {
   max-width: 1400px;
@@ -32,7 +61,7 @@
   padding: $space-lg $space-2xl $space-2xl;
 }
 
-// 网格布局：精确对齐左右两列的各行
+/* Two-row grid with a fixed right column */
 .twoColumn {
   display: grid;
   grid-template-columns: 1fr 320px;
@@ -40,31 +69,26 @@
   gap: $space-lg $space-xl;
 }
 
-// 左上：统计卡片 + 基金类型
 .mainTop {
   grid-column: 1;
   grid-row: 1;
 }
 
-// 右上：对接清单（与左上底部对齐）
 .sideTop {
   grid-column: 2;
   grid-row: 1;
 }
 
-// 左下：子Tab + 表格
 .mainBottom {
   grid-column: 1;
   grid-row: 2;
 }
 
-// 右下：跟进记录（与左下底部对齐）
 .sideBottom {
   grid-column: 2;
   grid-row: 2;
 }
 
-// 统计卡片
 .statsRow {
   display: flex;
   gap: $space-md;
@@ -85,7 +109,9 @@
   }
 }
 
-.statIcon { margin-bottom: $space-sm; }
+.statIcon {
+  margin-bottom: $space-sm;
+}
 
 .statTitle {
   font-size: $font-size-base;
@@ -110,7 +136,6 @@
   margin-left: 2px;
 }
 
-// 基金类型卡片
 .fundRow {
   display: flex;
   gap: $space-sm;
@@ -154,7 +179,6 @@
   margin-left: 2px;
 }
 
-// 子Tab
 .subTabBar {
   display: flex;
   gap: 0;
@@ -165,13 +189,17 @@
   font-size: $font-size-sm;
   cursor: pointer;
   color: $white;
-  &:first-child { border-radius: $radius-full 0 0 $radius-full; }
-  &:last-child { border-radius: 0 $radius-full $radius-full 0; }
-  &.active { background: #F26B4A; }
-  &.inactive { background: $primary-500; }
+  border-radius: 6px;
+
+  &.active {
+    background: linear-gradient(90deg, #fe896f 0%, #ff5a36 100%);
+  }
+
+  &.inactive {
+    background: #3194fd;
+  }
 }
 
-// 通用面板
 .panel {
   background: $white;
   border-radius: $radius-md;
@@ -195,10 +223,19 @@
   align-items: center;
   gap: $space-sm;
 
-  .icon { color: $primary-500; }
+  .icon {
+    color: $primary-500;
+  }
 }
 
-// 对接清单项
+.iconImage {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+}
+
 .dockItem {
   display: flex;
   justify-content: space-between;
@@ -207,17 +244,20 @@
   border-bottom: 1px solid $gray-100;
   font-size: $font-size-sm;
 
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
-// 跟进记录
 .recordItem {
   padding: $space-sm 0;
   border-bottom: 1px solid $gray-100;
   font-size: $font-size-sm;
   color: $gray-600;
 
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 
   .recordDate {
     font-size: $font-size-xs;

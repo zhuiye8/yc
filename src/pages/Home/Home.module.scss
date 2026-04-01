@@ -30,11 +30,13 @@
   }
 }
 
-// 搜索框（Hero 底部水平居中）
+// 搜索框（Hero 底部水平居中，与统计区同宽）
 .searchArea {
   position: relative;
   z-index: 1;
   width: 100%;
+  max-width: calc(#{$content-max-width} + #{$space-2xl} * 2);
+  margin: 0 auto;
   padding: 0 $space-2xl $space-3xl;
   display: flex;
   align-items: center;
@@ -43,7 +45,7 @@
 }
 
 .searchInput {
-  width: 860px;
+  flex: 1;
   height: 72px;
   padding: 0 $space-xl;
   border: 1px solid $gray-200;
@@ -90,7 +92,7 @@
 // 统计区
 .stats {
   padding: $space-xl 0;
-  background: $white;
+  background: #f2f6fe;
   flex-shrink: 0;
 }
 
@@ -139,11 +141,11 @@
 }
 
 // 每个统计项的颜色
-.color0 { color: #2468F2; }
-.color1 { color: #2BA471; }
-.color2 { color: #3B9EE8; }
-.color3 { color: #E8923A; }
-.color4 { color: #D4A832; }
+.color0 { color: #2987ed; }
+.color1 { color: #68c1b2; }
+.color2 { color: #e86d6a; }
+.color3 { color: #eca35d; }
+.color4 { color: #29afed; }
 
 // 版权
 .copyright {

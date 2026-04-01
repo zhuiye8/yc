@@ -62,10 +62,10 @@
   color: $white;
   cursor: default;
 
-  &.blue { background: $primary-500; }
-  &.cyan { background: #1ec7c7; }
-  &.orange { background: #e88a3a; }
-  &.red { background: #d65454; }
+  &.blue { background: linear-gradient(135deg, #4d8ef7, #2468F2); }
+  &.cyan { background: linear-gradient(135deg, #3edcdc, #1ec7c7); }
+  &.orange { background: linear-gradient(135deg, #f5a44d, #e88a3a); }
+  &.red { background: linear-gradient(135deg, #e86d6a, #d65454); }
 }
 
 // ========== 右侧登录面板 ==========
@@ -128,7 +128,7 @@
   height: 44px;
   border: none;
   border-radius: $radius-base;
-  background: $primary-500;
+  background: linear-gradient(90deg, #4d8ef7 0%, #2468F2 50%, #1a56d6 100%);
   color: $white;
   font-size: $font-size-lg;
   font-weight: 500;

@@ -1,0 +1,91 @@
+.funds-container {
+
+    .left-top {
+        flex: 1.5; 
+        background-image: url('/images/screen/funds.png');
+        background-size: contain;
+        background-position: bottom;
+        background-repeat: no-repeat;
+        min-height: 0;
+        margin: 8px 0;
+
+        .left-top-title {
+            content: '';
+            width: 100%;
+            height: 40px;
+            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            pointer-events: none;
+            background-image: url('/images/screen/funds-indicator-title.png');
+        } 
+    }
+
+        .left-bottom {
+        flex: 1.5;
+        background-image: url('/images/screen/funds.png');
+        background-size: contain;
+        background-position: bottom;
+        background-repeat: no-repeat;
+        min-height: 0;
+        margin: 8px 0;
+
+        .left-bottom-title {
+            content: '';
+            width: 100%;
+            height: 40px;
+            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            pointer-events: none;
+            background-image: url('/images/screen/product-title.png');
+        }
+    }
+
+
+
+
+    .right-column {
+        .right-top {
+            flex: 2; 
+            background-image: url('/images/screen/funds.png');
+            background-size: contain;
+            background-position: bottom;
+            background-repeat: no-repeat;
+            min-height: 0;
+            margin: 8px 0;
+            .right-top-title {
+                content: '';
+                width: 100%;
+                height: 40px;
+                background-size: 100% 100%;
+                background-position: center;
+                background-repeat: no-repeat;
+                pointer-events: none;
+                background-image: url('/images/screen/funds-overview-title.png');
+                }
+        }
+
+        .right-bottom {
+            flex: 2; 
+            background-image: url('/images/screen/funds.png');
+            background-size: contain;
+            background-position: bottom;
+            background-repeat: no-repeat;
+            min-height: 0;
+            margin: 8px 0;
+            .right-bottom-title {
+                content: '';
+                width: 100%;
+                height: 40px;
+                background-size: 100% 100%;
+                background-position: center;
+                background-repeat: no-repeat;
+                pointer-events: none;
+                background-image: url('/images/screen/credict-title.png');
+            }
+        }
+    }
+
+
+}

@@ -28,12 +28,12 @@ const matrixRows = [
 ]
 
 const dataCards = [
-  { label: '产业维度', num: '1330', numColor: '#2468F2', unit: '家企业', sub: '5大产业链全覆盖', listL: ['5大主导产业链', '128个细分环节', '1330家链上企业', '强/弱/缺链状态诊断'], listR: ['产业聚落分析', '区域对标研究', '招商项目库管理', ''] },
-  { label: '人才维度', num: '1330', numColor: '#2BA471', unit: '名人才', sub: '覆盖五大领域', listL: ['2856名专家人才', '分地区/领域管理', '供需匹配分析', '雷达人才对接'], listR: ['1256名直属高端人才', '人才画像标签', '引才意向跟踪', ''] },
-  { label: '技术维度', num: '1330', numColor: '#7B61FF', unit: '件专利', sub: '23项关键技术缺口', listL: ['4526件专利数据', '128项技术标准', '186个在研项目', '23项技术缺口'], listR: ['IPC分类趋势', '技术成熟度评估', '产学研对接', ''] },
-  { label: '资金维度', num: '1330', numColor: '#F26B4A', unit: '家机构', sub: '12.5亿累计对接', listL: ['28款融资工具', '156家投资机构', '对接全流程管理', '12.5亿累计对接'], listR: ['6大基金覆盖', '智能产品推荐', '融资进度追踪', ''] },
-  { label: '政策维度', num: '1330', numColor: '#F5A623', unit: '项政策', sub: '智能精准匹配', listL: ['863项有效政策', '智能匹配推荐', '申报任务管理', '到期预警监控'], listR: ['政策解读分析', '中标成功率统计', '历年政策白皮书', ''] },
-  { label: '可解释与可追溯', num: '100%', numColor: '#00B8D9', unit: '可追溯', sub: '数据透明所有数据可查', listL: ['来源标注跟踪展示', '数据可追溯预测', '快速整理能力', '审计日志留存'], listR: ['更新时间记录', '版本变更追踪', ''] },
+  { label: '产业维度', num: '1330', numColor: '#19b89c', bg: '#f1fef5', unit: '家企业', sub: '5大产业链全覆盖', listL: ['5大主导产业链', '128个细分环节', '1330家链上企业', '强/弱/缺链状态诊断'], listR: ['产业聚落分析', '区域对标研究', '招商项目库管理', ''] },
+  { label: '人才维度', num: '1330', numColor: '#e88a3a', bg: '#fef7f1', unit: '名人才', sub: '覆盖五大领域', listL: ['2856名专家人才', '分地区/领域管理', '供需匹配分析', '雷达人才对接'], listR: ['1256名直属高端人才', '人才画像标签', '引才意向跟踪', ''] },
+  { label: '技术维度', num: '1330', numColor: '#2468F2', bg: '#f1f4fe', unit: '件专利', sub: '23项关键技术缺口', listL: ['4526件专利数据', '128项技术标准', '186个在研项目', '23项技术缺口'], listR: ['IPC分类趋势', '技术成熟度评估', '产学研对接', ''] },
+  { label: '资金维度', num: '1330', numColor: '#d65454', bg: '#fef1f1', unit: '家机构', sub: '12.5亿累计对接', listL: ['28款融资工具', '156家投资机构', '对接全流程管理', '12.5亿累计对接'], listR: ['6大基金覆盖', '智能产品推荐', '融资进度追踪', ''] },
+  { label: '政策维度', num: '1330', numColor: '#7B61FF', bg: '#f5f1fe', unit: '项政策', sub: '智能精准匹配', listL: ['863项有效政策', '智能匹配推荐', '申报任务管理', '到期预警监控'], listR: ['政策解读分析', '中标成功率统计', '历年政策白皮书', ''] },
+  { label: '可解释与可追溯', num: '100%', numColor: '#1ec7c7', bg: '#f1fef8', unit: '可追溯', sub: '数据透明所有数据可查', listL: ['来源标注跟踪展示', '数据可追溯预测', '快速整理能力', '审计日志留存'], listR: ['更新时间记录', '版本变更追踪', ''] },
 ]
 
 export default function Solutions() {
@@ -106,9 +106,9 @@ export default function Solutions() {
         </h2>
         <div className={styles.dataGrid}>
           {dataCards.map(c => (
-            <div key={c.label} className={styles.dataCard}>
+            <div key={c.label} className={styles.dataCard} style={{ background: c.bg }}>
               <div className={styles.dataCardHeader}>
-                <div className={styles.dataLabel}>{c.label}</div>
+                <div className={styles.dataLabel} style={{ color: c.numColor }}>{c.label}</div>
                 <div className={styles.dataNum} style={{ color: c.numColor }}>
                   {c.num} <span className={styles.dataUnit}>{c.unit}</span>
                 </div>

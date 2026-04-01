@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FileTextOutlined, ArrowRightOutlined } from '@ant-design/icons'
+import { FileTextOutlined, ArrowRightOutlined, DownloadOutlined } from '@ant-design/icons'
 import styles from './ReportPanel.module.scss'
 
 interface ReportMenuItem {
@@ -10,9 +10,11 @@ interface ReportMenuItem {
 interface ReportPanelProps {
   menuItems: ReportMenuItem[]
   defaultActiveKey?: string
+  /** 报告模板下载路径（如 /templates/人才库报告模板.docx） */
+  templateUrl?: string
 }
 
-export default function ReportPanel({ menuItems, defaultActiveKey }: ReportPanelProps) {
+export default function ReportPanel({ menuItems, defaultActiveKey, templateUrl }: ReportPanelProps) {
   const [activeKey, setActiveKey] = useState(defaultActiveKey || menuItems[0]?.key)
 
   return (
@@ -36,6 +38,14 @@ export default function ReportPanel({ menuItems, defaultActiveKey }: ReportPanel
         <p className={styles.aiDesc}>
           聚焦专业场景，专注产业链深度分析，融合多源数据建模与智能分析能力，自动生成高价值专业报告。
         </p>
+
+        {templateUrl && (
+          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <a href={templateUrl} download style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 20px', background: '#f0f5ff', border: '1px solid #d6e4ff', borderRadius: 8, color: '#2468F2', fontSize: 13, textDecoration: 'none' }}>
+              <DownloadOutlined /> 下载报告模板
+            </a>
+          </div>
+        )}
 
         <div className={styles.cards}>
           {[1, 2, 3].map((i) => (

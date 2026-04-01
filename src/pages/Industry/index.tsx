@@ -101,6 +101,8 @@ export default function Industry() {
         searchPlaceholder="搜索产业链、产业环节、企业..."
         hotTags={hotTags}
         onSearch={handleSearch}
+        titleLine1="摸清产业底数"
+        titleLine2="让招引更精准、决策更高效"
       />
 
       {/* Tab 栏 */}

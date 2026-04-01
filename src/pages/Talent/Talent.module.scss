@@ -12,6 +12,8 @@
 .tabLeft {
   display: flex;
   gap: 0;
+  overflow: hidden;
+  border-radius: 6px;
 }
 
 .tab {
@@ -20,12 +22,29 @@
   cursor: pointer;
   transition: all 0.2s;
   color: $white;
+  border-radius: 0;
 
-  &:first-child { border-radius: $radius-full 0 0 $radius-full; }
-  &:last-child { border-radius: 0 $radius-full $radius-full 0; }
-  &.active { background: #F26B4A; color: $white; }
-  &.inactive { background: $primary-500; color: $white; }
-  &:hover { opacity: 0.9; }
+  &:first-child {
+    border-radius: 6px 0 0 6px;
+  }
+
+  &:last-child {
+    border-radius: 0 6px 6px 0;
+  }
+
+  &.active {
+    background: linear-gradient(90deg, #fe896f 0%, #ff5a36 100%);
+    color: $white;
+  }
+
+  &.inactive {
+    background: #3194fd;
+    color: $white;
+  }
+
+  &:hover {
+    opacity: 0.9;
+  }
 }
 
 .tabRight {
@@ -34,21 +53,19 @@
   gap: $space-md;
 }
 
-// 图谱视图
 .graphSection {
   max-width: 1400px;
   margin: 0 auto;
   padding: $space-lg $space-2xl $space-2xl;
 }
 
-// 两列布局（参照产业页）
+/* Two-column layout: graph and charts on the left, profile and ranking cards on the right */
 .twoColumnLayout {
   display: flex;
   gap: $space-xl;
   align-items: stretch;
 }
 
-// 左列：图谱 + 研究方向分布 + 研究方向趋势
 .leftColumn {
   flex: 1;
   display: flex;
@@ -57,7 +74,6 @@
   min-width: 0;
 }
 
-// 右列：当前人才 + 合作人才 + 高端人才榜
 .rightColumn {
   width: 300px;
   flex-shrink: 0;
@@ -66,16 +82,22 @@
   gap: $space-lg;
 }
 
-// 深色图谱区
 .graphArea {
   min-height: 460px;
-  background: #050e1f;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(60, 126, 255, 0.18) 0%, rgba(60, 126, 255, 0.06) 18%, transparent 48%),
+    radial-gradient(circle at 22% 16%, rgba(48, 104, 255, 0.16) 0%, transparent 34%),
+    radial-gradient(circle at 80% 78%, rgba(31, 78, 205, 0.12) 0%, transparent 28%),
+    linear-gradient(180deg, #0a1528 0%, #07101f 58%, #040b18 100%);
+  border: 1px solid rgba(88, 134, 255, 0.22);
   border-radius: $radius-lg;
   overflow: hidden;
   position: relative;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.02),
+    0 18px 34px rgba(4, 11, 24, 0.16);
 }
 
-// 通用面板卡片
 .panelCard {
   background: $white;
   border-radius: $radius-md;
@@ -92,10 +114,19 @@
   color: $gray-800;
   margin-bottom: $space-md;
 
-  .icon { color: $primary-500; }
+  .icon {
+    color: $primary-500;
+  }
 }
 
-// 当前人才卡片
+.iconImage {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+}
+
 .currentTalent {
   display: flex;
   align-items: center;
@@ -119,8 +150,17 @@
 }
 
 .talentInfo {
-  h4 { font-size: $font-size-base; font-weight: 600; color: $gray-900; margin-bottom: 2px; }
-  p { font-size: $font-size-xs; color: $gray-500; }
+  h4 {
+    font-size: $font-size-base;
+    font-weight: 600;
+    color: $gray-900;
+    margin-bottom: 2px;
+  }
+
+  p {
+    font-size: $font-size-xs;
+    color: $gray-500;
+  }
 }
 
 .talentTags {
@@ -130,7 +170,6 @@
   font-size: $font-size-xs;
 }
 
-// 合作人才列表（淡绿色背景）
 .cooperateList {
   display: flex;
   flex-direction: column;
@@ -142,12 +181,20 @@
   align-items: center;
   justify-content: space-between;
   padding: $space-sm $space-md;
-  background: #F0FFF4; // 淡绿色背景
+  background: #f0fff4;
   border-radius: $radius-sm;
   font-size: $font-size-sm;
 
-  .name { color: $gray-900; font-weight: 500; }
-  .institution { color: $gray-500; font-size: $font-size-xs; }
+  .name {
+    color: $gray-900;
+    font-weight: 500;
+  }
+
+  .institution {
+    color: $gray-500;
+    font-size: $font-size-xs;
+  }
+
   .field {
     font-size: $font-size-xs;
     color: $primary-500;
@@ -157,7 +204,6 @@
   }
 }
 
-// 排名列表（合作人才 / 高端人才榜）
 .rankList {
   display: flex;
   flex-direction: column;
@@ -184,25 +230,52 @@
   justify-content: center;
   flex-shrink: 0;
 
-  &.top1 { background: #F26B4A; color: $white; }
-  &.top2 { background: #F59E5A; color: $white; }
-  &.top3 { background: #FFC75A; color: $white; }
+  &.top1 {
+    background: #f26b4a;
+    color: $white;
+  }
+
+  &.top2 {
+    background: #f59e5a;
+    color: $white;
+  }
+
+  &.top3 {
+    background: #ffc75a;
+    color: $white;
+  }
 }
 
-.rankName { flex: 1; color: $gray-800; }
-.rankValue { color: $gray-500; }
+.rankName {
+  flex: 1;
+  color: $gray-800;
+}
+
+.rankValue {
+  color: $gray-500;
+}
 
 .rankTag {
   font-size: $font-size-xs;
   padding: 1px 8px;
   border-radius: 2px;
 
-  &.levelTop { background: #FFF1F0; color: #F26B4A; }
-  &.levelHigh { background: #E6F7FF; color: #2468F2; }
-  &.levelCore { background: #F0FFF4; color: #2BA471; }
+  &.levelTop {
+    background: #fff1f0;
+    color: #f26b4a;
+  }
+
+  &.levelHigh {
+    background: #e6f7ff;
+    color: #2468f2;
+  }
+
+  &.levelCore {
+    background: #f0fff4;
+    color: #2ba471;
+  }
 }
 
-// 当前人才详情卡片 — 固定高度与左侧图谱对齐
 .talentDetailCard {
   height: 460px;
   display: flex;
@@ -216,11 +289,16 @@
   flex-direction: column;
   justify-content: flex-start;
   overflow-y: auto;
-  min-height: 0; // flex子项允许收缩
+  min-height: 0;
 
-  // 隐藏滚动条但保留滚动功能
-  &::-webkit-scrollbar { width: 3px; }
-  &::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 3px; }
+  &::-webkit-scrollbar {
+    width: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+  }
 }
 
 .talentAvatarLarge {
@@ -235,7 +313,6 @@
   flex-shrink: 0;
 }
 
-// 合作人才 + 高端人才榜 — 各占剩余空间一半
 .talentRankCard {
   flex: 1;
   display: flex;

@@ -33,6 +33,8 @@ export default function Talent() {
         searchPlaceholder="搜索人才姓名、研究方向、所属机构..."
         hotTags={hotTags}
         onSearch={handleSearch}
+        titleLine1="智能识别人才"
+        titleLine2="让岗位与人才精准匹配"
       />
 
       <div className={styles.tabBar}>

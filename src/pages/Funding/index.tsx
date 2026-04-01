@@ -5,14 +5,14 @@ import {
   BankOutlined,
   SwapOutlined,
   RiseOutlined,
-  UnorderedListOutlined,
-  HistoryOutlined,
   PlusOutlined,
 } from '@ant-design/icons'
 import HeroSection from '@/components/HeroSection'
-import ReportPanel from '@/components/ReportPanel'
+import FundingReport from './FundingReport'
 import { fundingProducts, investmentInstitutions } from '@/mock/data'
 import fundingBg from '@/assets/images/hero/funding-bg.jpg'
+import fundingMatchListIcon from '@/assets/images/icons/funding-match-list-icon.png'
+import fundingFollowRecordsIcon from '@/assets/images/icons/funding-follow-records-icon.png'
 import styles from './Funding.module.scss'
 
 const FINANCIAL_URL = 'https://www.threegorges-financial.com/'
@@ -43,7 +43,10 @@ const productColumns = [
   { title: '最高额度', dataIndex: 'maxAmount', key: 'maxAmount' },
   { title: '利率/费率', dataIndex: 'rate', key: 'rate' },
   { title: '期限', dataIndex: 'term', key: 'term' },
-  { title: '操作', key: 'action', width: 120,
+  {
+    title: '操作',
+    key: 'action',
+    width: 120,
     render: () => <Button type="link" size="small" icon={<PlusOutlined />} onClick={goFinancial}>加入对接清单</Button>,
   },
 ]
@@ -56,25 +59,19 @@ const institutionColumns = [
 ]
 
 const dockList = [
-  { name: '科技成果转化贷', target: '对象：某生物科技', status: '待跟进', color: '#F26B4A' },
-  { name: '科技成果转化贷', target: '对象：某生物科技', status: '已联系', color: '#2468F2' },
-  { name: '科技成果转化贷', target: '对象：某生物科技', status: '已对接', color: '#2BA471' },
-  { name: '科技成果转化贷', target: '对象：某生物科技', status: '已联系', color: '#2468F2' },
-  { name: '科技成果转化贷', target: '对象：某生物科技', status: '已对接', color: '#2BA471' },
+  { name: '科技成果转化贷', target: '对象：某生物科技企业', status: '待跟进', color: '#F26B4A' },
+  { name: '科技成果转化贷', target: '对象：某生物科技企业', status: '已联系', color: '#2468F2' },
+  { name: '科技成果转化贷', target: '对象：某生物科技企业', status: '已对接', color: '#2BA471' },
+  { name: '科技成果转化贷', target: '对象：某生物科技企业', status: '已联系', color: '#2468F2' },
+  { name: '科技成果转化贷', target: '对象：某生物科技企业', status: '已对接', color: '#2BA471' },
 ]
 
 const records = [
   { text: '与深创投初步沟通，约定下周会议', date: '2026-01-10' },
-  { text: '与深创投初步沟通，约定下周会议', date: '2026-01-10' },
-  { text: '与深创投初步沟通，约定下周会议', date: '2026-01-10' },
-  { text: '与深创投初步沟通，约定下周会议', date: '2026-01-10' },
-  { text: '与深创投初步沟通，约定下周会议', date: '2026-01-10' },
-]
-
-const reportMenuItems = [
-  { key: 'dock', label: '融资对接报告' },
-  { key: 'gap', label: '资金缺口对接' },
-  { key: 'risk', label: '风险预警报告' },
+  { text: '与三峡金控沟通融资方案，补充企业材料', date: '2026-01-10' },
+  { text: '已向机构推送项目BP，等待反馈', date: '2026-01-10' },
+  { text: '完成项目路演邀约，安排线上交流', date: '2026-01-10' },
+  { text: '确认尽调时间与对接人信息', date: '2026-01-10' },
 ]
 
 export default function Funding() {
@@ -87,22 +84,39 @@ export default function Funding() {
         backgroundImage={fundingBg}
         searchPlaceholder="搜索融资工具、投资机构、基金类型..."
         hotTags={hotTags}
+        titleLine1="连接多元资本"
+        titleLine2="让人才与技术获得精准融资"
       />
 
       <div className={styles.tabBar}>
         <div className={styles.tabLeft}>
-          <div className={`${styles.tab} ${activeTab === 'market' ? styles.active : styles.inactive}`}
-            onClick={() => setActiveTab('market')}>产品超市</div>
-          <div className={`${styles.tab} ${activeTab === 'report' ? styles.active : styles.inactive}`}
-            onClick={() => setActiveTab('report')}>融资报告</div>
+          <div className={`${styles.tab} ${activeTab === 'market' ? styles.active : styles.inactive}`} onClick={() => setActiveTab('market')}>
+            产品超市
+          </div>
+          <div className={`${styles.tab} ${activeTab === 'report' ? styles.active : styles.inactive}`} onClick={() => setActiveTab('report')}>
+            融资报告
+          </div>
         </div>
-        <div className={styles.tabRight} />
+        <div className={styles.tabRight}>
+          {activeTab === 'report' && (
+            <>
+              <span className={styles.filterLabel}>产业链:</span>
+              <Select
+                defaultValue="green-chem"
+                style={{ width: 140 }}
+                size="small"
+                options={[
+                  { value: 'green-chem', label: '绿色化工' },
+                ]}
+              />
+            </>
+          )}
+        </div>
       </div>
 
       {activeTab === 'market' && (
         <div className={styles.content}>
           <div className={styles.twoColumn}>
-            {/* 左上：统计卡片 + 基金类型 */}
             <div className={styles.mainTop}>
               <div className={styles.statsRow}>
                 {statCards.map((c) => (
@@ -116,23 +130,25 @@ export default function Funding() {
                   </div>
                 ))}
               </div>
+
               <div className={styles.fundRow}>
                 {fundCards.map((f) => (
                   <div key={f.label} className={styles.fundCard} onClick={goFinancial} style={{ cursor: 'pointer' }}>
                     <div className={styles.fundLabel}>{f.label}</div>
                     <div className={styles.fundDesc}>{f.desc}</div>
-                    <div className={styles.fundNum} style={{ color: f.color }}>{f.num}<span className={styles.fundUnit}>{f.unit}</span></div>
+                    <div className={styles.fundNum} style={{ color: f.color }}>
+                      {f.num}<span className={styles.fundUnit}>{f.unit}</span>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* 右上：对接清单 */}
             <div className={styles.sideTop}>
               <div className={styles.panel} style={{ height: '100%' }}>
                 <div className={styles.panelHeader}>
                   <div className={styles.panelTitle} style={{ marginBottom: 0 }}>
-                    <UnorderedListOutlined className={styles.icon} />
+                    <img src={fundingMatchListIcon} alt="" className={styles.iconImage} />
                     我的对接清单
                   </div>
                   <a style={{ fontSize: 13, color: '#86909C' }} onClick={goFinancial}>管理 &gt;</a>
@@ -149,34 +165,39 @@ export default function Funding() {
               </div>
             </div>
 
-            {/* 左下：子Tab + 表格 */}
             <div className={styles.mainBottom}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
                 <div className={styles.subTabBar}>
-                  <div className={`${styles.subTab} ${subTab === 'product' ? styles.active : styles.inactive}`}
-                    onClick={() => setSubTab('product')}>融资工具库</div>
-                  <div className={`${styles.subTab} ${subTab === 'institution' ? styles.active : styles.inactive}`}
-                    onClick={() => setSubTab('institution')}>投资机构库</div>
+                  <div className={`${styles.subTab} ${subTab === 'product' ? styles.active : styles.inactive}`} onClick={() => setSubTab('product')}>
+                    融资工具库
+                  </div>
+                  <div className={`${styles.subTab} ${subTab === 'institution' ? styles.active : styles.inactive}`} onClick={() => setSubTab('institution')}>
+                    投资机构库
+                  </div>
                 </div>
                 <span style={{ fontSize: 13, color: '#86909C' }}>产业链：</span>
-                <Select defaultValue="green-chem" style={{ width: 130 }} size="small" options={[
-                  { value: 'green-chem', label: '绿色化工' },
-                ]} />
+                <Select
+                  defaultValue="green-chem"
+                  style={{ width: 130 }}
+                  size="small"
+                  options={[
+                    { value: 'green-chem', label: '绿色化工' },
+                  ]}
+                />
               </div>
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              <Table
-                columns={subTab === 'product' ? productColumns : institutionColumns as any}
-                dataSource={subTab === 'product' ? fundingProducts : investmentInstitutions as any}
-                rowKey="id" size="small"
+              <Table<Record<string, unknown>>
+                columns={subTab === 'product' ? productColumns : institutionColumns}
+                dataSource={(subTab === 'product' ? fundingProducts : investmentInstitutions) as Record<string, unknown>[]}
+                rowKey="id"
+                size="small"
                 pagination={{ pageSize: 6, size: 'small' }}
               />
             </div>
 
-            {/* 右下：跟进记录 */}
             <div className={styles.sideBottom}>
               <div className={styles.panel} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <div className={styles.panelTitle}>
-                  <HistoryOutlined className={styles.icon} />
+                  <img src={fundingFollowRecordsIcon} alt="" className={styles.iconImage} />
                   跟进记录
                 </div>
                 <div style={{ flex: 1 }}>
@@ -194,7 +215,7 @@ export default function Funding() {
         </div>
       )}
 
-      {activeTab === 'report' && <ReportPanel menuItems={reportMenuItems} />}
+      {activeTab === 'report' && <FundingReport />}
     </div>
   )
 }
