@@ -12,6 +12,11 @@ import IndustryChainGraph from '@/components/IndustryTree'
 import { industryChainGraphData } from '@/mock/industryChainGraphData'
 import { getChainCoverage, clearCoverageCache } from '@/services/coverageCache'
 import { getChainAggregate, clearChainAggregateCache } from '@/services/industryChainAggregation'
+import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
+import {
+  getIndustryChainAggregateFromSource,
+  getIndustryChainCoverageFromSource,
+} from '@/services/industrySource'
 import { regionOptions } from '@/mock/regions'
 import industryKeywords from '@/data/industry-keywords.json'
 import { orgDrawerColumns, expertDrawerColumns } from '@/components/IndustryDrawerColumns'
@@ -87,6 +92,9 @@ function getCityFromCascader(val: string[]): string {
   return ''
 }
 
+void regionLabelMap
+void getCityFromCascader
+
 const allRegionOptions = [
   { value: '__all__', label: '全国' },
   ...regionOptions,
@@ -103,7 +111,8 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
 
   const chainLabel = chainKeyToLabel[chainKey] || ''
   const chainSearchKey = chainKeyToSearchKey[chainKey] || chainLabel
-  const localCity = selectedCity || '宜昌'
+  const localRegion = useMemo(() => resolveIndustryRegionFromCascader(externalRegionValue), [externalRegionValue])
+  const localCity = localRegion.city || selectedCity || '宜昌'
 
   const [coverageState, setCoverageState] = useState<{
     loading: boolean
@@ -140,40 +149,58 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
 
     let cancelled = false
 
-    getChainCoverage(
-      chainKey,
-      nodeKeywords,
-      chainSearchKey,
-      localCity,
-      (checked, total) => {
-        if (!cancelled) {
-          setCoverageState((prev) => ({ ...prev, checked, total }))
-        }
-      },
-    )
-      .then((result) => {
+    void (async () => {
+      const cachedCoverage = await getIndustryChainCoverageFromSource(chainKey, localRegion).catch(() => null)
+      if (cachedCoverage) {
         if (cancelled) return
         setCoverageState({
           loading: false,
-          checked: result.total,
-          covered: result.covered,
-          total: result.total,
-          rate: result.rate,
-          chainStatus: result.chainStatus,
-          chainOrgTotal: result.chainOrgTotal,
-          nodeOrgCounts: result.nodeOrgCounts,
+          checked: cachedCoverage.total,
+          covered: cachedCoverage.covered,
+          total: cachedCoverage.total,
+          rate: cachedCoverage.rate,
+          chainStatus: cachedCoverage.chainStatus,
+          chainOrgTotal: cachedCoverage.chainOrgTotal,
+          nodeOrgCounts: cachedCoverage.nodeOrgCounts,
         })
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setCoverageState((prev) => ({ ...prev, loading: false }))
-        }
-      })
+        return
+      }
+
+      getChainCoverage(
+        chainKey,
+        nodeKeywords,
+        chainSearchKey,
+        localCity,
+        (checked, total) => {
+          if (!cancelled) {
+            setCoverageState((prev) => ({ ...prev, checked, total }))
+          }
+        },
+      )
+        .then((result) => {
+          if (cancelled) return
+          setCoverageState({
+            loading: false,
+            checked: result.total,
+            covered: result.covered,
+            total: result.total,
+            rate: result.rate,
+            chainStatus: result.chainStatus,
+            chainOrgTotal: result.chainOrgTotal,
+            nodeOrgCounts: result.nodeOrgCounts,
+          })
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setCoverageState((prev) => ({ ...prev, loading: false }))
+          }
+        })
+    })()
 
     return () => {
       cancelled = true
     }
-  }, [chainKey, chainSearchKey, localCity, nodeKeywords])
+  }, [chainKey, chainSearchKey, localCity, localRegion, nodeKeywords])
 
   useEffect(() => {
     clearCoverageCache()
@@ -219,10 +246,14 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
       if (coverageState.loading) return
 
       void (async () => {
-        const orgAggregate = await getChainAggregate(chainKey, 'orgs', nodeKeywords, localCity).catch(() => ({ items: [], total: 0 }))
+        const cachedOrgAggregate = await getIndustryChainAggregateFromSource(chainKey, 'orgs', localRegion, 1, 10).catch(() => null)
+        const orgAggregate = cachedOrgAggregate
+          ?? await getChainAggregate(chainKey, 'orgs', nodeKeywords, localCity).catch(() => ({ items: [], total: 0 }))
         if (cancelled) return
 
-        const expertAggregate = await getChainAggregate(chainKey, 'experts', nodeKeywords, localCity).catch(() => ({ items: [], total: 0 }))
+        const cachedExpertAggregate = await getIndustryChainAggregateFromSource(chainKey, 'experts', localRegion, 1, 10).catch(() => null)
+        const expertAggregate = cachedExpertAggregate
+          ?? await getChainAggregate(chainKey, 'experts', nodeKeywords, localCity).catch(() => ({ items: [], total: 0 }))
         if (cancelled) return
 
         setChainList({
@@ -240,7 +271,7 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
       cancelled = true
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
     }
-  }, [chainKey, coverageState.loading, localCity, nodeKeywords])
+  }, [chainKey, coverageState.loading, localCity, localRegion, nodeKeywords])
 
   const [chainDrawer, setChainDrawer] = useState<ChainDrawerState>({
     visible: false,
@@ -253,57 +284,58 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
     page: 1,
   })
 
-  const loadChainDrawerData = useCallback((type: 'orgs' | 'experts', city: string, page: number) => {
+  const loadChainDrawerData = useCallback((type: 'orgs' | 'experts', regionValue: string[], page: number) => {
     setChainDrawer((prev) => ({ ...prev, loading: true }))
     if (!nodeKeywords) {
       setChainDrawer((prev) => ({ ...prev, loading: false, data: [], total: 0, page }))
       return
     }
 
-    const request = type === 'orgs'
-      ? getChainAggregate(chainKey, 'orgs', nodeKeywords, city || undefined)
-      : getChainAggregate(chainKey, 'experts', nodeKeywords, city || undefined)
+    void (async () => {
+      const region = resolveIndustryRegionFromCascader(regionValue)
+      const cachedAggregate = await getIndustryChainAggregateFromSource(chainKey, type, region, page, 10).catch(() => null)
+      const result = cachedAggregate
+        ?? await (type === 'orgs'
+          ? getChainAggregate(chainKey, 'orgs', nodeKeywords, region.city || undefined)
+          : getChainAggregate(chainKey, 'experts', nodeKeywords, region.city || undefined)
+        ).catch(() => ({ items: [], total: 0 }))
 
-    request
-      .then((result) => {
-        const from = (page - 1) * 10
-        const list = result.items.slice(from, from + 10)
-        setChainDrawer((prev) => ({ ...prev, loading: false, data: list, total: result.total, page }))
-      })
-      .catch(() => {
-        setChainDrawer((prev) => ({ ...prev, loading: false, data: [], total: 0 }))
-      })
+      const list = cachedAggregate ? result.items : result.items.slice((page - 1) * 10, page * 10)
+      setChainDrawer((prev) => ({ ...prev, loading: false, data: list, total: result.total, page }))
+    })().catch(() => {
+      setChainDrawer((prev) => ({ ...prev, loading: false, data: [], total: 0 }))
+    })
   }, [chainKey, nodeKeywords])
 
   const openChainDrawer = useCallback((type: 'orgs' | 'experts') => {
-    const city = localCity
     const region = externalRegionValue || ['hubei', 'yichang']
+    const nextRegion = resolveIndustryRegionFromCascader(region)
     setChainDrawer({
       visible: true,
       type,
-      city,
+      city: nextRegion.city || '',
       regionValue: region,
       loading: true,
       data: [],
       total: 0,
       page: 1,
     })
-    loadChainDrawerData(type, city, 1)
-  }, [externalRegionValue, loadChainDrawerData, localCity])
+    loadChainDrawerData(type, region, 1)
+  }, [externalRegionValue, loadChainDrawerData])
 
   const handleChainDrawerRegionChange = useCallback((val: string[]) => {
     if (!val || val.length === 0 || val[0] === '__all__') {
       setChainDrawer((prev) => {
-        loadChainDrawerData(prev.type, '', 1)
+        loadChainDrawerData(prev.type, [], 1)
         return { ...prev, city: '', regionValue: [], page: 1 }
       })
       return
     }
 
-    const nextCity = getCityFromCascader(val)
+    const nextRegion = resolveIndustryRegionFromCascader(val)
     setChainDrawer((prev) => {
-      loadChainDrawerData(prev.type, nextCity, 1)
-      return { ...prev, city: nextCity, regionValue: val, page: 1 }
+      loadChainDrawerData(prev.type, val, 1)
+      return { ...prev, city: nextRegion.city || '', regionValue: val, page: 1 }
     })
   }, [loadChainDrawerData])
 
@@ -348,6 +380,7 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
 
           <IndustryChainGraph
             key={chainKey}
+            chainKey={chainKey}
             graphData={graphData}
             nodeKeywords={nodeKeywords}
             selectedCity={selectedCity}
@@ -389,7 +422,7 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
                 <tbody>
                   {chainList.orgs.slice(0, 5).map((org, index) => (
                     <tr key={index}>
-                      <td title={String(org.NAME || org.name || '')} style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <td title={String(org.NAME || '')} style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {String(org.NAME || org.name || '未知')}
                       </td>
                       <td>{String(org.PROV || org.prov || '')}{org.CITY || org.city ? ` ${org.CITY || org.city}` : ''}</td>
@@ -567,7 +600,7 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
             showSizeChanger: false,
             showTotal: () => `共 ${chainDrawer.total.toLocaleString()} 条`,
             onChange: (page) => {
-              loadChainDrawerData(chainDrawer.type, chainDrawer.city, page)
+              loadChainDrawerData(chainDrawer.type, chainDrawer.regionValue, page)
               setChainDrawer((prev) => ({ ...prev, page }))
             },
           }}

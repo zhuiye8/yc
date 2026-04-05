@@ -75,7 +75,7 @@ export const orgDrawerColumns = [
     key: 'name',
     ellipsis: true,
     render: (_: unknown, r: Record<string, unknown>) => {
-      const name = String(r.NAME || r.name || '-')
+      const name = String(r.NAME || '-')
       const orgType = orgTypeMap[String(r.SOURCE || r.ORGTYPE || '')] || orgTypeMap['QY']
       return (
         <Space size={4}>
@@ -126,7 +126,7 @@ export const orgDrawerColumns = [
     key: 'tags',
     width: 200,
     render: (_: unknown, r: Record<string, unknown>) => {
-      const tags = (r.TAGS || r.tags || []) as string[]
+      const tags = (r.TAGS || []) as string[]
       if (tags.length === 0) return <Text type="secondary" style={{ fontSize: 12 }}>-</Text>
       return (
         <Space size={2} wrap>
@@ -149,7 +149,7 @@ export const expertDrawerColumns = [
     key: 'name',
     width: 90,
     render: (_: unknown, r: Record<string, unknown>) => {
-      const name = String(r.CNAME || r.name || '-')
+      const name = String(r.CNAME || '-')
       const title = r.TITLE ? (r.TITLE as string[])[0] : ''
       return (
         <div>
@@ -165,7 +165,7 @@ export const expertDrawerColumns = [
     key: 'org',
     ellipsis: true,
     render: (_: unknown, r: Record<string, unknown>) => {
-      const org = String(r.AORG || r.org || '-')
+      const org = String(r.AORG || '-')
       return (
         <Tooltip title={org}>
           <Space size={4}>

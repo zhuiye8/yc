@@ -1,17 +1,17 @@
-import { useState, useMemo, useCallback } from 'react'
-import { Select, Cascader, App, Drawer, Table, Tag } from 'antd'
+import { useCallback, useMemo, useState } from 'react'
+import { App, Cascader, Drawer, Select, Table, Tag } from 'antd'
 import { BankOutlined, TeamOutlined } from '@ant-design/icons'
 import HeroSection from '@/components/HeroSection'
 import IndustryGraph from './IndustryGraph'
 import IndustryReport from './IndustryReport'
 import { regionOptions } from '@/mock/regions'
+import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
+import { searchIndustryFromSource } from '@/services/industrySource'
 import { searchOrgs } from '@/services/industry'
 import { searchExperts } from '@/services/talent'
-import type { CascaderProps } from 'antd'
-import industryBg from '@/assets/images/hero/industry-bg.jpg'
+import industryBg from '@/assets/images/hero/industry-bg-plain.jpg'
 import styles from './Industry.module.scss'
 
-// 真实六条产业链（value 对应 industryChainGraphData 的 key）
 const chainOptions = [
   { value: 'wetchem', label: '湿电子化学品' },
   { value: 'newenergy', label: '新能源新材料' },
@@ -21,22 +21,8 @@ const chainOptions = [
   { value: 'ai', label: '人工智能' },
 ]
 
-const hotTags = ['湿电子化学品', '氟化工', '锂电材料', '生物制药', '智能传感器', '碳纤维', '光伏材料']
+const hotTags = ['湿电子化学品', '氯化工', '锂电材料', '生物制药', '智能传感器', '碳纤维', '光伏材料']
 
-// 从 regionOptions 构建 value->label 映射
-function buildLabelMap(options: CascaderProps['options']): Record<string, string> {
-  const map: Record<string, string> = {}
-  const walk = (items: CascaderProps['options']) => {
-    items?.forEach((item) => {
-      if (item.value && item.label) map[String(item.value)] = String(item.label)
-      if (item.children) walk(item.children)
-    })
-  }
-  walk(options)
-  return map
-}
-
-// 搜索结果抽屉
 interface SearchDrawerState {
   visible: boolean
   keyword: string
@@ -54,48 +40,75 @@ export default function Industry() {
   const [selectedChain, setSelectedChain] = useState('ai')
   const [regionValue, setRegionValue] = useState<string[]>(['hubei', 'yichang'])
   const [searchDrawer, setSearchDrawer] = useState<SearchDrawerState>({
-    visible: false, keyword: '', loading: false,
-    orgs: [], orgTotal: 0, experts: [], expertTotal: 0, activeTab: 'orgs',
+    visible: false,
+    keyword: '',
+    loading: false,
+    orgs: [],
+    orgTotal: 0,
+    experts: [],
+    expertTotal: 0,
+    activeTab: 'orgs',
   })
 
+  const selectedRegion = useMemo(() => resolveIndustryRegionFromCascader(regionValue), [regionValue])
+  const selectedCity = selectedRegion.city || ''
+
   const handleSearch = useCallback((keyword: string) => {
-    if (!keyword.trim()) return
-    setSearchDrawer(prev => ({ ...prev, visible: true, keyword, loading: true, orgs: [], experts: [], orgTotal: 0, expertTotal: 0 }))
+    const trimmedKeyword = keyword.trim()
+    if (!trimmedKeyword) return
 
-    // 并行搜企业和人才
-    searchOrgs(keyword.trim(), 0, 20).then(res => {
-      const d = res?.data as Record<string, unknown> | undefined
-      const list = (d?.orgRecommend ?? []) as Record<string, unknown>[]
-      const total = (d?.total as number) || list.length
-      setSearchDrawer(prev => ({ ...prev, orgs: list, orgTotal: total }))
-    }).catch(() => {})
+    setSearchDrawer((prev) => ({
+      ...prev,
+      visible: true,
+      keyword: trimmedKeyword,
+      loading: true,
+      orgs: [],
+      experts: [],
+      orgTotal: 0,
+      expertTotal: 0,
+    }))
 
-    searchExperts(keyword.trim(), 0, 20).then(res => {
-      const d = res?.data as Record<string, unknown> | undefined
-      const sources = d?.sources as Record<string, unknown>[] | undefined
-      const list = (d?.expertsRecommend ?? sources?.map((s) => (s.source || s) as Record<string, unknown>) ?? []) as Record<string, unknown>[]
-      const total = (d?.total as number) || list.length
-      setSearchDrawer(prev => ({ ...prev, experts: list, expertTotal: total, loading: false }))
-    }).catch(() => {
-      setSearchDrawer(prev => ({ ...prev, loading: false }))
-    })
+    message.info(`正在搜索“${trimmedKeyword}”…`)
 
-    message.info(`正在搜索"${keyword}"...`)
-  }, [message])
+    void (async () => {
+      const sourceResult = await searchIndustryFromSource(trimmedKeyword, selectedRegion).catch(() => null)
+      if (sourceResult) {
+        setSearchDrawer((prev) => ({
+          ...prev,
+          loading: false,
+          orgs: sourceResult.orgs,
+          orgTotal: sourceResult.orgTotal,
+          experts: sourceResult.experts,
+          expertTotal: sourceResult.expertTotal,
+        }))
+        return
+      }
 
-  const labelMap = useMemo(() => buildLabelMap(regionOptions), [])
+      const [orgResult, expertResult] = await Promise.allSettled([
+        searchOrgs(trimmedKeyword, 0, 20),
+        searchExperts(trimmedKeyword, 0, 20),
+      ])
 
-  const selectedCity = useMemo(() => {
-    if (regionValue.length >= 2) {
-      const label = labelMap[String(regionValue[1])] || ''
-      // 去掉"市"后缀，如"宜昌市" → "宜昌"
-      return label.replace(/市$/, '')
-    }
-    return ''
-  }, [regionValue, labelMap])
+      const orgData = orgResult.status === 'fulfilled'
+        ? (orgResult.value?.data as Record<string, unknown> | undefined)
+        : undefined
+      const expertData = expertResult.status === 'fulfilled'
+        ? (expertResult.value?.data as Record<string, unknown> | undefined)
+        : undefined
+
+      setSearchDrawer((prev) => ({
+        ...prev,
+        loading: false,
+        orgs: (orgData?.orgRecommend ?? []) as Record<string, unknown>[],
+        orgTotal: Number(orgData?.total ?? 0),
+        experts: (expertData?.expertsRecommend ?? []) as Record<string, unknown>[],
+        expertTotal: Number(expertData?.total ?? 0),
+      }))
+    })()
+  }, [message, selectedRegion])
 
   return (
-    <div>
+    <div className={styles.page}>
       <HeroSection
         backgroundImage={industryBg}
         searchPlaceholder="搜索产业链、产业环节、企业..."
@@ -105,7 +118,6 @@ export default function Industry() {
         titleLine2="让招引更精准、决策更高效"
       />
 
-      {/* Tab 栏 */}
       <div className={styles.tabBar}>
         <div className={styles.tabLeft}>
           <div
@@ -127,7 +139,7 @@ export default function Industry() {
           <Cascader
             options={regionOptions}
             value={regionValue}
-            onChange={(val) => setRegionValue(val || [])}
+            onChange={(value) => setRegionValue((value || []) as string[])}
             size="small"
             style={{ width: 200 }}
             placeholder="选择地区"
@@ -143,12 +155,11 @@ export default function Industry() {
         </div>
       </div>
 
-      {/* 内容区 */}
       {activeTab === 'graph' ? (
         <div className={styles.graphSection}>
           <div className={styles.graphDesc}>
-            当前产业链：{chainOptions.find(c => c.value === selectedChain)?.label} —
-            展示上游原料 → 中游制造 → 下游应用的产业链全景结构，节点颜色标识强/弱/缺链状态。
+            当前产业链：{chainOptions.find((option) => option.value === selectedChain)?.label}
+            ，展示上游原料、中游制造、下游应用的产业链全景结构，节点颜色标识强链、弱链、缺链状态。
           </div>
           <IndustryGraph
             chainKey={selectedChain}
@@ -160,26 +171,43 @@ export default function Industry() {
         <IndustryReport />
       )}
 
-      {/* 搜索结果抽屉 */}
       <Drawer
         title={<span><BankOutlined style={{ marginRight: 8 }} />搜索结果：{searchDrawer.keyword}</span>}
         open={searchDrawer.visible}
-        onClose={() => setSearchDrawer(prev => ({ ...prev, visible: false }))}
+        onClose={() => setSearchDrawer((prev) => ({ ...prev, visible: false }))}
         width={860}
         destroyOnClose
       >
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <div
-            onClick={() => setSearchDrawer(prev => ({ ...prev, activeTab: 'orgs' }))}
-            style={{ padding: '6px 20px', cursor: 'pointer', borderRadius: 4, fontSize: 14, fontWeight: searchDrawer.activeTab === 'orgs' ? 600 : 400, color: searchDrawer.activeTab === 'orgs' ? '#fff' : '#2468F2', background: searchDrawer.activeTab === 'orgs' ? '#2468F2' : '#f0f5ff' }}
+            onClick={() => setSearchDrawer((prev) => ({ ...prev, activeTab: 'orgs' }))}
+            style={{
+              padding: '6px 20px',
+              cursor: 'pointer',
+              borderRadius: 4,
+              fontSize: 14,
+              fontWeight: searchDrawer.activeTab === 'orgs' ? 600 : 400,
+              color: searchDrawer.activeTab === 'orgs' ? '#fff' : '#2468F2',
+              background: searchDrawer.activeTab === 'orgs' ? '#2468F2' : '#f0f5ff',
+            }}
           >
-            <BankOutlined style={{ marginRight: 4 }} />企业 ({searchDrawer.orgTotal})
+            <BankOutlined style={{ marginRight: 4 }} />
+            企业 ({searchDrawer.orgTotal})
           </div>
           <div
-            onClick={() => setSearchDrawer(prev => ({ ...prev, activeTab: 'experts' }))}
-            style={{ padding: '6px 20px', cursor: 'pointer', borderRadius: 4, fontSize: 14, fontWeight: searchDrawer.activeTab === 'experts' ? 600 : 400, color: searchDrawer.activeTab === 'experts' ? '#fff' : '#2468F2', background: searchDrawer.activeTab === 'experts' ? '#2468F2' : '#f0f5ff' }}
+            onClick={() => setSearchDrawer((prev) => ({ ...prev, activeTab: 'experts' }))}
+            style={{
+              padding: '6px 20px',
+              cursor: 'pointer',
+              borderRadius: 4,
+              fontSize: 14,
+              fontWeight: searchDrawer.activeTab === 'experts' ? 600 : 400,
+              color: searchDrawer.activeTab === 'experts' ? '#fff' : '#2468F2',
+              background: searchDrawer.activeTab === 'experts' ? '#2468F2' : '#f0f5ff',
+            }}
           >
-            <TeamOutlined style={{ marginRight: 4 }} />人才 ({searchDrawer.expertTotal})
+            <TeamOutlined style={{ marginRight: 4 }} />
+            人才 ({searchDrawer.expertTotal})
           </div>
         </div>
 
@@ -187,29 +215,92 @@ export default function Industry() {
           <Table
             loading={searchDrawer.loading}
             dataSource={searchDrawer.orgs}
-            rowKey={(_, i) => String(i)}
+            rowKey={(_, index) => String(index)}
             size="small"
             pagination={{ pageSize: 10, showTotal: () => `共 ${searchDrawer.orgTotal} 条` }}
             columns={[
-              { title: '企业名称', dataIndex: 'NAME', key: 'name', ellipsis: true, render: (_, r: Record<string, unknown>) => String(r.NAME || r.name || '-') },
-              { title: '地区', key: 'region', width: 100, render: (_, r: Record<string, unknown>) => `${r.PROV || ''}${r.CITY ? ' ' + r.CITY : ''}` },
-              { title: '行业', dataIndex: 'INDUSTRY', key: 'ind', width: 180, render: (_, r: Record<string, unknown>) => ((r.INDUSTRY || []) as string[]).slice(0, 2).map((t, i) => <Tag key={i} color="blue" style={{ fontSize: 11 }}>{t.length > 8 ? t.slice(0, 8) + '...' : t}</Tag>) },
-              { title: '标签', dataIndex: 'TAGS', key: 'tags', width: 160, render: (_, r: Record<string, unknown>) => ((r.TAGS || []) as string[]).slice(0, 2).map((t, i) => <Tag key={i} style={{ fontSize: 11 }}>{t}</Tag>) },
+              {
+                title: '企业名称',
+                dataIndex: 'NAME',
+                key: 'name',
+                ellipsis: true,
+                render: (_value, record: Record<string, unknown>) => String(record.NAME || '-'),
+              },
+              {
+                title: '地区',
+                key: 'region',
+                width: 120,
+                render: (_value, record: Record<string, unknown>) =>
+                  `${record.PROV || ''}${record.CITY ? ` ${record.CITY}` : ''}`,
+              },
+              {
+                title: '行业',
+                dataIndex: 'INDUSTRY',
+                key: 'industry',
+                width: 180,
+                render: (_value, record: Record<string, unknown>) =>
+                  ((record.INDUSTRY || []) as string[])
+                    .slice(0, 2)
+                    .map((item, index) => (
+                      <Tag key={index} color="blue" style={{ fontSize: 11 }}>
+                        {item.length > 8 ? `${item.slice(0, 8)}...` : item}
+                      </Tag>
+                    )),
+              },
+              {
+                title: '标签',
+                dataIndex: 'TAGS',
+                key: 'tags',
+                width: 160,
+                render: (_value, record: Record<string, unknown>) =>
+                  ((record.TAGS || []) as string[])
+                    .slice(0, 2)
+                    .map((item, index) => (
+                      <Tag key={index} style={{ fontSize: 11 }}>
+                        {item}
+                      </Tag>
+                    )),
+              },
             ]}
           />
         ) : (
           <Table
             loading={searchDrawer.loading}
             dataSource={searchDrawer.experts}
-            rowKey={(_, i) => String(i)}
+            rowKey={(_, index) => String(index)}
             size="small"
             pagination={{ pageSize: 10, showTotal: () => `共 ${searchDrawer.expertTotal} 条` }}
             columns={[
-              { title: '姓名', key: 'name', width: 80, render: (_, r: Record<string, unknown>) => String(r.CNAME || r.name || '-') },
-              { title: '机构', key: 'org', ellipsis: true, render: (_, r: Record<string, unknown>) => String(r.AORG || r.org || '-') },
-              { title: 'H指数', key: 'h', width: 65, render: (_, r: Record<string, unknown>) => <Tag color="blue">{String(r.H ?? '-')}</Tag> },
-              { title: '论文', key: 'qikan', width: 55, render: (_, r: Record<string, unknown>) => String(r.QIKAN ?? '-') },
-              { title: '专利', key: 'patent', width: 55, render: (_, r: Record<string, unknown>) => String(r.ZHUANLI ?? '-') },
+              {
+                title: '姓名',
+                key: 'name',
+                width: 80,
+                render: (_value, record: Record<string, unknown>) => String(record.CNAME || '-'),
+              },
+              {
+                title: '机构',
+                key: 'org',
+                ellipsis: true,
+                render: (_value, record: Record<string, unknown>) => String(record.AORG || '-'),
+              },
+              {
+                title: 'H指数',
+                key: 'h',
+                width: 70,
+                render: (_value, record: Record<string, unknown>) => <Tag color="blue">{String(record.H ?? '-')}</Tag>,
+              },
+              {
+                title: '论文',
+                key: 'qikan',
+                width: 60,
+                render: (_value, record: Record<string, unknown>) => String(record.QIKAN ?? '-'),
+              },
+              {
+                title: '专利',
+                key: 'patent',
+                width: 60,
+                render: (_value, record: Record<string, unknown>) => String(record.ZHUANLI ?? '-'),
+              },
             ]}
           />
         )}

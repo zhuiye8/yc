@@ -17,6 +17,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/wf-api/, ''),
       },
+      '/demo-api': {
+        target: 'http://127.0.0.1:38071',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/demo-api/, ''),
+      },
     },
   },
   css: {

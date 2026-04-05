@@ -8,6 +8,11 @@ import { orgDrawerColumns, expertDrawerColumns } from '@/components/IndustryDraw
 import type { IndustryGraphNode } from '@/mock/data'
 import { regionOptions } from '@/mock/regions'
 import { aggregateStatus, getNodeStatus } from '@/services/coverageCache'
+import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
+import {
+  getIndustryNodePageFromSource,
+  getIndustryNodeStatsFromSource,
+} from '@/services/industrySource'
 import { searchOrgs } from '@/services/industry'
 import { searchExperts } from '@/services/talent'
 import './IndustryTree.css'
@@ -24,6 +29,7 @@ interface IndustryGraphSet {
 }
 
 interface Props {
+  chainKey: string
   graphData: IndustryGraphSet
   onNodeAction?: (action: 'enterprises' | 'talent' | 'addList', node: IndustryGraphNode) => void
   nodeKeywords?: Record<string, { keywords: string[]; queryString: string }>
@@ -155,6 +161,8 @@ function buildLabelMap(options: typeof regionOptions): Record<string, string> {
 }
 
 const regionLabelMap = buildLabelMap(regionOptions)
+void regionLabelMap
+void getCityFromCascader
 const allRegionOptions = [{ value: '__all__', label: '全国' }, ...regionOptions]
 
 function getCityFromCascader(value: string[]) {
@@ -396,6 +404,7 @@ function StreamGraph({
 }
 
 export default function IndustryChainGraph({
+  chainKey,
   graphData,
   onNodeAction,
   nodeKeywords,
@@ -513,12 +522,37 @@ export default function IndustryChainGraph({
 
     const currentCity = selectedCity || '宜昌'
 
-    void Promise.all([
-      searchOrgs(mapping.queryString, 0, 1).catch(() => null),
-      searchOrgs(mapping.queryString, 0, 1, currentCity).catch(() => null),
-      searchExperts(mapping.queryString, 0, 1).catch(() => null),
-      searchExperts(mapping.queryString, 0, 1, currentCity).catch(() => null),
-    ]).then(([orgAll, orgLocal, expertAll, expertLocal]) => {
+    void (async () => {
+      const cachedStats = await getIndustryNodeStatsFromSource(
+        chainKey,
+        node.name,
+        resolveIndustryRegionFromCascader(externalRegionValue),
+      ).catch(() => null)
+      if (cachedStats) {
+        if (controller.signal.aborted) return
+
+        setPopover((prev) => {
+          if (!prev) return null
+
+          return {
+            ...prev,
+            loading: false,
+            queryString: cachedStats.queryString,
+            orgTotal: cachedStats.orgTotal,
+            localOrgTotal: cachedStats.localOrgTotal,
+            expertTotal: cachedStats.expertTotal,
+            localExpertTotal: cachedStats.localExpertTotal,
+          }
+        })
+        return
+      }
+
+      const [orgAll, orgLocal, expertAll, expertLocal] = await Promise.all([
+        searchOrgs(mapping.queryString, 0, 1).catch(() => null),
+        searchOrgs(mapping.queryString, 0, 1, currentCity).catch(() => null),
+        searchExperts(mapping.queryString, 0, 1).catch(() => null),
+        searchExperts(mapping.queryString, 0, 1, currentCity).catch(() => null),
+      ])
       if (controller.signal.aborted) return
 
       const getOrgTotal = (result: Record<string, unknown> | null) => {
@@ -543,20 +577,36 @@ export default function IndustryChainGraph({
           localExpertTotal: getExpertTotal(expertLocal),
         }
       })
-    })
-  }, [nodeKeywords, selectedCity])
+    })()
+  }, [chainKey, externalRegionValue, nodeKeywords, selectedCity])
 
-  const loadDrawerData = useCallback((type: 'orgs' | 'experts', queryString: string, city: string, page: number) => {
+  const loadDrawerData = useCallback((type: 'orgs' | 'experts', nodeName: string, queryString: string, regionValue: string[], page: number) => {
     setDrawer((prev) => ({ ...prev, loading: true }))
     const from = (page - 1) * 10
+    const region = resolveIndustryRegionFromCascader(regionValue)
 
-    const request = type === 'orgs'
-      ? searchOrgs(queryString, from, 10, city || undefined)
-      : searchExperts(queryString, from, 10, city || undefined)
+    void (async () => {
+      const cachedPage = await getIndustryNodePageFromSource(chainKey, nodeName, type, region, page, 10).catch(() => null)
+      if (cachedPage) {
+        setDrawer((prev) => ({
+          ...prev,
+          loading: false,
+          data: cachedPage.items,
+          total: cachedPage.total,
+          page,
+        }))
+        return
+      }
 
-    void request.then((result) => {
+      const request = type === 'orgs'
+        ? searchOrgs(queryString, from, 10, region.city || undefined)
+        : searchExperts(queryString, from, 10, region.city || undefined)
+
+      const result = await request
       const data = result?.data as Record<string, unknown> | undefined
-      const list = (data?.orgRecommend ?? data?.expertsRecommend ?? data?.items ?? []) as Record<string, unknown>[]
+      const list = (type === 'orgs'
+        ? (data?.orgRecommend ?? [])
+        : (data?.expertsRecommend ?? [])) as Record<string, unknown>[]
       const total = Number(data?.total || list.length)
 
       setDrawer((prev) => ({
@@ -566,7 +616,7 @@ export default function IndustryChainGraph({
         total,
         page,
       }))
-    }).catch(() => {
+    })().catch(() => {
       setDrawer((prev) => ({
         ...prev,
         loading: false,
@@ -574,20 +624,20 @@ export default function IndustryChainGraph({
         total: 0,
       }))
     })
-  }, [])
+  }, [chainKey])
 
   const openDrawer = useCallback((type: 'orgs' | 'experts') => {
     if (!popover) return
 
-    const city = selectedCity || '宜昌'
     const region = externalRegionValue || ['hubei', 'yichang']
+    const nextRegion = resolveIndustryRegionFromCascader(region)
 
     setDrawer({
       visible: true,
       type,
       nodeName: popover.node.name,
       queryString: popover.queryString,
-      city,
+      city: nextRegion.city || '',
       regionValue: region,
       loading: true,
       data: [],
@@ -596,17 +646,17 @@ export default function IndustryChainGraph({
     })
 
     setPopover(null)
-    loadDrawerData(type, popover.queryString, city, 1)
-  }, [externalRegionValue, loadDrawerData, popover, selectedCity])
+    loadDrawerData(type, popover.node.name, popover.queryString, region, 1)
+  }, [externalRegionValue, loadDrawerData, popover])
 
   const handleDrawerRegionChange = useCallback((value: string[]) => {
-    const nextCity = getCityFromCascader(value)
+    const nextRegion = resolveIndustryRegionFromCascader(value)
 
     setDrawer((prev) => {
-      loadDrawerData(prev.type, prev.queryString, nextCity, 1)
+      loadDrawerData(prev.type, prev.nodeName, prev.queryString, value, 1)
       return {
         ...prev,
-        city: nextCity,
+        city: nextRegion.city || '',
         regionValue: value,
         page: 1,
       }
@@ -756,7 +806,7 @@ export default function IndustryChainGraph({
 
               if (nextValue.length === 0 || nextValue[0] === '__all__') {
                 setDrawer((prev) => {
-                  loadDrawerData(prev.type, prev.queryString, '', 1)
+                  loadDrawerData(prev.type, prev.nodeName, prev.queryString, [], 1)
                   return {
                     ...prev,
                     city: '',
@@ -789,7 +839,7 @@ export default function IndustryChainGraph({
             showSizeChanger: false,
             showTotal: () => `共 ${drawer.total.toLocaleString()} 条`,
             onChange: (page) => {
-              loadDrawerData(drawer.type, drawer.queryString, drawer.city, page)
+              loadDrawerData(drawer.type, drawer.nodeName, drawer.queryString, drawer.regionValue, page)
               setDrawer((prev) => ({ ...prev, page }))
             },
           }}

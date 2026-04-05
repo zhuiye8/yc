@@ -11,6 +11,12 @@ node_modules
 dist
 dist-ssr
 *.local
+*.db
+*.db-shm
+*.db-wal
+.research/
+__pycache__/
+*.pyc
 
 # Editor directories and files
 .vscode/*

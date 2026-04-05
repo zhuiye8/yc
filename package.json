@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:industry-cache": "node scripts/buildIndustryCache.mjs",
+    "build:industry-demo-db": "python server/industry-demo-api/scripts/buildIndustryDemoDb.py"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",

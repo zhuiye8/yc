@@ -1,0 +1,14 @@
+{
+  "name": "industry-demo-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node index.mjs",
+    "start:local": "node --env-file=.env.local index.mjs",
+    "start:local:py": "python scripts/runLocalDemoApi.py --env-file=.env.local"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "express": "^5.1.0"
+  }
+}
