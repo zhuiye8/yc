@@ -1,12 +1,47 @@
 @use '@/styles/variables' as *;
 
+.page {
+  --talent-shell-width: min(1400px, calc(100vw - clamp(24px, 4vw, 64px)));
+
+  :global(.ant-input-search) {
+    background: linear-gradient(180deg, #dae5fc 0%, #ffffff 100%);
+  }
+
+  :global(.ant-input-search .ant-input-group) {
+    background: linear-gradient(180deg, #dae5fc 0%, #ffffff 100%);
+  }
+
+  :global(.ant-input-search .ant-input-affix-wrapper),
+  :global(.ant-input-search .ant-input),
+  :global(.ant-input-search .ant-input-group-addon),
+  :global(.ant-input-search .ant-input-group-addon .ant-btn),
+  :global(.ant-input-search-button) {
+    border-radius: 0 !important;
+  }
+
+  :global(.ant-input-search .ant-input-affix-wrapper) {
+    background: linear-gradient(180deg, #dae5fc 0%, #ffffff 100%) !important;
+    border-color: #d6e4fb !important;
+    box-shadow: none !important;
+  }
+
+  :global(.ant-input-search .ant-input) {
+    background: transparent !important;
+  }
+
+  :global(.ant-input-search .ant-input-group-addon) {
+    background: linear-gradient(180deg, #dae5fc 0%, #ffffff 100%) !important;
+  }
+}
+
 .tabBar {
-  max-width: 1400px;
+  width: var(--talent-shell-width);
   margin: 0 auto;
-  padding: $space-lg $space-2xl 0;
+  padding: clamp(20px, 1.6vw, 24px) 0 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: $space-lg;
 }
 
 .tabLeft {
@@ -54,15 +89,14 @@
 }
 
 .graphSection {
-  max-width: 1400px;
+  width: var(--talent-shell-width);
   margin: 0 auto;
-  padding: $space-lg $space-2xl $space-2xl;
+  padding: clamp(20px, 1.6vw, 24px) 0 clamp(32px, 2.6vw, 40px);
 }
 
-/* Two-column layout: graph and charts on the left, profile and ranking cards on the right */
 .twoColumnLayout {
   display: flex;
-  gap: $space-xl;
+  gap: clamp(16px, 1.4vw, 24px);
   align-items: stretch;
 }
 
@@ -70,7 +104,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: $space-lg;
+  gap: clamp(16px, 1.2vw, 20px);
   min-width: 0;
 }
 
@@ -79,7 +113,7 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: $space-lg;
+  gap: clamp(16px, 1.2vw, 20px);
 }
 
 .graphArea {
@@ -305,7 +339,7 @@
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: linear-gradient(135deg, $primary-500 0%, #5A9CF7 100%);
+  background: linear-gradient(135deg, $primary-500 0%, #5a9cf7 100%);
   color: $white;
   display: flex;
   align-items: center;
@@ -317,4 +351,34 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+}
+
+@media (max-width: 1100px) {
+  .tabBar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tabRight {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .twoColumnLayout {
+    flex-direction: column;
+  }
+
+  .rightColumn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .page {
+    --talent-shell-width: calc(100vw - 24px);
+  }
+
+  .tab {
+    padding: 8px 18px;
+  }
 }

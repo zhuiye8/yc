@@ -1,12 +1,17 @@
 @use '@/styles/variables' as *;
 
+.page {
+  --industry-shell-width: min(1400px, calc(100vw - clamp(24px, 4vw, 64px)));
+}
+
 .tabBar {
-  max-width: 1400px;
+  width: var(--industry-shell-width);
   margin: 0 auto;
-  padding: $space-lg $space-2xl 0;
+  padding: clamp(20px, 1.6vw, 24px) 0 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: $space-lg;
 }
 
 .tabLeft {
@@ -59,60 +64,64 @@
 }
 
 .graphSection {
-  max-width: 1400px;
+  width: var(--industry-shell-width);
   margin: 0 auto;
-  padding: $space-lg $space-2xl;
+  padding: clamp(20px, 1.6vw, 24px) 0 clamp(40px, 3vw, 52px);
 }
 
 .graphDesc {
   font-size: $font-size-sm;
   color: $gray-500;
-  margin-bottom: $space-lg;
+  margin-bottom: clamp(16px, 1.2vw, 20px);
   line-height: 1.6;
 }
 
-/* Two-column layout: graph and enterprises on the left, stats and talents on the right */
 .graphLayout {
-  display: flex;
-  gap: $space-xl;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(288px, 320px);
+  gap: clamp(16px, 1.4vw, 24px);
+  align-items: stretch;
 }
 
 .leftColumn {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: $space-lg;
+  gap: clamp(16px, 1.2vw, 20px);
+  min-width: 0;
+  min-height: 100%;
 }
 
 .graphArea {
   background: $white;
-  border-radius: $radius-lg;
+  border-radius: 14px;
   box-shadow: $shadow-card;
-  padding: $space-lg;
+  padding: clamp(18px, 1.4vw, 22px);
   overflow: hidden;
 }
 
 .treeColumns {
   display: flex;
   gap: 0;
-  min-height: 300px;
+  min-height: clamp(280px, 22vw, 338px);
   overflow-x: auto;
   padding-bottom: $space-md;
 }
 
 .sidePanel {
-  width: 300px;
-  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: $space-lg;
+  gap: clamp(16px, 1.2vw, 20px);
+  min-height: 100%;
 }
 
 .panelCard {
   background: $white;
-  border-radius: $radius-md;
-  padding: $space-lg;
+  border-radius: 14px;
+  padding: clamp(18px, 1.35vw, 22px);
   box-shadow: $shadow-sm;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .panelTitle {
@@ -138,7 +147,7 @@
 }
 
 .statValue {
-  font-size: 32px;
+  font-size: clamp(28px, 2.05vw, 32px);
   font-weight: 700;
   color: $gray-900;
   line-height: 1;
@@ -161,6 +170,7 @@
   font-size: $font-size-xs;
   color: $gray-500;
   margin-top: $space-sm;
+  line-height: 1.6;
 }
 
 .progressBar {
@@ -230,6 +240,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: $space-md;
   margin-bottom: $space-md;
 }
 
@@ -257,7 +268,7 @@
 .enterpriseGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: $space-xl;
+  gap: clamp(16px, 1.2vw, 24px);
 }
 
 .enterpriseTable {
@@ -297,7 +308,8 @@
   text-align: right;
   font-size: $font-size-sm;
   color: $gray-500;
-  margin-top: $space-sm;
+  margin-top: auto;
+  padding-top: $space-sm;
   cursor: pointer;
 
   &:hover {
@@ -323,5 +335,39 @@
 
   :global(.ant-btn-icon) {
     font-size: 12px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .tabBar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tabRight {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .graphLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .page {
+    --industry-shell-width: calc(100vw - 24px);
+  }
+
+  .tab {
+    padding: 8px 18px;
+  }
+
+  .enterpriseGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionHeader {
+    flex-wrap: wrap;
   }
 }

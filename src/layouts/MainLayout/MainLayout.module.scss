@@ -22,12 +22,11 @@
   height: $header-height;
   display: flex;
   align-items: center;
-  padding: 0 $space-2xl;
+  padding: 0;
 }
 
 .headerInner {
-  width: 100%;
-  max-width: 1400px;
+  width: min(1400px, calc(100vw - clamp(24px, 4vw, 64px)));
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -109,22 +108,21 @@
 
 // ========== Footer ==========
 .footer {
-  background: $white;
-  border-top: 1px solid $gray-200;
-  padding: $space-2xl 0 $space-lg;
+  background: $gray-50;
+  border-top: 1px solid rgba(181, 199, 225, 0.42);
+  padding: clamp(28px, 3vw, 40px) 0 clamp(20px, 2vw, 28px);
 }
 
 .footerInner {
-  max-width: $content-max-width;
+  width: min(1400px, calc(100vw - clamp(24px, 4vw, 64px)));
   margin: 0 auto;
-  padding: 0 $space-2xl;
 }
 
 .footerTop {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: $space-3xl;
+  align-items: flex-end;
+  gap: clamp(24px, 2.5vw, 40px);
 }
 
 .footerBrand {
@@ -133,18 +131,19 @@
 
 .footerSlogan {
   font-size: $font-size-base;
-  color: $gray-600;
-  margin-bottom: $space-md;
+  color: #61748f;
+  margin-bottom: 12px;
 }
 
 .footerNav {
   display: flex;
+  flex-wrap: wrap;
   gap: $space-base;
-  margin-bottom: $space-md;
+  margin-bottom: 14px;
 
   span {
     font-size: $font-size-sm;
-    color: $gray-500;
+    color: #77859b;
     cursor: pointer;
     position: relative;
 
@@ -163,10 +162,11 @@
 .footerContact {
   display: flex;
   flex-wrap: wrap;
-  gap: $space-xl;
+  gap: 12px 24px;
   font-size: $font-size-sm;
-  color: $gray-500;
-  margin-bottom: $space-md;
+  color: #7c8697;
+  margin-bottom: 12px;
+  line-height: 1.7;
 }
 
 .footerContactItem {
@@ -182,12 +182,12 @@
 
 .footerCopy {
   font-size: $font-size-xs;
-  color: $gray-400;
+  color: #97a4b8;
 }
 
 .footerQrcodes {
   display: flex;
-  gap: $space-base;
+  gap: 12px;
   flex-shrink: 0;
 }
 
@@ -204,14 +204,38 @@
 }
 
 .qrImage {
-  width: 72px;
-  height: 72px;
-  border-radius: $radius-sm;
+  width: 76px;
+  height: 76px;
+  border-radius: 6px;
   object-fit: cover;
+  border: 1px solid rgba(197, 212, 234, 0.8);
+  box-shadow: 0 6px 18px rgba(89, 119, 170, 0.08);
 }
 
 .qrItem p {
   font-size: $font-size-xs;
-  color: $gray-500;
+  color: #7c8697;
   margin-top: $space-xs;
+}
+
+@media (max-width: 1200px) {
+  .headerInner {
+    gap: 20px;
+  }
+
+  .nav {
+    margin: 0 $space-lg;
+  }
+}
+
+@media (max-width: 992px) {
+  .footerTop {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .footerQrcodes {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }

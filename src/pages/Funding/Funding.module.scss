@@ -1,9 +1,13 @@
 @use '@/styles/variables' as *;
 
+.page {
+  --funding-shell-width: min(1400px, calc(100vw - clamp(24px, 4vw, 64px)));
+}
+
 .tabBar {
-  max-width: 1400px;
+  width: var(--funding-shell-width);
   margin: 0 auto;
-  padding: $space-lg $space-2xl 0;
+  padding: clamp(20px, 1.6vw, 24px) 0 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -56,9 +60,9 @@
 }
 
 .content {
-  max-width: 1400px;
+  width: var(--funding-shell-width);
   margin: 0 auto;
-  padding: $space-lg $space-2xl $space-2xl;
+  padding: clamp(20px, 1.6vw, 24px) 0 clamp(32px, 2.6vw, 40px);
 }
 
 /* Two-row grid with a fixed right column */

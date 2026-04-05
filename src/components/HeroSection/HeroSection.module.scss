@@ -1,15 +1,16 @@
 @use '@/styles/variables' as *;
 
-// Hero 外层：需要允许搜索框溢出底部
 .heroOuter {
+  --hero-shell-width: min(1400px, calc(100vw - clamp(24px, 4vw, 64px)));
+  --hero-overhang: clamp(72px, 5.6vw, 88px);
   position: relative;
-  margin-bottom: 160px; // 给搜索框溢出留空间
+  margin-bottom: calc(var(--hero-overhang) + clamp(36px, 3.2vw, 56px));
 }
 
 .hero {
   position: relative;
   overflow: hidden;
-  min-height: 480px;
+  min-height: clamp(340px, 23.5vw, 430px);
 }
 
 .heroBg {
@@ -21,70 +22,83 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
   }
 }
 
-// 覆盖标题文案
 .heroTitle {
   position: absolute;
-  top: 50%;
-  left: 180px;
-  transform: translateY(-60%);
+  top: 48.5%;
+  left: calc((100% - var(--hero-shell-width)) / 2);
+  transform: translateY(-50%);
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(10px, 0.8vw, 14px);
+  max-width: min(42vw, 680px);
 }
 
 .heroTitleLine {
-  font-size: 32px;
+  font-size: clamp(32px, 2.45vw, 48px);
   font-weight: 700;
-  color: #2468F2;
-  line-height: 1.5;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  line-height: 1.34;
+  letter-spacing: clamp(0.5px, 0.08vw, 1px);
+  background: linear-gradient(90deg, #0f3d64 0%, #2468f2 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 8px 18px rgba(36, 104, 242, 0.08);
+}
+
+.heroTitleLine + .heroTitleLine {
+  padding-left: 1.18em;
 }
 
 .heroTitleBar {
-  width: 40px;
-  height: 4px;
-  background: #2468F2;
-  border-radius: 2px;
-  margin-top: 12px;
+  width: clamp(40px, 3.2vw, 52px);
+  height: clamp(2px, 0.18vw, 3px);
+  background: linear-gradient(90deg, #2684eb 0%, #1c4bf9 100%);
+  border-radius: 999px;
+  margin-top: clamp(2px, 0.25vw, 6px);
 }
 
-// 搜索容器：绝对定位，横跨 Hero 底部边缘
 .searchContainer {
   position: absolute;
-  bottom: -80px; // 向下溢出 Hero
+  bottom: calc(var(--hero-overhang) * -1);
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
-  width: 100%;
-  max-width: 1400px;
-  padding: 0 $space-2xl;
+  width: var(--hero-shell-width);
+  padding: 0;
 }
 
 .searchWrapper {
   background: linear-gradient(180deg, #dae5fc 0%, #ffffff 100%);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: $radius-md;
-  padding: $space-xl $space-xl $space-lg;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(207, 220, 241, 0.92);
+  border-radius: 0;
+  padding: clamp(18px, 1.5vw, 22px) clamp(20px, 1.8vw, 28px) clamp(14px, 1.3vw, 18px);
+  box-shadow: 0 18px 44px rgba(80, 112, 174, 0.14);
 }
 
 .searchRow {
   display: flex;
   align-items: center;
-  gap: $space-md;
+  gap: clamp(12px, 1vw, 16px);
 }
 
 .searchInput {
   flex: 1;
-  height: 60px;
-  padding: 0 $space-xl;
-  border: 1px solid $gray-200;
-  border-radius: $radius-base;
-  font-size: $font-size-lg;
+  height: clamp(56px, 3.9vw, 64px);
+  padding: 0 clamp(18px, 1.6vw, 24px);
+  border: 1px solid rgba(207, 220, 241, 0.92);
+  border-radius: 0;
+  font-size: clamp(15px, 1.05vw, 18px);
   outline: none;
   background: $white;
+  box-shadow: inset 0 1px 3px rgba(123, 148, 190, 0.05);
 
   &::placeholder {
     color: $gray-400;
@@ -96,13 +110,13 @@
 }
 
 .searchBtn {
-  height: 60px;
-  padding: 0 36px;
-  background: linear-gradient(135deg, #5a9cf7 0%, #2468F2 100%);
+  height: clamp(56px, 3.9vw, 64px);
+  padding: 0 clamp(26px, 2.4vw, 38px);
+  background: linear-gradient(135deg, #5a9cf7 0%, #2468f2 100%);
   color: $white;
   border: none;
-  border-radius: $radius-base;
-  font-size: 20px;
+  border-radius: 0;
+  font-size: clamp(18px, 1.3vw, 22px);
   font-weight: 500;
   cursor: pointer;
   display: flex;
@@ -110,50 +124,104 @@
   gap: $space-sm;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: opacity 0.2s;
+  box-shadow: 0 12px 24px rgba(36, 104, 242, 0.22);
+  transition: opacity 0.2s, transform 0.2s;
 
   &:hover {
     opacity: 0.9;
+    transform: translateY(-1px);
   }
 }
 
 .searchIcon {
-  width: 24px;
-  height: 24px;
+  width: clamp(22px, 1.45vw, 24px);
+  height: clamp(22px, 1.45vw, 24px);
 }
 
-// 热门标签
 .hotTags {
   display: flex;
   align-items: center;
-  gap: $space-sm;
+  gap: clamp(10px, 0.85vw, 14px);
   flex-wrap: wrap;
-  margin-top: $space-md;
-  justify-content: center;
+  margin-top: clamp(16px, 1.15vw, 20px);
+  justify-content: flex-start;
 }
 
 .hotLabel {
-  font-size: $font-size-sm;
-  color: $gray-600;
+  font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
-  color: #000000;
+  color: #1d2129;
+  margin-right: 4px;
 }
 
 .hotTag {
-  padding: 4px 16px;
-  border: 1px solid #d6e4ff;
-  border-radius: 2px;
-  font-size: $font-size-sm;
-  color: $gray-700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 0;
+  font-size: 12px;
+  line-height: 1;
+  color: #4e5969;
   cursor: pointer;
   transition: all 0.2s;
-  background: #f0f5ff;
+  background: #e3ebfb;
 
   &:hover {
     color: $primary-500;
-    border-color: $primary-500;
-    background: #e0ecff;
-    background: $primary-50;
+    background: #e2ecff;
+  }
+}
+
+@media (max-width: 900px) {
+  .heroOuter {
+    --hero-shell-width: calc(100vw - 24px);
+    --hero-overhang: 94px;
+    margin-bottom: calc(var(--hero-overhang) + 64px);
+  }
+
+  .hero {
+    min-height: 320px;
+  }
+
+  .heroTitle {
+    top: 46%;
+    max-width: 62%;
+  }
+
+  .searchWrapper {
+    padding: 16px;
+  }
+
+  .searchRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .searchBtn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .heroOuter {
+    --hero-overhang: 112px;
+    margin-bottom: calc(var(--hero-overhang) + 96px);
+  }
+
+  .hero {
+    min-height: 280px;
+  }
+
+  .heroTitle {
+    max-width: 72%;
+  }
+
+  .hotLabel {
+    width: 100%;
   }
 }

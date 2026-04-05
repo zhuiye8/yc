@@ -4,7 +4,7 @@ import HeroSection from '@/components/HeroSection'
 import TalentGraph from './TalentGraph'
 import TalentReport from './TalentReport'
 import SupplyDemand from './SupplyDemand'
-import talentBg from '@/assets/images/hero/talent-bg.jpg'
+import talentBg from '@/assets/images/hero/talent-bg-plain.jpg'
 import styles from './Talent.module.scss'
 
 const YichangTalents = lazy(() => import('./YichangTalents'))
@@ -27,7 +27,7 @@ export default function Talent() {
   }
 
   return (
-    <div>
+    <div className={styles.page}>
       <HeroSection
         backgroundImage={talentBg}
         searchPlaceholder="搜索人才姓名、研究方向、所属机构..."

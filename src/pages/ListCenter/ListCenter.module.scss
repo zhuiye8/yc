@@ -160,8 +160,8 @@
   width: 216px;
   height: 32px;
   border: 1px solid #d6e4fb;
-  border-radius: 7px;
-  background: #fff;
+  border-radius: 0;
+  background: linear-gradient(180deg, #dae5fc 0%, #ffffff 100%);
   overflow: hidden;
 }
 
@@ -173,6 +173,7 @@
     padding: 0 10px;
     font-size: 12px;
     color: #3f4f67;
+    background: transparent;
   }
 
   :global(.ant-input::placeholder) {
@@ -185,7 +186,7 @@
   height: 100%;
   border: 0;
   border-left: 1px solid #d6e4fb;
-  background: #fff;
+  background: transparent;
   color: #79a7ff;
   font-size: 14px;
   cursor: pointer;

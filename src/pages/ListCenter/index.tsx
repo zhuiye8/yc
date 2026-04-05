@@ -12,7 +12,7 @@ import {
   PlusOutlined,
   SearchOutlined,
 } from '@ant-design/icons'
-import heroBg from '@/assets/images/hero/solutions-bg.jpg'
+import heroBg from '@/assets/images/hero/quick-menu-bg-plain.jpg'
 import iconInvest from '@/assets/images/icons/招商候选.png'
 import iconTalent from '@/assets/images/icons/引才对象.png'
 import iconFund from '@/assets/images/icons/融资对接.png'

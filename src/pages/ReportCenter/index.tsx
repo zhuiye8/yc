@@ -14,7 +14,7 @@ import {
   SearchOutlined,
   SyncOutlined,
 } from '@ant-design/icons'
-import heroBg from '@/assets/images/hero/solutions-bg.jpg'
+import heroBg from '@/assets/images/hero/quick-menu-bg-plain.jpg'
 import iconTotal from '@/assets/images/icons/报告总数.png'
 import iconIndustry from '@/assets/images/icons/产业报告.png'
 import iconEnterprise from '@/assets/images/icons/企业报告.png'

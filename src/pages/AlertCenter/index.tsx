@@ -14,7 +14,7 @@ import {
   SearchOutlined,
   SettingOutlined,
 } from '@ant-design/icons'
-import heroBg from '@/assets/images/hero/solutions-bg.jpg'
+import heroBg from '@/assets/images/hero/quick-menu-bg-plain.jpg'
 import iconTotal from '@/assets/images/icons/预警总数.png'
 import iconUnread from '@/assets/images/icons/未读预警.png'
 import iconHigh from '@/assets/images/icons/高危预警.png'

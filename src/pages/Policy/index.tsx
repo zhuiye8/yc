@@ -1,86 +1,116 @@
 import { useState } from 'react'
-import { Select, Table, Tag, Button, Switch } from 'antd'
-import { CloseOutlined, CaretRightOutlined } from '@ant-design/icons'
+import { Button, Select, Switch, Table, Tag, type TableColumnsType } from 'antd'
+import { CaretRightOutlined, CloseOutlined } from '@ant-design/icons'
 import HeroSection from '@/components/HeroSection'
-import { localPolicies } from '@/mock/localPolicies'
+import { localPolicies, type LocalPolicy } from '@/mock/localPolicies'
 import PolicyReport from './PolicyReport'
-import policyBg from '@/assets/images/hero/policy-bg.jpg'
+import policyBg from '@/assets/images/hero/policy-bg-plain.jpg'
 import policyListIcon from '@/assets/images/icons/policy-list-icon.png'
 import policyAlertSubscriptionIcon from '@/assets/images/icons/policy-alert-subscription-icon.png'
 import policyWeeklyUpdatesIcon from '@/assets/images/icons/policy-weekly-updates-icon.png'
 import styles from './Policy.module.scss'
 
-const hotTags = ['人才引进', '科技创新', '产业扶持', '税收优惠', '创业补贴', '专精特新', '高新企业']
+const hotTags = ['惠企政策', '人才认定', '科技创新券', '产业发展', '项目申报', '专项补贴', '数字经济']
 
-const expiringCount = localPolicies.filter((p) => {
-  if (!p.expiryDate) return false
-  const diff = new Date(p.expiryDate).getTime() - Date.now()
+const expiringCount = localPolicies.filter((policy) => {
+  if (!policy.expiryDate) return false
+  const diff = new Date(policy.expiryDate).getTime() - Date.now()
   return diff > 0 && diff < 180 * 24 * 3600 * 1000
 }).length
 
-const policyColumns = [
+const policyColumns: TableColumnsType<LocalPolicy> = [
   {
-    title: '政策名称',
+    title: '政策标题',
     dataIndex: 'title',
     key: 'title',
     ellipsis: true,
-    render: (v: string, r: { sourceUrl: string }) => (
+    render: (value, record) => (
       <span>
         <CaretRightOutlined style={{ color: '#2468F2', marginRight: 4, fontSize: 10 }} />
-        {r.sourceUrl ? <a href={r.sourceUrl} target="_blank" rel="noreferrer" style={{ color: '#2468F2' }}>{v}</a> : v}
+        {record.sourceUrl ? (
+          <a href={record.sourceUrl} target="_blank" rel="noreferrer" style={{ color: '#2468F2' }}>
+            {value}
+          </a>
+        ) : (
+          value
+        )}
       </span>
     ),
   },
-  { title: '发布部门', dataIndex: 'issuer', key: 'issuer', width: 140, ellipsis: true },
-  { title: '发布日期', dataIndex: 'publishDate', key: 'publishDate', width: 100 },
+  { title: '发布单位', dataIndex: 'issuer', key: 'issuer', width: 170, ellipsis: true },
+  { title: '发布日期', dataIndex: 'publishDate', key: 'publishDate', width: 110 },
   {
     title: '截止日期',
     dataIndex: 'expiryDate',
     key: 'expiryDate',
-    width: 100,
-    render: (v: string) => v || <span style={{ color: '#ccc' }}>长期</span>,
+    width: 110,
+    render: (value) => value || <span style={{ color: '#ccc' }}>长期有效</span>,
   },
   {
-    title: '类型',
+    title: '层级',
     dataIndex: 'level',
     key: 'level',
-    width: 50,
-    render: (v: string) => <Tag color={v === '省' ? 'purple' : v === '市' ? 'blue' : 'default'}>{v}</Tag>,
+    width: 80,
+    render: (value) => <Tag color={value === '省' ? 'purple' : value === '市' ? 'blue' : 'default'}>{value}</Tag>,
   },
   {
     title: '标签',
     dataIndex: 'tags',
     key: 'tags',
-    width: 120,
+    width: 140,
     ellipsis: true,
-    render: (v: string) => v.split(',').slice(0, 2).map((t) => <Tag key={t} style={{ marginBottom: 2 }}>{t.trim()}</Tag>),
+    render: (value) =>
+      value
+        .split(',')
+        .slice(0, 2)
+        .map((tag: string) => (
+          <Tag key={tag} style={{ marginBottom: 2 }}>
+            {tag.trim()}
+          </Tag>
+        )),
   },
   {
     title: '操作',
     key: 'action',
-    width: 130,
+    width: 140,
     render: () => (
-      <span style={{ display: 'flex', gap: 4 }}>
-        <Button type="link" size="small" style={{ padding: 0 }}>查看详情</Button>
-        <Button type="link" size="small" style={{ padding: 0 }}>匹配建档</Button>
+      <span style={{ display: 'flex', gap: 8 }}>
+        <Button type="link" size="small" style={{ padding: 0 }}>
+          查看详情
+        </Button>
+        <Button type="link" size="small" style={{ padding: 0 }}>
+          智能匹配
+        </Button>
       </span>
     ),
   },
 ]
 
 const alertSubscriptions = [
-  { name: '新政触达', desc: '符合条件的新政策发布时通知', enabled: true },
-  { name: '到期提醒', desc: '申报截止前7天提醒', enabled: true },
-  { name: '窗口期提醒', desc: '适配政策开放窗口时提醒', enabled: false },
+  {
+    name: '高层次人才政策订阅',
+    desc: '自动跟踪人才认定、住房补贴和团队支持类政策变化。',
+    enabled: true,
+  },
+  {
+    name: '企业奖补政策订阅',
+    desc: '面向科技型企业、专精特新企业和重点链主进行定向提醒。',
+    enabled: true,
+  },
+  {
+    name: '产业专项通知订阅',
+    desc: '监控产业基金、项目申报、设备更新等专项政策动态。',
+    enabled: false,
+  },
 ]
 
 const weeklyUpdates = [
-  { title: '宜昌市促进生物医药产业发展若干政策', date: '2026-01-10' },
-  { title: '关于支持科技创新的若干措施', date: '2026-01-10' },
-  { title: '高层次人才引进计划（更新）', date: '2026-01-10' },
-  { title: '宜昌市促进绿色化工产业发展若干政策', date: '2026-01-10' },
-  { title: '关于支持企业技改升级的实施意见', date: '2026-01-10' },
-  { title: '高新技术企业认定奖励办法（修订）', date: '2026-01-10' },
+  { title: '市人民政府办公室发布《宜昌市支持生物制造产业高质量倍增发展若干措施》解读。', date: '2026-01-10' },
+  { title: '宜昌高新区企业上市挂牌奖励办法进入集中申报窗口，系统已开放匹配。', date: '2026-01-10' },
+  { title: '科技创新券管理办法更新，面向成果转化平台和创新主体推送新一轮通知。', date: '2026-01-10' },
+  { title: '人才分类认定办法补充条款生效，系统已同步更新认定条件。', date: '2026-01-10' },
+  { title: '数字经济和新型工业化相关县区政策新增 5 条，已进入智能匹配池。', date: '2026-01-10' },
+  { title: '项目申报辅助功能新增到期提醒，支持一键生成材料清单。', date: '2026-01-10' },
 ]
 
 export default function Policy() {
@@ -88,10 +118,10 @@ export default function Policy() {
   const [showTip, setShowTip] = useState(true)
 
   return (
-    <div>
+    <div className={styles.page}>
       <HeroSection
         backgroundImage={policyBg}
-        searchPlaceholder="搜索政策名称、发布部门、关键词..."
+        searchPlaceholder="搜索政策标题、发布单位、补贴类型、申报条件..."
         hotTags={hotTags}
         titleLine1="自动匹配政策福利"
         titleLine2="让政策补贴一键直达"
@@ -100,9 +130,11 @@ export default function Policy() {
       {showTip && (
         <div className={styles.tipBar}>
           <div className={styles.tipContent}>
-            <span>{expiringCount}项政策即将到期，请及时关注</span>
+            <span>当前有 {expiringCount} 条政策将在 180 天内到期，建议优先关注并安排申报。</span>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <Button type="primary" size="small" ghost>查看详情</Button>
+              <Button type="primary" size="small" ghost>
+                查看提醒
+              </Button>
               <CloseOutlined style={{ cursor: 'pointer', color: '#999' }} onClick={() => setShowTip(false)} />
             </div>
           </div>
@@ -112,10 +144,10 @@ export default function Policy() {
       <div className={styles.tabBar}>
         <div className={styles.tabLeft}>
           <div className={`${styles.tab} ${activeTab === 'list' ? styles.active : styles.inactive}`} onClick={() => setActiveTab('list')}>
-            政策列表
+            政策清单
           </div>
           <div className={`${styles.tab} ${activeTab === 'report' ? styles.active : styles.inactive}`} onClick={() => setActiveTab('report')}>
-            政策报告
+            专题报告
           </div>
         </div>
         <div className={styles.tabRight}>
@@ -124,9 +156,7 @@ export default function Policy() {
             defaultValue="green-chem"
             style={{ width: 140 }}
             size="small"
-            options={[
-              { value: 'green-chem', label: '绿色化工' },
-            ]}
+            options={[{ value: 'green-chem', label: '绿色化工' }]}
           />
         </div>
       </div>
@@ -139,11 +169,11 @@ export default function Policy() {
                 <div className={styles.listHeader}>
                   <div className={styles.panelTitle} style={{ marginBottom: 0 }}>
                     <img src={policyListIcon} alt="" className={styles.iconImage} />
-                    政策列表
+                    政策清单
                   </div>
                   <div style={{ display: 'flex', gap: 16, fontSize: 13, color: '#86909C', alignItems: 'center' }}>
-                    <span>更新频率：每周</span>
-                    <a style={{ color: '#2468F2', fontSize: 13 }}>订阅更新</a>
+                    <span>按政策有效期、层级和标签快速筛选</span>
+                    <a style={{ color: '#2468F2', fontSize: 13 }}>导出列表</a>
                   </div>
                 </div>
                 <Table
@@ -152,7 +182,7 @@ export default function Policy() {
                   rowKey="id"
                   size="middle"
                   pagination={{ pageSize: 10, size: 'small' }}
-                  scroll={{ x: 850 }}
+                  scroll={{ x: 980 }}
                 />
               </div>
             </div>
@@ -162,17 +192,17 @@ export default function Policy() {
                 <div className={styles.panelHeader}>
                   <div className={styles.panelTitle} style={{ marginBottom: 0 }}>
                     <img src={policyAlertSubscriptionIcon} alt="" className={styles.iconImage} />
-                    预警订阅
+                    政策预警订阅
                   </div>
-                  <a style={{ fontSize: 13, color: '#86909C' }}>管理 &gt;</a>
+                  <a style={{ fontSize: 13, color: '#86909C' }}>查看更多 &gt;</a>
                 </div>
-                {alertSubscriptions.map((a, i) => (
-                  <div key={i} className={styles.alertItem}>
+                {alertSubscriptions.map((item) => (
+                  <div key={item.name} className={styles.alertItem}>
                     <div>
-                      <div className={styles.alertName}>{a.name}</div>
-                      <div className={styles.alertDesc}>{a.desc}</div>
+                      <div className={styles.alertName}>{item.name}</div>
+                      <div className={styles.alertDesc}>{item.desc}</div>
                     </div>
-                    <Switch size="small" defaultChecked={a.enabled} />
+                    <Switch size="small" defaultChecked={item.enabled} />
                   </div>
                 ))}
               </div>
@@ -180,12 +210,12 @@ export default function Policy() {
               <div className={styles.updatePanel}>
                 <div className={styles.panelTitle}>
                   <img src={policyWeeklyUpdatesIcon} alt="" className={styles.iconImage} />
-                  本周更新
+                  政策周更新
                 </div>
-                {weeklyUpdates.map((u, i) => (
-                  <div key={i} className={styles.updateItem}>
-                    <div className={styles.updateTitle}>{u.title}</div>
-                    <div className={styles.updateDate}>{u.date}</div>
+                {weeklyUpdates.map((item) => (
+                  <div key={item.title} className={styles.updateItem}>
+                    <div className={styles.updateTitle}>{item.title}</div>
+                    <div className={styles.updateDate}>{item.date}</div>
                   </div>
                 ))}
               </div>
