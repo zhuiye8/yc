@@ -9,10 +9,10 @@ import goalImg4 from '@/assets/images/icons/小图标_125.png'
 import styles from './About.module.scss'
 
 const goals = [
-  { img: goalImg1, title: '数据层', color: '#2468F2', items: ['海量数据日均更新', '多源数据融合', '数据质量评估与治理闭环'] },
-  { img: goalImg2, title: '分析层', color: '#F5A623', items: ['更精细的诊断模型', '可配置指标体系', '对标分析与趋势预测'] },
-  { img: goalImg3, title: '应用层', color: '#2BA471', items: ['跨模块日益联动', '任务驱动运营', '多端展示与开放接口'] },
-  { img: goalImg4, title: '生态合作', color: '#C94A4A', items: ['数据合作', '工具集成', '联合运营与持续迭代'] },
+  { img: goalImg1, title: '数据层', color: '#161C34', items: ['海量数据日均更新', '多源数据融合', '数据质量评估与治理闭环'] },
+  { img: goalImg2, title: '分析层', color: '#161C34', items: ['更精细的诊断模型', '可配置指标体系', '对标分析与趋势预测'] },
+  { img: goalImg3, title: '应用层', color: '#161C34', items: ['跨模块日益联动', '任务驱动运营', '多端展示与开放接口'] },
+  { img: goalImg4, title: '生态合作', color: '#161C34', items: ['数据合作', '工具集成', '联合运营与持续迭代'] },
 ]
 
 export default function About() {
@@ -56,11 +56,16 @@ export default function About() {
         {/* 当前版本 + 已上线能力 */}
         <div className={styles.twoCol}>
           <div className={styles.colItem}>
-            <h3>当前<span className={styles.blue}>版本</span></h3>
-            <div className={styles.versionTag}>
-              <span style={{ background: '#E6F7FF', color: '#2468F2' }}>V1.0</span>
-              <span style={{ background: '#F0FFF4', color: '#2BA471' }}>@V36</span>
-              <span style={{ color: '#86909C', fontSize: 12 }}>2026年1月发布</span>
+            <div style={{ display: 'flex' }}>
+              <h3 style={{ margin: 0 }}>
+                当前<span className={styles.blue}>版本</span>
+              </h3>
+
+              <div className={styles.versionTag}>
+                <span style={{ background: '#E6F7FF', color: '#2468F2' }}>V1.0</span>
+                <span style={{ background: '#F0FFF4', color: '#2BA471' }}>@V36</span>
+                <span style={{ color: '#86909C', fontSize: 12 }}>2026年1月发布</span>
+              </div>
             </div>
             <p>
               当前版本已实现产业、人才、技术、资金、政策五大模块的核心功能，
@@ -116,7 +121,7 @@ export default function About() {
         <div className={styles.sectionSubtitle}>数据层 · 分析层 · 应用层 · 生态合作</div>
         <div className={styles.goalCards}>
           {goals.map(g => (
-            <div key={g.title} className={styles.goalCard} style={{ borderBottom: `3px solid ${g.color}` }}>
+            <div key={g.title} className={styles.goalCard}>
               <img src={g.img} alt="" className={styles.goalBg} />
               <div className={styles.goalTitle} style={{ color: g.color }}>{g.title}</div>
               <div className={styles.goalDesc}>

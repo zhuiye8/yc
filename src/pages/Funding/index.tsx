@@ -192,10 +192,10 @@ export default function Funding() {
             <div className={styles.mainBottom}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
                 <div className={styles.subTabBar}>
-                  <div className={`${styles.subTab} ${subTab === 'product' ? styles.active : styles.inactive}`} onClick={() => setSubTab('product')}>
+                  <div className={`${styles.subTab} ${subTab === 'product' ? styles.active : styles.inactive}`} style={{ borderRadius: '6px 0 0 6px' }} onClick={() => setSubTab('product')}>
                     融资产品
                   </div>
-                  <div className={`${styles.subTab} ${subTab === 'institution' ? styles.active : styles.inactive}`} onClick={() => setSubTab('institution')}>
+                  <div className={`${styles.subTab} ${subTab === 'institution' ? styles.active : styles.inactive}`} style={{ borderRadius: '0 6px 6px 0' }} onClick={() => setSubTab('institution')}>
                     投资机构
                   </div>
                 </div>

@@ -42,7 +42,7 @@ export default function Solutions() {
       <img src={solutionsBg} alt="" className={styles.hero} />
 
       <div className={styles.content}>
-        <h1 className={styles.sectionTitle}><span className={styles.blue}>解决</span>方案</h1>
+        <h1 className={styles.sectionTitle}>解决<span className={styles.blue}>方案</span></h1>
         <p className={styles.sectionDesc}>
           平台致力于为政府部门、产业园区、企业、投资机构等提供覆盖产业人才全生命周期的数智化服务解决方案。
           我们通过智能分析与精准匹配，高效链接人才、企业、技术、资金及政策多维资源，在产业分析、人才引育、招商对接、
@@ -50,7 +50,7 @@ export default function Solutions() {
         </p>
 
         {/* 核心能力 */}
-        <h2 className={styles.sectionTitle} style={{ fontSize: 20 }}><span className={styles.blue}>核心</span>能力</h2>
+        <h2 className={styles.sectionTitle} style={{ fontSize: 20 }}>核心<span className={styles.blue}>能力</span></h2>
         <div className={styles.capGrid}>
           {capabilities.map(c => (
             <div key={c.title} className={styles.capCard}>
@@ -65,7 +65,7 @@ export default function Solutions() {
 
         {/* 典型应用场景 */}
         <h2 className={styles.sectionTitle} style={{ fontSize: 20, marginBottom: 24 }}>
-          <span className={styles.blue}>典型</span>应用<span className={styles.blue}>场景</span>
+          典型应用<span className={styles.blue}>场景</span>
         </h2>
         <div className={styles.scenarioCards}>
           {scenarios.map(s => (

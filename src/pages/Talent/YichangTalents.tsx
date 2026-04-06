@@ -27,14 +27,16 @@ interface YichangTalent {
   industry: string
 }
 
-// Lazy load the JSON data
+// 从 public/data/ 加载 JSON（不参与 JS bundle）
 let cachedData: YichangTalent[] | null = null
 function loadYichangData(): Promise<YichangTalent[]> {
   if (cachedData) return Promise.resolve(cachedData)
-  return import('@/mock/yichang-talents.json').then((mod) => {
-    cachedData = mod.default as YichangTalent[]
-    return cachedData
-  })
+  return fetch('/data/yichang-talents.json')
+    .then(r => r.json())
+    .then((data: YichangTalent[]) => {
+      cachedData = data
+      return cachedData
+    })
 }
 
 const barColors = [
