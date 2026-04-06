@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import homeBg from '@/assets/images/hero/home-bg.jpg'
+import homeBg from '@/assets/images/hero/home-bg-plain.jpg'
 import searchIcon from '@/assets/images/icons/小图标_16.png'
 import styles from './Home.module.scss'
 
@@ -36,10 +36,19 @@ export default function Home() {
 
   return (
     <div className={styles.page}>
-      {/* Hero 区 — 背景图已含标题文字 */}
+      {/* Hero 区 — 无文字背景图 + 代码渲染标题 */}
       <div className={styles.hero}>
         <div className={styles.heroBg}>
           <img src={homeBg} alt="" />
+        </div>
+
+        {/* 标题文案覆盖 */}
+        <div className={styles.heroTitle}>
+          <div className={styles.heroTitleMain}>一站式产业人才创新服务平台</div>
+          <div className={styles.heroTitleSub}>
+            整合产业、人才、技术、资金、政策数据，构建"人才+"全要素数据服务
+          </div>
+          <div className={styles.heroTitleBar} />
         </div>
 
         <div className={styles.searchArea}>

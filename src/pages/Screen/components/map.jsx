@@ -1,7 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as echarts from 'echarts';
 import chinaGeoJson from '@/assets/geo/china.json';
-import yichangGeoJson from '@/assets/geo/yichang.json';
+// yichang.json 改为动态加载，避免与 ScreenMap.tsx 的动态导入冲突
+let yichangGeoJsonCache = null;
+async function getYichangGeoJson() {
+  if (yichangGeoJsonCache) return yichangGeoJsonCache;
+  const mod = await import('@/assets/geo/yichang.json');
+  yichangGeoJsonCache = mod.default || mod;
+  return yichangGeoJsonCache;
+}
 import tooltipBg from '/images/screen/tooltip.png';
 import './map.scss'
 const EChartsChinaMap = ({ isYichang = false, customData = null, tooltipFields = null }) => {
@@ -187,8 +194,10 @@ const EChartsChinaMap = ({ isYichang = false, customData = null, tooltipFields =
     echarts?.registerMap('china', chinaGeoJson);
     
     if (isYichang) {
-      echarts?.registerMap('yichang', yichangGeoJson);
-      setYichangMapLoaded(true);
+      getYichangGeoJson().then(geoJson => {
+        echarts?.registerMap('yichang', geoJson);
+        setYichangMapLoaded(true);
+      });
     }
 
     const myChart = echarts?.init(chartRef.current);
@@ -264,11 +273,12 @@ const EChartsChinaMap = ({ isYichang = false, customData = null, tooltipFields =
   }, [chart, currentMap]);
 
   function loadYichangMap () {
-    // 直接使用预导入的宜昌地图数据
-    echarts.registerMap('yichang', yichangGeoJson);
-    setYichangMapLoaded(true);
-    chart.setOption(getMapOption('yichang', YICHANG_CENTER, 0.9));
-    setCurrentMap('yichang');
+    getYichangGeoJson().then(geoJson => {
+      echarts.registerMap('yichang', geoJson);
+      setYichangMapLoaded(true);
+      chart.setOption(getMapOption('yichang', YICHANG_CENTER, 0.9));
+      setCurrentMap('yichang');
+    });
   };
 
   function onClick () {

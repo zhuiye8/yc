@@ -179,7 +179,6 @@ const styles = {
                 fontSize: 'clamp(0.65rem, 1.2vw, 0.75rem)',
                 color: '#FFFFFF',
                 fontWeight: 'bold',
-                fontSize: '18px',
                 textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
