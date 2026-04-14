@@ -115,7 +115,7 @@ async function computeCoverage(
     const res = await searchOrgs(chainSearchKey, 0, 1, city || undefined)
     const d = res?.data as Record<string, unknown> | undefined
     chainOrgTotal = (d?.total as number) || 0
-  } catch (_e) {
+  } catch {
     // ignore
   }
 
