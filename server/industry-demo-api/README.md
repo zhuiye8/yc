@@ -61,6 +61,9 @@ Optional environment variables:
 - `INDUSTRY_DB_MAX_CACHED_ITEMS_PER_SCOPE`
 - `INDUSTRY_LOCAL_PROVINCE`
 - `INDUSTRY_LOCAL_CITY`
+- `INDUSTRY_TALENT_PROBE_QUERY`
+- `INDUSTRY_TALENT_PROBE_CITY`
+- `INDUSTRY_EXPERT_BACKFILL_LOCK`
 
 ## Remote service install
 
@@ -96,6 +99,64 @@ pnpm start:local:py
 ```
 
 The production deployment should still use `systemd` plus Nginx reverse proxy on `/demo-api/`.
+
+## Remote expert auto-backfill
+
+The most stable remote deployment path is:
+
+- keep the read-only API on the server
+- build the org-only DB locally and upload it
+- let the server backfill experts in place
+
+The helper script is:
+
+```bash
+python3 scripts/autoBackfillExperts.py --env-file=.env.backfill.local
+```
+
+Create a local backfill env file from:
+
+```bash
+cp .env.backfill.example .env.backfill.local
+```
+
+Recommended `systemd` units:
+
+`/etc/systemd/system/yc-industry-expert-backfill.service`
+
+```ini
+[Unit]
+Description=YC Industry Expert Backfill
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/work/yc-new/server/industry-demo-api
+ExecStart=/usr/bin/python3 /root/work/yc-new/server/industry-demo-api/scripts/autoBackfillExperts.py --env-file=.env.backfill.local
+User=root
+Group=root
+```
+
+`/etc/systemd/system/yc-industry-expert-backfill.timer`
+
+```ini
+[Unit]
+Description=Run YC Industry Expert Backfill every 5 minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+Unit=yc-industry-expert-backfill.service
+
+[Install]
+WantedBy=timers.target
+```
+
+The script itself does three things:
+
+- probes the remote talent API with a lightweight query
+- skips immediately if the probe fails
+- uses a file lock so only one backfill process can run at a time
 
 ## Frontend mode
 
