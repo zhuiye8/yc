@@ -218,7 +218,7 @@ export default function ScreenTalent() {
         try {
           const res = await searchExperts(key, 0, 1, '宜昌')
           totals.push((res?.data as Record<string, unknown>)?.total as number || 0)
-        } catch (_e) {
+        } catch {
           totals.push(0)
         }
         // 间隔1.5秒避免限流

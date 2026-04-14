@@ -2,7 +2,7 @@
  * 自定义地区选择器 — 多列展开 + Radio 选中
  * 数据来源：阿里云 DataV GeoAtlas API
  */
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { DownOutlined } from '@ant-design/icons'
 
 // 省市区列表数据（精简JSON，不含地理边界）
@@ -52,7 +52,7 @@ async function ensureAreaTree(): Promise<AreaItem[]> {
     const resp = await fetch(AREA_TREE_URL)
     const json: AreaTreeNode[] = await resp.json()
     areaTree = toAreaItems(json)
-  } catch (_e) {
+  } catch {
     areaTree = []
   }
   areaTreeLoading = false
@@ -99,15 +99,20 @@ export default function RegionPicker({ value, onChange }: Props) {
 
   // 加载省市区树
   useEffect(() => {
-    ensureAreaTree().then(tree => {
+    let cancelled = false
+
+    void ensureAreaTree().then(tree => {
+      if (cancelled) return
       setProvinces(tree)
-      // 默认展开湖北
       if (value.adcode.startsWith('4205') || value.adcode.startsWith('4200')) {
         setSelectedProv('420000')
       }
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+
+    return () => {
+      cancelled = true
+    }
+  }, [value.adcode])
 
   // 点击外部关闭
   useEffect(() => {
@@ -121,8 +126,14 @@ export default function RegionPicker({ value, onChange }: Props) {
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  const cities = selectedProv ? (findByAdcode(provinces, selectedProv)?.children || []) : []
-  const districts = selectedCity ? (findByAdcode(provinces, selectedCity)?.children || []) : []
+  const cities = useMemo(
+    () => (selectedProv ? (findByAdcode(provinces, selectedProv)?.children || []) : []),
+    [provinces, selectedProv],
+  )
+  const districts = useMemo(
+    () => (selectedCity ? (findByAdcode(provinces, selectedCity)?.children || []) : []),
+    [provinces, selectedCity],
+  )
 
   const expandProvince = useCallback((adcode: string) => {
     setSelectedProv(adcode)

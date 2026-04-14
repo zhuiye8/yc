@@ -61,6 +61,7 @@ export default function ResourceHeatMap() {
   ])
 
   const [mapLoading, setMapLoading] = useState(false)
+  const [isMapReady, setIsMapReady] = useState(false)
   const [stats, setStats] = useState<ResourceStats | null>(null)
   const [statsLoading, setStatsLoading] = useState(false)
   const [mapData, setMapData] = useState<{ name: string; value: number; adcode: string }[]>([])
@@ -73,9 +74,13 @@ export default function ResourceHeatMap() {
   // 加载 GeoJSON 并注册到 ECharts（优先本地，fallback CDN）
   const loadGeoJSON = useCallback(async (adcode: string) => {
     const mapName = `map_${adcode}`
-    if (registeredMaps.current.has(mapName)) return mapName
+    if (registeredMaps.current.has(mapName)) {
+      setIsMapReady(true)
+      return mapName
+    }
 
     setMapLoading(true)
+    setIsMapReady(false)
     const urls = [
       `${GEO_LOCAL}/${adcode}_full.json`,
       `${GEO_CDN}/${adcode}_full.json`,
@@ -90,12 +95,14 @@ export default function ResourceHeatMap() {
         echarts.registerMap(mapName, json)
         registeredMaps.current.add(mapName)
         setMapLoading(false)
+        setIsMapReady(true)
         return mapName
-      } catch (_e) {
+      } catch {
         continue
       }
     }
     setMapLoading(false)
+    setIsMapReady(false)
     return null
   }, [])
 
@@ -134,7 +141,7 @@ export default function ResourceHeatMap() {
               value: (data?.['创新人才'] as number) || 0,
               adcode: childCode,
             }
-          } catch (_e) {
+          } catch {
             return { name: f.properties.name, value: 0, adcode: childCode }
           }
         })
@@ -168,14 +175,20 @@ export default function ResourceHeatMap() {
 
   // 初始化：加载默认层级（宜昌市）
   useEffect(() => {
+    let cancelled = false
+
     const init = async () => {
       await loadGeoJSON('420500')
+      if (cancelled) return
       loadStats('420500')
       loadChildStats('420500')
     }
-    init()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    void init()
+
+    return () => {
+      cancelled = true
+    }
+  }, [loadChildStats, loadGeoJSON, loadStats])
 
   // RegionPicker 选择回调
   const handleRegionSelect = useCallback((adcode: string, _name: string, newPath: { adcode: string; name: string }[]) => {
@@ -265,9 +278,6 @@ export default function ResourceHeatMap() {
       series: [{ type: 'map', map: mapName, geoIndex: 0, data: mapData }],
     }
   }
-
-  const isMapReady = registeredMaps.current.has(`map_${currentLevel.adcode}`)
-
   return (
     <div style={{ maxWidth: 1336, margin: '0 auto', padding: '24px 0' }}>
       {/* 标题栏：面包屑 + 地区选择器 */}

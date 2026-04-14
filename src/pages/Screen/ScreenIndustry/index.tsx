@@ -122,7 +122,7 @@ export default function ScreenIndustry() {
 
       setTalentList(list.map(e => ({
         name: String(e.CNAME || ''),
-        title: ((e.TITLE || []) as string[])[0] || '',
+        title: (Array.isArray(e.TITLE) ? String(e.TITLE[0] || '') : String(e.TITLE || '')).replace(/^\[|]$/g, ''),
         org: String(e.AORG || ''),
       })))
 
