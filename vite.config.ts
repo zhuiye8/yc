@@ -17,6 +17,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/wf-api/, ''),
       },
+      '/tg-api': {
+        target: 'http://119.36.242.222:19020',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/tg-api/, ''),
+      },
       '/demo-api': {
         target: 'http://127.0.0.1:38071',
         changeOrigin: true,
@@ -45,7 +50,6 @@ export default defineConfig({
           // MUI（仅大屏旧版3页需要）
           'vendor-mui': ['@mui/material', '@mui/system', '@emotion/react', '@emotion/styled'],
           // dayjs（轻量，但单独拆出利于缓存）
-          'vendor-dayjs': ['dayjs'],
         },
       },
     },

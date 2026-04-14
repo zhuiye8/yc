@@ -1,4 +1,5 @@
 import { api } from './api'
+import { getTgToken, clearTgToken } from './tgAuth'
 
 // 前端展示用账号（用户输入的）
 const DISPLAY_USERNAME = 'yc_vx274'
@@ -17,7 +18,7 @@ interface LoginResponse {
 }
 
 /**
- * 两层登录：先校验前端账号密码，通过后再用真实凭证获取 token
+ * 两层登录：先校验前端账号密码，通过后并行获取 WF + TG 两个 token
  */
 export async function login(username: string, password: string): Promise<LoginResponse> {
   // 第一层：硬编码校验
@@ -25,20 +26,27 @@ export async function login(username: string, password: string): Promise<LoginRe
     throw new Error('账号或密码错误')
   }
 
-  // 第二层：用真实凭证获取 token
-  const res = await api.post<LoginResponse>('/auth/token', {
-    username: API_USERNAME,
-    secret: API_SECRET,
-  })
-  const token = res.accessToken || res.token
+  // 第二层：并行获取两个 token（互不阻塞）
+  const [wfResult] = await Promise.all([
+    // WF token（万方）
+    api.post<LoginResponse>('/auth/token', {
+      username: API_USERNAME,
+      secret: API_SECRET,
+    }),
+    // TG token（TalentGraphService）— 失败不影响 WF 登录
+    getTgToken().catch(() => null),
+  ])
+
+  const token = wfResult.accessToken || wfResult.token
   if (token) {
     localStorage.setItem('token', token)
   }
-  return res
+  return wfResult
 }
 
 export function logout() {
   localStorage.removeItem('token')
+  clearTgToken()
   window.location.href = '/login'
 }
 
