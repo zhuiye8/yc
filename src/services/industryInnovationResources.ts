@@ -116,7 +116,7 @@ function distributeByCityRatio(total: number, metric: MetricKey, topN = 10): Inn
 // ========== localStorage 持久缓存（30 分钟 TTL） ==========
 
 const CACHE_PREFIX = 'innovation:stats:'
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getCached<T = any>(key: string): T | null {

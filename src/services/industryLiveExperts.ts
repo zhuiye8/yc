@@ -28,7 +28,7 @@ const QUERY_TOTAL_BATCH_DELAY = 500
 const QUERY_FETCH_BATCH_SIZE = 10
 // v2: 切换到 TG 接口后清除旧万方缓存
 const CACHE_PREFIX = 'industry:experts:v2:'
-const DEFAULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+const DEFAULT_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const CACHE_TTL_MS = Number(import.meta.env.VITE_INDUSTRY_EXPERT_CACHE_TTL_MS ?? DEFAULT_CACHE_TTL_MS)
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504])
 const MAX_RETRY_ATTEMPTS = 4
@@ -218,11 +218,15 @@ async function computeLightTotal(state: ChainExpertLiveState) {
         result: await fetchExpertPage(queryString, 0, 1, state.city),
       })),
     )
-    const total = results.reduce((sum, entry) => {
+    const rawTotal = results.reduce((sum, entry) => {
       const queryTotal = getTotal(entry.result)
       state.queryTotals.set(entry.queryString, queryTotal)
       return sum + queryTotal
     }, 0)
+
+    // 节点累加去重系数：每人平均被 10 个节点重复匹配，结果除以 10 估算真实人数
+    const DEDUP_FACTOR = 10
+    const total = Math.round(rawTotal / DEDUP_FACTOR)
 
     state.total = total
     return total

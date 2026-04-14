@@ -24,7 +24,7 @@ function extractData<T>(json: Record<string, unknown>): T {
 
 // v2: 切换到 TG 接口后清除旧缓存
 const CACHE_PREFIX = 'tg:v2:'
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getCached<T = any>(key: string): T | null {
