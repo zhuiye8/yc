@@ -8,6 +8,8 @@ import ScreenLayout from '@/layouts/ScreenLayout'
 const Login = lazy(() => import('@/pages/Login'))
 const Home = lazy(() => import('@/pages/Home'))
 const Industry = lazy(() => import('@/pages/Industry'))
+const EnterpriseDetail = lazy(() => import('@/pages/Industry/EnterpriseDetail'))
+const TalentDetail = lazy(() => import('@/pages/Industry/TalentDetail'))
 const Talent = lazy(() => import('@/pages/Talent'))
 const Innovation = lazy(() => import('@/pages/Innovation'))
 const Funding = lazy(() => import('@/pages/Funding'))
@@ -44,6 +46,8 @@ export default function App() {
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Home />} />
             <Route path="industry" element={<Industry />} />
+            <Route path="industry/enterprise/:id" element={<EnterpriseDetail />} />
+            <Route path="industry/talent/:id" element={<TalentDetail />} />
             <Route path="talent" element={<Talent />} />
             <Route path="innovation" element={<Innovation />} />
             <Route path="funding" element={<Funding />} />
