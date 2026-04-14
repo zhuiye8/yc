@@ -150,7 +150,8 @@ export const expertDrawerColumns = [
     width: 90,
     render: (_: unknown, r: Record<string, unknown>) => {
       const name = String(r.CNAME || '-')
-      const title = r.TITLE ? (r.TITLE as string[])[0] : ''
+      const rawTitle = Array.isArray(r.TITLE) ? String(r.TITLE[0] || '') : String(r.TITLE || '')
+      const title = rawTitle.replace(/^\[|]$/g, '')
       return (
         <div>
           <Text strong style={{ fontSize: 13 }}>{name}</Text>

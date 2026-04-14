@@ -12,6 +12,11 @@ import IndustryChainGraph from '@/components/IndustryTree'
 import { industryChainGraphData } from '@/mock/industryChainGraphData'
 import { getChainCoverage, clearCoverageCache } from '@/services/coverageCache'
 import { getChainAggregate, clearChainAggregateCache } from '@/services/industryChainAggregation'
+import {
+  clearIndustryChainExpertLiveCache,
+  getIndustryChainExpertPageLive,
+  getIndustryChainExpertPreviewLive,
+} from '@/services/industryLiveExperts'
 import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
 import {
   getIndustryChainAggregateFromSource,
@@ -33,7 +38,8 @@ interface IndustryGraphProps {
 }
 
 interface ChainListState {
-  loading: boolean
+  orgLoading: boolean
+  expertLoading: boolean
   orgs: Record<string, unknown>[]
   orgTotal: number
   localOrgTotal: number
@@ -69,31 +75,6 @@ const chainKeyToSearchKey: Record<string, string> = {
   ship: '船舶 OR 造船 OR 航运 OR 智能船舶',
   ai: '人工智能',
 }
-
-function buildLabelMap(options: typeof regionOptions): Record<string, string> {
-  const map: Record<string, string> = {}
-  const walk = (items: typeof regionOptions) => {
-    items?.forEach((item) => {
-      if (item.value && item.label) map[String(item.value)] = String(item.label)
-      if (item.children) walk(item.children as typeof regionOptions)
-    })
-  }
-  walk(options)
-  return map
-}
-
-const regionLabelMap = buildLabelMap(regionOptions)
-
-function getCityFromCascader(val: string[]): string {
-  if (val.length >= 2) {
-    const label = regionLabelMap[String(val[1])] || ''
-    return label.replace(/市$/, '')
-  }
-  return ''
-}
-
-void regionLabelMap
-void getCityFromCascader
 
 const allRegionOptions = [
   { value: '__all__', label: '全国' },
@@ -138,18 +119,22 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
     if (!nodeKeywords || !chainSearchKey) return
 
     const nodeCount = Object.keys(nodeKeywords).length
-    setCoverageState((prev) => ({
-      ...prev,
-      loading: true,
-      checked: 0,
-      covered: 0,
-      total: nodeCount,
-      nodeOrgCounts: {},
-    }))
 
     let cancelled = false
 
     void (async () => {
+      await Promise.resolve()
+      if (cancelled) return
+
+      setCoverageState((prev) => ({
+        ...prev,
+        loading: true,
+        checked: 0,
+        covered: 0,
+        total: nodeCount,
+        nodeOrgCounts: {},
+      }))
+
       const cachedCoverage = await getIndustryChainCoverageFromSource(chainKey, localRegion).catch(() => null)
       if (cachedCoverage) {
         if (cancelled) return
@@ -205,10 +190,12 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
   useEffect(() => {
     clearCoverageCache()
     clearChainAggregateCache(chainKey)
+    clearIndustryChainExpertLiveCache(chainKey)
   }, [chainKey, localCity])
 
   const [chainList, setChainList] = useState<ChainListState>({
-    loading: false,
+    orgLoading: false,
+    expertLoading: false,
     orgs: [],
     orgTotal: 0,
     localOrgTotal: 0,
@@ -224,7 +211,8 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
     debounceTimerRef.current = setTimeout(() => {
       if (!nodeKeywords) {
         setChainList({
-          loading: false,
+          orgLoading: false,
+          expertLoading: false,
           orgs: [],
           orgTotal: 0,
           localOrgTotal: 0,
@@ -235,7 +223,8 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
       }
 
       setChainList({
-        loading: true,
+        orgLoading: true,
+        expertLoading: true,
         orgs: [],
         orgTotal: 0,
         localOrgTotal: 0,
@@ -243,27 +232,36 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
         expertTotal: 0,
       })
 
-      if (coverageState.loading) return
-
       void (async () => {
         const cachedOrgAggregate = await getIndustryChainAggregateFromSource(chainKey, 'orgs', localRegion, 1, 10).catch(() => null)
         const orgAggregate = cachedOrgAggregate
           ?? await getChainAggregate(chainKey, 'orgs', nodeKeywords, localCity).catch(() => ({ items: [], total: 0 }))
         if (cancelled) return
 
-        const cachedExpertAggregate = await getIndustryChainAggregateFromSource(chainKey, 'experts', localRegion, 1, 10).catch(() => null)
-        const expertAggregate = cachedExpertAggregate
-          ?? await getChainAggregate(chainKey, 'experts', nodeKeywords, localCity).catch(() => ({ items: [], total: 0 }))
-        if (cancelled) return
-
         setChainList({
-          loading: false,
+          orgLoading: false,
+          expertLoading: true,
           orgs: orgAggregate.items,
           orgTotal: orgAggregate.total,
           localOrgTotal: orgAggregate.total,
+          experts: [],
+          expertTotal: 0,
+        })
+
+        const expertAggregate = await getIndustryChainExpertPreviewLive(
+          chainKey,
+          nodeKeywords,
+          localRegion.city || undefined,
+          8,
+        ).catch(() => ({ items: [], total: 0 }))
+        if (cancelled) return
+
+        setChainList((prev) => ({
+          ...prev,
+          expertLoading: false,
           experts: expertAggregate.items,
           expertTotal: expertAggregate.total,
-        })
+        }))
       })()
     }, 500)
 
@@ -271,7 +269,7 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
       cancelled = true
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
     }
-  }, [chainKey, coverageState.loading, localCity, localRegion, nodeKeywords])
+  }, [chainKey, localCity, localRegion, nodeKeywords])
 
   const [chainDrawer, setChainDrawer] = useState<ChainDrawerState>({
     visible: false,
@@ -293,15 +291,24 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
 
     void (async () => {
       const region = resolveIndustryRegionFromCascader(regionValue)
-      const cachedAggregate = await getIndustryChainAggregateFromSource(chainKey, type, region, page, 10).catch(() => null)
-      const result = cachedAggregate
-        ?? await (type === 'orgs'
-          ? getChainAggregate(chainKey, 'orgs', nodeKeywords, region.city || undefined)
-          : getChainAggregate(chainKey, 'experts', nodeKeywords, region.city || undefined)
-        ).catch(() => ({ items: [], total: 0 }))
+      if (type === 'orgs') {
+        const cachedAggregate = await getIndustryChainAggregateFromSource(chainKey, type, region, page, 10).catch(() => null)
+        const result = cachedAggregate
+          ?? await getChainAggregate(chainKey, 'orgs', nodeKeywords, region.city || undefined).catch(() => ({ items: [], total: 0 }))
 
-      const list = cachedAggregate ? result.items : result.items.slice((page - 1) * 10, page * 10)
-      setChainDrawer((prev) => ({ ...prev, loading: false, data: list, total: result.total, page }))
+        const list = cachedAggregate ? result.items : result.items.slice((page - 1) * 10, page * 10)
+        setChainDrawer((prev) => ({ ...prev, loading: false, data: list, total: result.total, page }))
+        return
+      }
+
+      const result = await getIndustryChainExpertPageLive(
+        chainKey,
+        nodeKeywords,
+        region.city || undefined,
+        page,
+        10,
+      ).catch(() => ({ items: [], total: 0 }))
+      setChainDrawer((prev) => ({ ...prev, loading: false, data: result.items, total: result.total, page }))
     })().catch(() => {
       setChainDrawer((prev) => ({ ...prev, loading: false, data: [], total: 0 }))
     })
@@ -345,9 +352,10 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
 
   const localizationRate = coverageState.rate
   const localizationRateStr = localizationRate > 0 ? localizationRate.toFixed(1) : '0'
-  const chainListLoadingText = coverageState.loading
+  const orgListLoadingText = coverageState.loading
     ? `正在统计${localCity}最小子节点，请稍候...`
     : '正在按最小子节点汇总链上企业和链上人才...'
+  const expertListLoadingText = '正在拉取链上人才预览数据...'
   const analysisLabel = coverageState.loading
     ? `正在统计${localCity}强弱缺链（${coverageState.checked}/${coverageState.total}）`
     : undefined
@@ -405,10 +413,10 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
             <Button className={styles.listAddButton} type="primary" size="small" icon={<PlusOutlined />}>批量加入清单</Button>
           </div>
 
-          {chainList.loading ? (
+          {chainList.orgLoading ? (
             <div style={{ textAlign: 'center', padding: '24px 0' }}>
               <Spin indicator={<LoadingOutlined spin />} />
-              <div style={{ color: '#999', fontSize: 12, marginTop: 8 }}>{chainListLoadingText}</div>
+              <div style={{ color: '#999', fontSize: 12, marginTop: 8 }}>{orgListLoadingText}</div>
             </div>
           ) : chainList.orgs.length > 0 ? (
             <div className={styles.enterpriseGrid}>
@@ -524,10 +532,10 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
             <div style={{ color: '#999', fontSize: 13, marginBottom: 8 }}>{localCity} 共 {chainList.expertTotal.toLocaleString()} 位</div>
           )}
 
-          {chainList.loading ? (
+          {chainList.expertLoading ? (
             <div style={{ textAlign: 'center', padding: '24px 0' }}>
               <Spin indicator={<LoadingOutlined spin />} />
-              <div style={{ color: '#999', fontSize: 12, marginTop: 8 }}>{chainListLoadingText}</div>
+              <div style={{ color: '#999', fontSize: 12, marginTop: 8 }}>{expertListLoadingText}</div>
             </div>
           ) : chainList.experts.length > 0 ? (
             <table className={styles.talentTable}>

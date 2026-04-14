@@ -1,14 +1,16 @@
 import { useCallback, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { App, Cascader, Drawer, Select, Table, Tag } from 'antd'
 import { BankOutlined, TeamOutlined } from '@ant-design/icons'
 import HeroSection from '@/components/HeroSection'
 import IndustryGraph from './IndustryGraph'
+import IndustryInnovationResources from './IndustryInnovationResources'
 import IndustryReport from './IndustryReport'
 import { regionOptions } from '@/mock/regions'
 import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
 import { searchIndustryFromSource } from '@/services/industrySource'
+import { searchIndustryExpertsLive } from '@/services/industryLiveExperts'
 import { searchOrgs } from '@/services/industry'
-import { searchExperts } from '@/services/talent'
 import industryBg from '@/assets/images/hero/industry-bg-plain.jpg'
 import styles from './Industry.module.scss'
 
@@ -36,8 +38,15 @@ interface SearchDrawerState {
 
 export default function Industry() {
   const { message } = App.useApp()
-  const [activeTab, setActiveTab] = useState<'graph' | 'report'>('graph')
-  const [selectedChain, setSelectedChain] = useState('ai')
+  const [searchParams] = useSearchParams()
+  const initialTab = searchParams.get('tab')
+  const initialChain = searchParams.get('chain')
+  const [activeTab, setActiveTab] = useState<'graph' | 'innovation' | 'report'>(
+    initialTab === 'innovation' || initialTab === 'report' ? initialTab : 'graph',
+  )
+  const [selectedChain, setSelectedChain] = useState(
+    chainOptions.some((option) => option.value === initialChain) ? initialChain! : 'ai',
+  )
   const [regionValue, setRegionValue] = useState<string[]>(['hubei', 'yichang'])
   const [searchDrawer, setSearchDrawer] = useState<SearchDrawerState>({
     visible: false,
@@ -72,37 +81,30 @@ export default function Industry() {
 
     void (async () => {
       const sourceResult = await searchIndustryFromSource(trimmedKeyword, selectedRegion).catch(() => null)
-      if (sourceResult) {
-        setSearchDrawer((prev) => ({
-          ...prev,
-          loading: false,
-          orgs: sourceResult.orgs,
-          orgTotal: sourceResult.orgTotal,
-          experts: sourceResult.experts,
-          expertTotal: sourceResult.expertTotal,
-        }))
-        return
-      }
-
       const [orgResult, expertResult] = await Promise.allSettled([
-        searchOrgs(trimmedKeyword, 0, 20),
-        searchExperts(trimmedKeyword, 0, 20),
+        sourceResult
+          ? Promise.resolve({
+            data: {
+              total: sourceResult.orgTotal,
+              orgRecommend: sourceResult.orgs,
+            },
+          })
+          : searchOrgs(trimmedKeyword, 0, 20, selectedRegion.city),
+        searchIndustryExpertsLive(trimmedKeyword, 20, selectedRegion.city),
       ])
 
       const orgData = orgResult.status === 'fulfilled'
         ? (orgResult.value?.data as Record<string, unknown> | undefined)
         : undefined
-      const expertData = expertResult.status === 'fulfilled'
-        ? (expertResult.value?.data as Record<string, unknown> | undefined)
-        : undefined
+      const expertData = expertResult.status === 'fulfilled' ? expertResult.value : undefined
 
       setSearchDrawer((prev) => ({
         ...prev,
         loading: false,
         orgs: (orgData?.orgRecommend ?? []) as Record<string, unknown>[],
         orgTotal: Number(orgData?.total ?? 0),
-        experts: (expertData?.expertsRecommend ?? []) as Record<string, unknown>[],
-        expertTotal: Number(expertData?.total ?? 0),
+        experts: expertData?.items ?? [],
+        expertTotal: expertData?.total ?? 0,
       }))
     })()
   }, [message, selectedRegion])
@@ -127,6 +129,12 @@ export default function Industry() {
             产业图谱
           </div>
           <div
+            className={`${styles.tab} ${activeTab === 'innovation' ? styles.active : styles.inactive}`}
+            onClick={() => setActiveTab('innovation')}
+          >
+            创新资源
+          </div>
+          <div
             className={`${styles.tab} ${activeTab === 'report' ? styles.active : styles.inactive}`}
             onClick={() => setActiveTab('report')}
           >
@@ -134,25 +142,40 @@ export default function Industry() {
           </div>
         </div>
 
-        <div className={styles.tabRight}>
-          <span className={styles.filterLabel}>地区</span>
-          <Cascader
-            options={regionOptions}
-            value={regionValue}
-            onChange={(value) => setRegionValue((value || []) as string[])}
-            size="small"
-            style={{ width: 200 }}
-            placeholder="选择地区"
-          />
-          <span className={styles.filterLabel}>产业链</span>
-          <Select
-            value={selectedChain}
-            onChange={setSelectedChain}
-            options={chainOptions}
-            style={{ width: 200 }}
-            size="small"
-          />
-        </div>
+        {activeTab === 'graph' && (
+          <div className={styles.tabRight}>
+            <span className={styles.filterLabel}>地区</span>
+            <Cascader
+              options={regionOptions}
+              value={regionValue}
+              onChange={(value) => setRegionValue((value || []) as string[])}
+              size="small"
+              style={{ width: 200 }}
+              placeholder="选择地区"
+            />
+            <span className={styles.filterLabel}>产业链</span>
+            <Select
+              value={selectedChain}
+              onChange={setSelectedChain}
+              options={chainOptions}
+              style={{ width: 200 }}
+              size="small"
+            />
+          </div>
+        )}
+
+        {activeTab === 'innovation' && (
+          <div className={styles.tabRight}>
+            <span className={styles.filterLabel}>产业链</span>
+            <Select
+              value={selectedChain}
+              onChange={setSelectedChain}
+              options={chainOptions}
+              style={{ width: 220 }}
+              size="small"
+            />
+          </div>
+        )}
       </div>
 
       {activeTab === 'graph' ? (
@@ -167,6 +190,8 @@ export default function Industry() {
             regionValue={regionValue}
           />
         </div>
+      ) : activeTab === 'innovation' ? (
+        <IndustryInnovationResources chainKey={selectedChain} />
       ) : (
         <IndustryReport />
       )}

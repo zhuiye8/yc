@@ -154,6 +154,33 @@ function sortCandidateExperts(experts: Record<string, unknown>[]): Record<string
   })
 }
 
+function buildCoopGraphFallback(currentTalent: TalentInfo, coopList: CoopTalent[]): { nodes: GraphNode[]; links: GraphLink[] } {
+  const nodes: GraphNode[] = [
+    {
+      id: currentTalent.auid,
+      name: currentTalent.name,
+      org: currentTalent.org,
+      h: currentTalent.hIndex,
+      class: 'PERSON',
+    },
+    ...coopList.slice(0, 10).map((talent, index) => ({
+      id: `coop-${currentTalent.auid}-${index}`,
+      name: talent.name,
+      org: talent.org,
+      h: Math.max(2, 12 - index),
+      class: 'PERSON' as const,
+    })),
+  ]
+
+  const links: GraphLink[] = coopList.slice(0, 10).map((_, index) => ({
+    source: currentTalent.auid,
+    target: `coop-${currentTalent.auid}-${index}`,
+    value: Math.max(1, 6 - index * 0.35),
+  }))
+
+  return { nodes, links }
+}
+
 export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
   const { message } = App.useApp()
 
@@ -166,8 +193,6 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
   const [trendData, setTrendData] = useState<TrendData>(defaultTrend)
   const [graphLoading, setGraphLoading] = useState(false)
   const [searching, setSearching] = useState(false)
-  const [candidates, setCandidates] = useState<Record<string, unknown>[]>([])
-  const [showCandidates, setShowCandidates] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
   const parseExperts = (resData: Record<string, unknown> | undefined): Record<string, unknown>[] => {
@@ -201,12 +226,7 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
     setSearching(false)
   }, [])
 
-  const selectCandidate = useCallback(async (expert: Record<string, unknown>, allExperts: Record<string, unknown>[], keyword: string, keepCandidates = false) => {
-    if (!keepCandidates) {
-      setShowCandidates(false)
-      setCandidates([])
-    }
-
+  const selectCandidate = useCallback(async (expert: Record<string, unknown>, allExperts: Record<string, unknown>[], keyword: string) => {
     if (MOCK_TALENT_GRAPH_ENABLED) {
       applyMockPreview(expert, allExperts)
       return
@@ -224,7 +244,8 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
       const field = (expert.CATE as string[])?.[0] || ''
       const hIndex = Number(expert.H || 0)
       const direction = String(expert.DIRECTION || '')
-      const title = (expert.TITLE as string[])?.[0] || ''
+      const rawTitle = Array.isArray(expert.TITLE) ? String(expert.TITLE[0] || '') : String(expert.TITLE || '')
+      const title = rawTitle.replace(/^\[|]$/g, '')
 
       const expertKeywords = ((expert.KEYWORDS || []) as { KEYWORD?: string }[])
         .slice(0, 10)
@@ -303,15 +324,8 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
       const graphResult = await getTalentGraph(auid, 1, 20).catch(() => null)
       if (ac.signal.aborted) return
 
-      setGraphNodes(graphResult?.data?.sources?.nodes || [])
+      const rawGraphNodes = graphResult?.data?.sources?.nodes || []
       const relations: GraphRelation[] = graphResult?.data?.sources?.relations || []
-      setGraphLinks(relations.map((relation) => ({
-        source: relation.startid,
-        target: relation.endid,
-        value: relation.cnt || 1,
-        ...relation,
-      })))
-      setGraphLoading(false)
 
       const [summaryRes, bgRes] = await Promise.all([
         getExpertSummary(auid).catch(() => null),
@@ -371,10 +385,53 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
         }))
       }
 
+      const personIds = new Set(
+        rawGraphNodes.filter((node) => node.class === 'PERSON').map((node) => String(node.id)),
+      )
+      const personLinks = relations.filter(
+        (relation) => personIds.has(String(relation.startid)) && personIds.has(String(relation.endid)),
+      )
+      const mappedPersonLinks = personLinks.map((relation) => ({
+        source: relation.startid,
+        target: relation.endid,
+        value: relation.cnt || 1,
+        ...relation,
+      }))
+
+      if (mappedPersonLinks.length > 0) {
+        setGraphNodes(rawGraphNodes)
+        setGraphLinks(mappedPersonLinks)
+      } else if (coopList.length > 0) {
+        const fallbackGraph = buildCoopGraphFallback(
+          {
+            auid,
+            name,
+            org,
+            field,
+            hIndex,
+            papers: Number(expert.QIKAN || 0),
+            patents: Number(expert.ZHUANLI || 0),
+            achievements: Number(expert.CHENGGUO || 0),
+            direction,
+            title,
+            background: '',
+            keywords: expertKeywords,
+          },
+          coopList,
+        )
+        setGraphNodes(fallbackGraph.nodes)
+        setGraphLinks(fallbackGraph.links)
+      } else {
+        setGraphNodes(rawGraphNodes)
+        setGraphLinks(mappedPersonLinks)
+      }
+
       setCoopTalents(coopList)
+      setGraphLoading(false)
     } catch {
       if (!ac.signal.aborted) message.error('加载失败，请稍后重试')
     } finally {
+      if (!ac.signal.aborted) setGraphLoading(false)
       if (!ac.signal.aborted) setSearching(false)
     }
   }, [applyMockPreview, message])
@@ -384,8 +441,6 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
 
     if (MOCK_TALENT_GRAPH_ENABLED) {
       setSearching(true)
-      setShowCandidates(false)
-      setCandidates([])
 
       const normalizedKeyword = keyword.trim().toLowerCase()
       const matchedExperts = MOCK_TALENT_EXPERTS.filter((item) => {
@@ -407,9 +462,7 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
 
       if (matchedExperts.length > 1) {
         const duplicateCandidates = sortCandidateExperts(sourceExperts).slice(0, 20)
-        setCandidates(duplicateCandidates)
-        setShowCandidates(true)
-        await selectCandidate(duplicateCandidates[0], duplicateCandidates, keyword.trim(), true)
+        await selectCandidate(duplicateCandidates[0], duplicateCandidates, keyword.trim())
         return
       }
 
@@ -421,8 +474,6 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
     const ac = new AbortController()
     abortRef.current = ac
     setSearching(true)
-    setShowCandidates(false)
-    setCandidates([])
 
     try {
       const result = await searchExperts(keyword.trim(), 0, 20)
@@ -439,9 +490,8 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
 
       if (experts.length > 1) {
         const duplicateCandidates = sortCandidateExperts(experts).slice(0, 20)
-        setCandidates(duplicateCandidates)
-        setShowCandidates(true)
-        await selectCandidate(duplicateCandidates[0], duplicateCandidates, keyword.trim(), true)
+        message.info('找到多位匹配人才，已优先展示最匹配结果')
+        await selectCandidate(duplicateCandidates[0], duplicateCandidates, keyword.trim())
         return
       }
 
@@ -487,13 +537,6 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
               nodes={relationNodes}
               links={graphLinks}
               centerAuid={currentTalent.auid}
-              currentName={currentTalent.name}
-              onSearch={handleSearch}
-              candidates={candidates}
-              showCandidates={showCandidates}
-              onSelectCandidate={(candidate) => {
-                void selectCandidate(candidate, candidates, String(candidate.CNAME || ''))
-              }}
             />
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 420 }}>
@@ -502,7 +545,7 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
           )}
         </div>
 
-        <div className={styles.panelCard}>
+        <div className={`${styles.panelCard} ${styles.distributionCard}`}>
           <div className={styles.panelTitle}>
             <img src={talentResearchDistributionIcon} alt="" className={styles.iconImage} />
             研究方向分布
@@ -510,7 +553,7 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
           <ReactECharts option={getFieldBarOption(fieldData)} style={{ height: 240 }} notMerge />
         </div>
 
-        <div className={styles.panelCard}>
+        <div className={`${styles.panelCard} ${styles.trendCard}`}>
           <div className={styles.panelTitle}>
             <img src={talentResearchTrendIcon} alt="" className={styles.iconImage} />
             研究方向趋势
@@ -575,27 +618,20 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
               {currentTalent.direction && (
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 11, color: '#86909C', marginBottom: 4, fontWeight: 500, textTransform: 'uppercase' as const, letterSpacing: 1 }}>研究方向</div>
-                  <div style={{ fontSize: 12, color: '#4E5969', lineHeight: 1.7 }}>
-                    {currentTalent.direction.length > 80 ? `${currentTalent.direction.slice(0, 80)}...` : currentTalent.direction}
+                  <div className={`${styles.summaryText} ${styles.summaryText2}`}>
+                    {currentTalent.direction}
                   </div>
                 </div>
               )}
 
-              {currentTalent.background && (
-                <div>
-                  <div style={{ fontSize: 11, color: '#86909C', marginBottom: 4, fontWeight: 500, textTransform: 'uppercase' as const, letterSpacing: 1 }}>学术背景</div>
-                  <div style={{ fontSize: 12, color: '#4E5969', lineHeight: 1.7 }}>
-                    {currentTalent.background.length > 80 ? `${currentTalent.background.slice(0, 80)}...` : currentTalent.background}
-                  </div>
-                </div>
-              )}
+              {/* 学术背景已移除，改善底部对齐 */}
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#999', fontSize: 13 }}>搜索人才后显示详情</div>
           )}
         </div>
 
-        <div className={`${styles.panelCard} ${styles.talentRankCard}`}>
+        <div className={`${styles.panelCard} ${styles.talentRankCard} ${styles.distributionCard}`}>
           <div className={styles.panelTitle}>
             <img src={talentTopTalentsIcon} alt="" className={styles.iconImage} />
             高端人才榜
@@ -606,19 +642,19 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
               return (
                 <div key={index} className={styles.rankItem}>
                   <span className={`${styles.rankNum} ${index === 0 ? styles.top1 : index === 1 ? styles.top2 : index === 2 ? styles.top3 : ''}`}>{index + 1}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className={styles.rankBody}>
                     <div
-                      style={{ fontWeight: 500, color: '#2468F2', fontSize: 13, cursor: 'pointer' }}
+                      className={styles.rankPrimary}
                       title={`点击查看 ${talent.name} 的详情`}
                       onClick={() => selectCandidate(talent.raw, topTalents.map((item) => item.raw), talent.name)}
                     >
                       {talent.name}
                     </div>
-                    <div style={{ fontSize: 11, color: '#86909C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={talent.org}>
+                    <div className={styles.rankSecondary} title={talent.org}>
                       {talent.org}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  <div className={styles.rankBadgeGroup}>
                     <Tag color="blue" style={{ fontSize: 11, margin: 0, borderRadius: 10, lineHeight: '18px', padding: '0 6px' }}>H:{talent.h}</Tag>
                     <Tag color={level.color} style={{ fontSize: 11, margin: 0, borderRadius: 10, lineHeight: '18px', padding: '0 6px' }}>{level.label}</Tag>
                   </div>
@@ -630,7 +666,7 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
           </div>
         </div>
 
-        <div className={`${styles.panelCard} ${styles.talentRankCard}`}>
+        <div className={`${styles.panelCard} ${styles.talentRankCard} ${styles.trendCard}`}>
           <div className={styles.panelTitle}>
             <img src={talentCooperationTalentsIcon} alt="" className={styles.iconImage} />
             合作人才
@@ -639,13 +675,15 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
             {coopTalents.length > 0 ? coopTalents.map((talent, index) => (
               <div key={index} className={styles.rankItem}>
                 <span className={`${styles.rankNum} ${index === 0 ? styles.top1 : index === 1 ? styles.top2 : index === 2 ? styles.top3 : ''}`}>{index + 1}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 500, color: '#1D2129', fontSize: 13 }}>{talent.name}</div>
-                  <div style={{ fontSize: 11, color: '#86909C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={talent.org}>
+                <div className={styles.rankBody}>
+                  <div className={`${styles.rankPrimary} ${styles.rankPrimaryPlain}`}>{talent.name}</div>
+                  <div className={styles.rankSecondary} title={talent.org}>
                     {talent.org}
                   </div>
                 </div>
-                {talent.field && <Tag color="green" style={{ fontSize: 11, margin: 0, borderRadius: 10, lineHeight: '18px', padding: '0 6px' }}>{talent.field}</Tag>}
+                <div className={styles.rankBadgeSingle}>
+                  {talent.field && <Tag color="green" style={{ fontSize: 11, margin: 0, borderRadius: 10, lineHeight: '18px', padding: '0 6px' }}>{talent.field}</Tag>}
+                </div>
               </div>
             )) : (
               <div style={{ padding: 20, textAlign: 'center', color: '#999', fontSize: 13 }}>

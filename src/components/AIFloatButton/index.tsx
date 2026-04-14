@@ -22,6 +22,15 @@ import {
 const { TextArea } = Input;
 const { Text } = Typography;
 
+let messageSequence = 1;
+
+function nextMessageId() {
+  messageSequence += 1;
+  return `msg-${messageSequence}`;
+}
+
+const AI_RESPONSE_DELAY_MS = 1200;
+
 interface Message {
   id: string;
   type: 'user' | 'ai';
@@ -515,7 +524,7 @@ function AIFloatButton() {
     if (!query.trim()) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: nextMessageId(),
       type: 'user',
       content: query,
       timestamp: new Date(),
@@ -528,7 +537,7 @@ function AIFloatButton() {
     // 模拟AI思考延迟
     setTimeout(() => {
       const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
+        id: nextMessageId(),
         type: 'ai',
         content: getSmartResponse(query),
         timestamp: new Date(),
@@ -536,7 +545,7 @@ function AIFloatButton() {
 
       setMessages(prev => [...prev, aiResponse]);
       setIsTyping(false);
-    }, 800 + Math.random() * 700);
+    }, AI_RESPONSE_DELAY_MS);
   };
 
   const handleQuickAction = (query: string) => {

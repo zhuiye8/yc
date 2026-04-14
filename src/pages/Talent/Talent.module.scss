@@ -139,6 +139,16 @@
   box-shadow: $shadow-sm;
 }
 
+.distributionCard {
+  flex: 1;
+  min-height: 260px;
+}
+
+.trendCard {
+  flex: 1;
+  min-height: 220px;
+}
+
 .panelTitle {
   display: flex;
   align-items: center;
@@ -241,15 +251,20 @@
 .rankList {
   display: flex;
   flex-direction: column;
-  gap: $space-sm;
+  gap: 10px;
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .rankItem {
-  display: flex;
-  align-items: center;
-  gap: $space-md;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 10px;
+  row-gap: 4px;
   font-size: $font-size-sm;
+  min-height: 38px;
 }
 
 .rankNum {
@@ -322,17 +337,8 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  overflow-y: auto;
+  overflow: hidden;
   min-height: 0;
-
-  &::-webkit-scrollbar {
-    width: 3px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 3px;
-  }
 }
 
 .talentAvatarLarge {
@@ -348,9 +354,82 @@
 }
 
 .talentRankCard {
-  flex: 1;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.rankBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rankPrimary {
+  min-width: 0;
+  color: #2468f2;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rankPrimaryPlain {
+  color: #1d2129;
+}
+
+.rankSecondary {
+  min-width: 0;
+  color: #86909c;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rankBadgeGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  justify-self: end;
+}
+
+.rankBadgeSingle {
+  display: inline-flex;
+  align-items: center;
+  justify-self: end;
+  min-width: 0;
+  max-width: 138px;
+}
+
+.rankBadgeSingle :global(.ant-tag) {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summaryText {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #4e5969;
+  font-size: 12px;
+  line-height: 1.7;
+  -webkit-box-orient: vertical;
+}
+
+.summaryText2 {
+  -webkit-line-clamp: 2;
+}
+
+.summaryText3 {
+  -webkit-line-clamp: 3;
 }
 
 @media (max-width: 1100px) {

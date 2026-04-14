@@ -8,13 +8,16 @@ import { orgDrawerColumns, expertDrawerColumns } from '@/components/IndustryDraw
 import type { IndustryGraphNode } from '@/mock/data'
 import { regionOptions } from '@/mock/regions'
 import { aggregateStatus, getNodeStatus } from '@/services/coverageCache'
+import {
+  getIndustryNodeExpertPageLive,
+  getIndustryNodeExpertTotalsLive,
+} from '@/services/industryLiveExperts'
 import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
 import {
   getIndustryNodePageFromSource,
   getIndustryNodeStatsFromSource,
 } from '@/services/industrySource'
 import { searchOrgs } from '@/services/industry'
-import { searchExperts } from '@/services/talent'
 import './IndustryTree.css'
 
 const { Text } = Typography
@@ -146,33 +149,7 @@ function normalizeNodeName(name: string) {
   return name.replace(/[\s：:]/g, '').trim()
 }
 
-function buildLabelMap(options: typeof regionOptions): Record<string, string> {
-  const map: Record<string, string> = {}
-
-  const walk = (items: typeof regionOptions) => {
-    items.forEach((item) => {
-      if (item.value && item.label) map[String(item.value)] = String(item.label)
-      if (item.children) walk(item.children as typeof regionOptions)
-    })
-  }
-
-  walk(options)
-  return map
-}
-
-const regionLabelMap = buildLabelMap(regionOptions)
-void regionLabelMap
-void getCityFromCascader
 const allRegionOptions = [{ value: '__all__', label: '全国' }, ...regionOptions]
-
-function getCityFromCascader(value: string[]) {
-  if (value.length >= 2) {
-    const label = regionLabelMap[String(value[1])] || ''
-    return label.replace(/市$/, '')
-  }
-
-  return ''
-}
 
 function collectInitialCollapsedIds(node: IndustryGraphNode, depth = 0, acc: string[] = []) {
   if (!node.children?.length) return acc
@@ -286,14 +263,16 @@ function StreamGraph({
   const onCanvasClickRef = useRef(onCanvasClick)
   const [width, setWidth] = useState(0)
 
-  onToggleRef.current = onToggleNode
-  onLeafClickRef.current = onLeafClick
-  onCanvasClickRef.current = onCanvasClick
-
   const graphData = useMemo(
     () => buildGraphData(root, collapsedIds, getStatus),
     [root, collapsedIds, getStatus],
   )
+
+  useEffect(() => {
+    onToggleRef.current = onToggleNode
+    onLeafClickRef.current = onLeafClick
+    onCanvasClickRef.current = onCanvasClick
+  }, [onCanvasClick, onLeafClick, onToggleNode])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -437,7 +416,7 @@ export default function IndustryChainGraph({
     setDrawer((prev) => ({ ...prev, visible: false }))
   }, [graphData])
 
-  const getEffectiveStatus = useCallback((node: IndustryGraphNode): NodeStatus => {
+  const getEffectiveStatus = useCallback(function resolveEffectiveStatus(node: IndustryGraphNode): NodeStatus {
     if (analyzing) return 'analyzing'
     if (!nodeOrgCounts || Object.keys(nodeOrgCounts).length === 0) return node.status
 
@@ -459,7 +438,7 @@ export default function IndustryChainGraph({
       return getNodeStatus(count) as NodeStatus
     }
 
-    const childStatuses = (node.children || []).map((child) => getEffectiveStatus(child))
+    const childStatuses = (node.children || []).map((child) => resolveEffectiveStatus(child))
     const validStatuses = childStatuses.filter((status) => status !== 'analyzing') as Array<'strong' | 'weak' | 'missing'>
 
     if (validStatuses.length === 0) return analyzing ? 'analyzing' : node.status
@@ -493,27 +472,12 @@ export default function IndustryChainGraph({
     const screenX = Math.min(clientX + 12, window.innerWidth - 340)
     const screenY = Math.max(12, Math.min(clientY - 16, window.innerHeight - 320))
 
-    if (!mapping) {
-      setPopover({
-        node,
-        screenX,
-        screenY,
-        loading: false,
-        queryString: '',
-        orgTotal: 0,
-        localOrgTotal: 0,
-        expertTotal: 0,
-        localExpertTotal: 0,
-      })
-      return
-    }
-
     setPopover({
       node,
       screenX,
       screenY,
       loading: true,
-      queryString: mapping.queryString,
+      queryString: mapping?.queryString || '',
       orgTotal: 0,
       localOrgTotal: 0,
       expertTotal: 0,
@@ -528,7 +492,9 @@ export default function IndustryChainGraph({
         node.name,
         resolveIndustryRegionFromCascader(externalRegionValue),
       ).catch(() => null)
-      if (cachedStats) {
+
+      const queryString = cachedStats?.queryString || mapping?.queryString || ''
+      if (!queryString) {
         if (controller.signal.aborted) return
 
         setPopover((prev) => {
@@ -537,33 +503,40 @@ export default function IndustryChainGraph({
           return {
             ...prev,
             loading: false,
-            queryString: cachedStats.queryString,
-            orgTotal: cachedStats.orgTotal,
-            localOrgTotal: cachedStats.localOrgTotal,
-            expertTotal: cachedStats.expertTotal,
-            localExpertTotal: cachedStats.localExpertTotal,
+            queryString: '',
+            orgTotal: 0,
+            localOrgTotal: 0,
+            expertTotal: 0,
+            localExpertTotal: 0,
           }
         })
         return
       }
 
-      const [orgAll, orgLocal, expertAll, expertLocal] = await Promise.all([
-        searchOrgs(mapping.queryString, 0, 1).catch(() => null),
-        searchOrgs(mapping.queryString, 0, 1, currentCity).catch(() => null),
-        searchExperts(mapping.queryString, 0, 1).catch(() => null),
-        searchExperts(mapping.queryString, 0, 1, currentCity).catch(() => null),
-      ])
+      let orgTotal = cachedStats?.orgTotal ?? 0
+      let localOrgTotal = cachedStats?.localOrgTotal ?? 0
+
+      if (!cachedStats) {
+        const [orgAll, orgLocal] = await Promise.all([
+          searchOrgs(queryString, 0, 1).catch(() => null),
+          searchOrgs(queryString, 0, 1, currentCity).catch(() => null),
+        ])
+        if (controller.signal.aborted) return
+
+        const getOrgTotal = (result: Record<string, unknown> | null) => {
+          const data = result?.data as Record<string, unknown> | undefined
+          return Number(data?.total || 0)
+        }
+
+        orgTotal = getOrgTotal(orgAll)
+        localOrgTotal = getOrgTotal(orgLocal)
+      }
+
+      const expertTotals = await getIndustryNodeExpertTotalsLive(queryString, currentCity).catch(() => ({
+        expertTotal: 0,
+        localExpertTotal: 0,
+      }))
       if (controller.signal.aborted) return
-
-      const getOrgTotal = (result: Record<string, unknown> | null) => {
-        const data = result?.data as Record<string, unknown> | undefined
-        return Number(data?.total || 0)
-      }
-
-      const getExpertTotal = (result: Record<string, unknown> | null) => {
-        const data = result?.data as Record<string, unknown> | undefined
-        return Number(data?.total || 0)
-      }
 
       setPopover((prev) => {
         if (!prev) return null
@@ -571,10 +544,11 @@ export default function IndustryChainGraph({
         return {
           ...prev,
           loading: false,
-          orgTotal: getOrgTotal(orgAll),
-          localOrgTotal: getOrgTotal(orgLocal),
-          expertTotal: getExpertTotal(expertAll),
-          localExpertTotal: getExpertTotal(expertLocal),
+          queryString,
+          orgTotal,
+          localOrgTotal,
+          expertTotal: expertTotals.expertTotal,
+          localExpertTotal: expertTotals.localExpertTotal,
         }
       })
     })()
@@ -586,27 +560,35 @@ export default function IndustryChainGraph({
     const region = resolveIndustryRegionFromCascader(regionValue)
 
     void (async () => {
-      const cachedPage = await getIndustryNodePageFromSource(chainKey, nodeName, type, region, page, 10).catch(() => null)
-      if (cachedPage) {
+      if (type === 'orgs') {
+        const cachedPage = await getIndustryNodePageFromSource(chainKey, nodeName, type, region, page, 10).catch(() => null)
+        if (cachedPage) {
+          setDrawer((prev) => ({
+            ...prev,
+            loading: false,
+            data: cachedPage.items,
+            total: cachedPage.total,
+            page,
+          }))
+          return
+        }
+      }
+
+      if (type === 'experts') {
+        const result = await getIndustryNodeExpertPageLive(queryString, page, 10, region.city || undefined)
         setDrawer((prev) => ({
           ...prev,
           loading: false,
-          data: cachedPage.items,
-          total: cachedPage.total,
+          data: result.items,
+          total: result.total,
           page,
         }))
         return
       }
 
-      const request = type === 'orgs'
-        ? searchOrgs(queryString, from, 10, region.city || undefined)
-        : searchExperts(queryString, from, 10, region.city || undefined)
-
-      const result = await request
+      const result = await searchOrgs(queryString, from, 10, region.city || undefined)
       const data = result?.data as Record<string, unknown> | undefined
-      const list = (type === 'orgs'
-        ? (data?.orgRecommend ?? [])
-        : (data?.expertsRecommend ?? [])) as Record<string, unknown>[]
+      const list = ((data?.orgRecommend ?? []) as Record<string, unknown>[])
       const total = Number(data?.total || list.length)
 
       setDrawer((prev) => ({

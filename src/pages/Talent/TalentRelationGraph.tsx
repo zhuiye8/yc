@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { SearchOutlined } from '@ant-design/icons'
 import { Graph } from '@antv/g6'
 import type { Graph as G6Graph, GraphData } from '@antv/g6'
 
 import type { GraphLink, GraphNode } from '@/services/talent'
 import styles from './TalentRelationGraph.module.scss'
 
-const GRAPH_HEIGHT = 460
+const GRAPH_HEIGHT = 420
 
 type RelationCategory = 'center' | 'direct' | 'indirect' | 'related'
 
@@ -32,11 +31,6 @@ interface TalentRelationGraphProps {
   nodes: GraphNode[]
   links: GraphLink[]
   centerAuid: string
-  currentName?: string
-  onSearch?: (keyword: string) => void
-  candidates?: Record<string, unknown>[]
-  showCandidates?: boolean
-  onSelectCandidate?: (candidate: Record<string, unknown>) => void
 }
 
 function buildRelationData(nodes: GraphNode[], links: GraphLink[], centerAuid: string): GraphData {
@@ -70,12 +64,12 @@ function buildRelationData(nodes: GraphNode[], links: GraphLink[], centerAuid: s
     else if (indirectSet.has(node.id)) category = 'indirect'
 
     const hValue = Number(node.h || 0)
-    const baseSize = category === 'center' ? 34 : category === 'direct' ? 18 : category === 'indirect' ? 14 : 11
-    const sizeBoost = Math.min(hValue * 0.18, category === 'center' ? 12 : 7)
+    const baseSize = category === 'center' ? 38 : category === 'direct' ? 18 : category === 'indirect' ? 14 : 11
+    const sizeBoost = Math.min(hValue * 0.16, category === 'center' ? 12 : 5)
 
     return {
       id: node.id,
-      label: String(node.name || '未知'),
+      label: String(node.name || '未知人才'),
       org: String(node.org || ''),
       h: hValue,
       category,
@@ -85,10 +79,10 @@ function buildRelationData(nodes: GraphNode[], links: GraphLink[], centerAuid: s
         category === 'center'
           ? 12
           : category === 'direct'
-            ? 10
+            ? 9.5
             : category === 'indirect'
-              ? 8.5
-              : 7.5,
+              ? 8
+              : 7,
     }
   })
 
@@ -106,35 +100,36 @@ function getNodeStyle(datum: Record<string, unknown>) {
   const category = String(datum.category || 'related') as RelationCategory
   const size = Number(datum.size || 12)
   const isCenter = category === 'center'
+  const labelPlacement: 'center' | 'bottom' = isCenter ? 'center' : 'bottom'
   const glowColor =
     category === 'center'
-      ? 'rgba(75, 180, 255, 0.72)'
+      ? 'rgba(101, 212, 255, 0.78)'
       : category === 'direct'
-        ? 'rgba(73, 151, 255, 0.58)'
+        ? 'rgba(85, 149, 255, 0.56)'
         : category === 'indirect'
-          ? 'rgba(56, 123, 255, 0.44)'
-          : 'rgba(52, 104, 230, 0.32)'
+          ? 'rgba(76, 121, 255, 0.36)'
+          : 'rgba(71, 115, 210, 0.2)'
 
   return {
     size,
-    fill: isCenter ? '#57c6ff' : '#3e84ff',
-    fillOpacity: isCenter ? 0.98 : category === 'direct' ? 0.92 : 0.82,
-    stroke: isCenter ? '#d7fbff' : '#8ac2ff',
-    lineWidth: isCenter ? 2 : 1.2,
+    fill: isCenter ? '#66d6ff' : category === 'direct' ? '#4b8bff' : '#2f6fff',
+    fillOpacity: isCenter ? 0.98 : category === 'direct' ? 0.94 : category === 'indirect' ? 0.84 : 0.68,
+    stroke: isCenter ? '#e4fbff' : '#97c9ff',
+    lineWidth: isCenter ? 2.5 : 1.2,
     shadowColor: glowColor,
-    shadowBlur: isCenter ? 28 : category === 'direct' ? 18 : 10,
+    shadowBlur: isCenter ? 34 : category === 'direct' ? 18 : 10,
     shadowOffsetX: 0,
     shadowOffsetY: 0,
     labelText: String(datum.labelText || ''),
-    labelPlacement: 'center' as const,
+    labelPlacement,
     labelFill:
       category === 'center'
         ? 'rgba(244, 251, 255, 0.98)'
         : category === 'direct'
-          ? 'rgba(244, 251, 255, 0.88)'
+          ? 'rgba(231, 241, 255, 0.96)'
           : category === 'indirect'
-            ? 'rgba(244, 251, 255, 0.72)'
-            : 'rgba(244, 251, 255, 0.56)',
+            ? 'rgba(215, 228, 255, 0.78)'
+            : 'rgba(203, 218, 245, 0.56)',
     labelFontSize: Number(datum.labelFontSize || 10),
     labelFontWeight: isCenter ? 600 : 500,
     labelBackground: false,
@@ -145,32 +140,18 @@ function getEdgeStyle(datum: Record<string, unknown>) {
   const strength = Number(datum.strength || 1)
 
   return {
-    stroke: 'rgba(92, 145, 255, 0.28)',
-    lineWidth: Math.min(2, 0.9 + strength * 0.25),
-    opacity: 0.9,
+    stroke: 'rgba(95, 157, 255, 0.3)',
+    lineWidth: Math.min(2.2, 1 + strength * 0.22),
+    opacity: 0.95,
   }
 }
 
-export default function TalentRelationGraph({
-  nodes,
-  links,
-  centerAuid,
-  currentName,
-  onSearch,
-  candidates = [],
-  showCandidates = false,
-  onSelectCandidate,
-}: TalentRelationGraphProps) {
+export default function TalentRelationGraph({ nodes, links, centerAuid }: TalentRelationGraphProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const graphRef = useRef<G6Graph | null>(null)
   const [width, setWidth] = useState(0)
-  const [searchValue, setSearchValue] = useState('')
 
   const graphData = useMemo(() => buildRelationData(nodes, links, centerAuid), [nodes, links, centerAuid])
-
-  useEffect(() => {
-    setSearchValue(currentName || '')
-  }, [currentName])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -194,8 +175,8 @@ export default function TalentRelationGraph({
       height: GRAPH_HEIGHT,
       autoResize: false,
       animation: true,
-      padding: [42, 36, 28, 36],
-      zoomRange: [0.55, 2.4],
+      padding: [26, 28, 22, 28],
+      zoomRange: [0.75, 1.8],
       data: graphData,
       node: {
         type: 'circle',
@@ -207,23 +188,23 @@ export default function TalentRelationGraph({
       },
       layout: {
         type: 'd3-force',
-        alphaDecay: 0.08,
-        velocityDecay: 0.28,
+        alphaDecay: 0.12,
+        velocityDecay: 0.42,
         center: {
           x: width / 2,
           y: GRAPH_HEIGHT / 2,
-          strength: 0.14,
+          strength: 0.24,
         },
         link: {
           distance: (datum: Record<string, unknown>) => {
             const strength = Number(datum.strength || 1)
-            return Math.max(68, 120 - strength * 10)
+            return Math.max(44, 82 - strength * 8)
           },
-          strength: 0.3,
+          strength: 0.58,
         },
         collide: {
-          radius: (datum: Record<string, unknown>) => Number(datum.size || 12) + 14,
-          strength: 0.9,
+          radius: (datum: Record<string, unknown>) => Number(datum.size || 12) + 10,
+          strength: 1,
         },
         radial: {
           x: width / 2,
@@ -231,19 +212,19 @@ export default function TalentRelationGraph({
           radius: (datum: Record<string, unknown>) => {
             const category = String(datum.category || 'related') as RelationCategory
             if (category === 'center') return 0
-            if (category === 'direct') return 96
-            if (category === 'indirect') return 156
+            if (category === 'direct') return 112
+            if (category === 'indirect') return 168
             return 220
           },
           strength: (datum: Record<string, unknown>) => {
             const category = String(datum.category || 'related') as RelationCategory
-            return category === 'center' ? 1 : 0.14
+            return category === 'center' ? 1 : category === 'direct' ? 0.5 : 0.22
           },
         },
         manyBody: {
           strength: (datum: Record<string, unknown>) => {
             const category = String(datum.category || 'related') as RelationCategory
-            return category === 'center' ? -320 : category === 'direct' ? -160 : -92
+            return category === 'center' ? -380 : category === 'direct' ? -120 : -60
           },
         },
       },
@@ -263,55 +244,8 @@ export default function TalentRelationGraph({
     }
   }, [graphData, width])
 
-  const handleSearch = () => {
-    const value = searchValue.trim()
-    if (!value || !onSearch) return
-    onSearch(value)
-  }
-
   return (
     <div className={styles.graphRoot}>
-      <div className={styles.inlineSearch}>
-        <input
-          className={styles.searchInput}
-          value={searchValue}
-          placeholder="输入人才姓名..."
-          onChange={(event) => setSearchValue(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') handleSearch()
-          }}
-        />
-        <button type="button" className={styles.searchButton} onClick={handleSearch} aria-label="搜索人才">
-          <SearchOutlined />
-        </button>
-      </div>
-      {showCandidates && candidates.length > 0 && (
-        <div className={styles.searchDropdown}>
-          {candidates.map((candidate, index) => {
-            const field = (candidate.CATE as string[])?.[0] || ''
-            const title = Array.isArray(candidate.TITLE) ? String((candidate.TITLE as string[])[0] || '') : String(candidate.TITLE || '')
-
-            return (
-              <button
-                key={`${String(candidate.ID || index)}-${index}`}
-                type="button"
-                className={styles.searchOption}
-                onClick={() => onSelectCandidate?.(candidate)}
-              >
-                <span className={styles.optionAvatar}>{String(candidate.CNAME || '?').slice(0, 1)}</span>
-                <span className={styles.optionBody}>
-                  <span className={styles.optionTitleRow}>
-                    <span className={styles.optionName}>{String(candidate.CNAME || '未知人才')}</span>
-                    {title ? <span className={styles.optionMeta}>{title}</span> : null}
-                  </span>
-                  <span className={styles.optionOrg}>{String(candidate.AORG || '')}</span>
-                </span>
-                {field ? <span className={styles.optionTag}>{field}</span> : null}
-              </button>
-            )
-          })}
-        </div>
-      )}
       <div className={styles.legend}>
         <span className={`${styles.legendItem} ${styles.legendCenter}`}>搜索人才</span>
         <span className={`${styles.legendItem} ${styles.legendDirect}`}>紧密合作</span>
