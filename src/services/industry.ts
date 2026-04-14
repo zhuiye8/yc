@@ -69,3 +69,36 @@ export async function searchOrgs(
 
   return resp.json()
 }
+
+// ========== 企业详情 API ==========
+
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('token')
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  return headers
+}
+
+/** 企业产出指标（论文/专利/标准/成果等） */
+export async function getOrgOutputIndicator(orgId: string): Promise<Record<string, number>> {
+  const url = `${BASE_URL}/api/wf/getOrgOutputIndicator?orgId=${encodeURIComponent(orgId)}`
+  const resp = await fetch(url, { method: 'GET', headers: getAuthHeaders() })
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+  return resp.json()
+}
+
+/** 企业核心技术关键词 */
+export async function getOrgTechKeywords(orgId: string, orgName: string): Promise<Record<string, unknown>> {
+  const url = `${BASE_URL}/api/wf/getOrgRe?orgID=${encodeURIComponent(orgId)}&org=${encodeURIComponent(orgName)}`
+  const resp = await fetch(url, { method: 'GET', headers: getAuthHeaders() })
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+  return resp.json()
+}
+
+/** 企业专利类型分布 */
+export async function getOrgPatentTypes(orgId: string, orgName: string): Promise<Record<string, unknown>> {
+  const url = `${BASE_URL}/api/wf/getOrgPatentPie?orgID=${encodeURIComponent(orgId)}&org=${encodeURIComponent(orgName)}`
+  const resp = await fetch(url, { method: 'GET', headers: getAuthHeaders() })
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+  return resp.json()
+}

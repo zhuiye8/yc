@@ -34,14 +34,32 @@ export interface ProvinceData {
 
 /**
  * 按关键词获取各省数量分布
- * 用于大屏地图着色
+ * 新接口: TalentGraphService /api/stats/region-aggregation
+ * 24h localStorage 缓存
  */
 export async function getCkeyMap(ckey: string): Promise<ProvinceData[]> {
-  const url = `${BASE_URL}/api/wf/getCkeyMap?ckey=${encodeURIComponent(ckey)}`
-  const resp = await fetch(url, { method: 'GET', headers: getAuthHeaders() })
-  const data = await handleResponse<ProvinceData[]>(resp)
-  // 接口直接返回 [{name: "北京", value: 3723}, ...] 数组
-  return Array.isArray(data) ? data : []
+  const cacheKey = `screen:ckeymap:${ckey}`
+  try {
+    const raw = localStorage.getItem(cacheKey)
+    if (raw) {
+      const parsed = JSON.parse(raw) as { expireAt: number; data: ProvinceData[] }
+      if (Date.now() <= parsed.expireAt) return parsed.data
+      localStorage.removeItem(cacheKey)
+    }
+  } catch { /* ignore */ }
+
+  const { tgFetchWithAuth } = await import('./tgAuth')
+  const url = `/tg-api/api/stats/region-aggregation?keyword=${encodeURIComponent(ckey)}&size=34`
+  const resp = await tgFetchWithAuth(url)
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`)
+  const json = await resp.json()
+  const result = (json?.data as { items?: ProvinceData[] })?.items ?? []
+
+  try {
+    localStorage.setItem(cacheKey, JSON.stringify({ expireAt: Date.now() + 24 * 60 * 60 * 1000, data: result }))
+  } catch { /* ignore */ }
+
+  return result
 }
 
 // ========== 区域资源统计 ==========
@@ -53,11 +71,13 @@ export interface AreaStatistics {
 /**
  * 区域资源统计
  * areacode: 420500=宜昌市, 420100=武汉市, 420000=湖北省
+ * keyword: 可选产业链关键词（如"人工智能"），用 AND 组合查询
  * 返回各类资源总数：科技企业、重点人才、专利、论文、标准等
  */
-export async function getAreaStatistics(areacode: string): Promise<AreaStatistics> {
+export async function getAreaStatistics(areacode: string, keyword?: string): Promise<AreaStatistics> {
   // 使用 queryString=(AREACODE:xx*) 格式，支持省市区通配
-  const qs = areacode === '*' ? '*' : `(AREACODE:${areacode}*)`
+  let qs = areacode === '*' ? '*' : `(AREACODE:${areacode}*)`
+  if (keyword) qs += ` AND ${keyword}`
   const url = `${BASE_URL}/api/wf/talent-resourceStatistics?queryString=${encodeURIComponent(qs)}`
   const resp = await fetch(url, { method: 'GET', headers: getAuthHeaders() })
   return handleResponse<AreaStatistics>(resp)
