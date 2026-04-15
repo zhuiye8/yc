@@ -11,17 +11,15 @@ import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
 import { searchIndustryFromSource } from '@/services/industrySource'
 import { searchIndustryExpertsLive } from '@/services/industryLiveExperts'
 import { searchOrgs } from '@/services/industry'
+import {
+  INDUSTRY_CHAIN_TREE,
+  DEFAULT_PRIMARY_KEY,
+  DEFAULT_SECONDARY_KEY,
+  findPrimaryKeyByChainKey,
+  getFirstEnabledSecondary,
+} from '@/data/industryChainTree'
 import industryBg from '@/assets/images/hero/industry-bg-plain.jpg'
 import styles from './Industry.module.scss'
-
-const chainOptions = [
-  { value: 'wetchem', label: '湿电子化学品' },
-  { value: 'newenergy', label: '新能源新材料' },
-  { value: 'pharma', label: '先进制剂与高端仿制药' },
-  { value: 'yeast', label: '酵母发酵与功能成分制造' },
-  { value: 'ship', label: '内河绿色智能船舶制造' },
-  { value: 'ai', label: '人工智能' },
-]
 
 const hotTags = ['湿电子化学品', '氯化工', '锂电材料', '生物制药', '智能传感器', '碳纤维', '光伏材料']
 
@@ -44,9 +42,43 @@ export default function Industry() {
   const [activeTab, setActiveTab] = useState<'graph' | 'innovation' | 'report'>(
     initialTab === 'innovation' || initialTab === 'report' ? initialTab : 'graph',
   )
-  const [selectedChain, setSelectedChain] = useState(
-    chainOptions.some((option) => option.value === initialChain) ? initialChain! : 'ai',
+  // 从 URL 初始化二级 chainKey（若有效）
+  const initialSecondary = initialChain && findPrimaryKeyByChainKey(initialChain)
+    ? initialChain
+    : DEFAULT_SECONDARY_KEY
+  const [selectedPrimary, setSelectedPrimary] = useState(
+    findPrimaryKeyByChainKey(initialSecondary) ?? DEFAULT_PRIMARY_KEY,
   )
+  const [selectedChain, setSelectedChain] = useState(initialSecondary)
+
+  // 一级产业链下拉选项
+  const primaryOptions = useMemo(
+    () =>
+      INDUSTRY_CHAIN_TREE.map((p) => ({
+        value: p.key,
+        label: p.label,
+        disabled: !p.enabled,
+      })),
+    [],
+  )
+
+  // 二级产业链下拉选项（根据一级联动）
+  const secondaryOptions = useMemo(() => {
+    const primary = INDUSTRY_CHAIN_TREE.find((p) => p.key === selectedPrimary)
+    if (!primary) return []
+    return primary.secondaries.map((s) => ({
+      value: s.key,
+      label: s.label,
+      disabled: !s.enabled,
+    }))
+  }, [selectedPrimary])
+
+  const handlePrimaryChange = useCallback((value: string) => {
+    setSelectedPrimary(value)
+    // 切换一级时，自动选中该一级下第一个 enabled 的二级
+    const firstEnabled = getFirstEnabledSecondary(value)
+    if (firstEnabled) setSelectedChain(firstEnabled)
+  }, [])
   const [regionValue, setRegionValue] = useState<string[]>(['hubei', 'yichang'])
   const [searchDrawer, setSearchDrawer] = useState<SearchDrawerState>({
     visible: false,
@@ -153,12 +185,20 @@ export default function Industry() {
               style={{ width: 200 }}
               placeholder="选择地区"
             />
-            <span className={styles.filterLabel}>产业链</span>
+            <span className={styles.filterLabel}>一级产业链</span>
+            <Select
+              value={selectedPrimary}
+              onChange={handlePrimaryChange}
+              options={primaryOptions}
+              style={{ width: 160 }}
+              size="small"
+            />
+            <span className={styles.filterLabel}>二级产业链</span>
             <Select
               value={selectedChain}
               onChange={setSelectedChain}
-              options={chainOptions}
-              style={{ width: 200 }}
+              options={secondaryOptions}
+              style={{ width: 220 }}
               size="small"
             />
           </div>
@@ -166,11 +206,19 @@ export default function Industry() {
 
         {activeTab === 'innovation' && (
           <div className={styles.tabRight}>
-            <span className={styles.filterLabel}>产业链</span>
+            <span className={styles.filterLabel}>一级产业链</span>
+            <Select
+              value={selectedPrimary}
+              onChange={handlePrimaryChange}
+              options={primaryOptions}
+              style={{ width: 160 }}
+              size="small"
+            />
+            <span className={styles.filterLabel}>二级产业链</span>
             <Select
               value={selectedChain}
               onChange={setSelectedChain}
-              options={chainOptions}
+              options={secondaryOptions}
               style={{ width: 220 }}
               size="small"
             />
@@ -181,7 +229,11 @@ export default function Industry() {
       {activeTab === 'graph' ? (
         <div className={styles.graphSection}>
           <div className={styles.graphDesc}>
-            当前产业链：{chainOptions.find((option) => option.value === selectedChain)?.label}
+            当前产业链：{
+              INDUSTRY_CHAIN_TREE
+                .flatMap((p) => p.secondaries)
+                .find((s) => s.key === selectedChain)?.label
+            }
             ，展示上游原料、中游制造、下游应用的产业链全景结构，节点颜色标识强链、弱链、缺链状态。
           </div>
           <IndustryGraph

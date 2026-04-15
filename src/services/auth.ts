@@ -44,8 +44,35 @@ export async function login(username: string, password: string): Promise<LoginRe
   return wfResult
 }
 
+/** 清除所有我们前缀的 localStorage（token + 业务缓存） */
+function clearAllLocalCaches() {
+  const prefixes = [
+    'token',
+    'tg_token',
+    'tg_token_expires',
+    'tg:v2:',
+    'industry:experts:v2:',
+    'innovation:stats:',
+    'screen:ckeymap:',
+    'wf:',
+  ]
+  try {
+    const keysToRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (!key) continue
+      if (prefixes.some((p) => key === p || key.startsWith(p))) {
+        keysToRemove.push(key)
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k))
+  } catch {
+    // ignore
+  }
+}
+
 export function logout() {
-  localStorage.removeItem('token')
+  clearAllLocalCaches()
   clearTgToken()
   window.location.href = '/login'
 }

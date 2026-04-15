@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-`src/` contains the main React 19 + TypeScript application. Keep shared UI in `src/components/`, layout shells in `src/layouts/`, route pages in `src/pages/`, and mock/domain data in `src/mock/`. Static assets live in `public/`. `scripts/parseChainMd.ts` regenerates `src/mock/industryChainGraphData.ts` from the six industry-chain Markdown source files bundled with this repo. `dashboard/` is a separate Vite-based visualization app with its own `src/`, `package.json`, and lint/format rules. Treat `dist/` and both `node_modules/` folders as generated output.
+`src/` contains the main React 19 + TypeScript application. Keep shared UI in `src/components/`, layout shells in `src/layouts/`, route pages in `src/pages/`, and mock/domain data in `src/mock/`. Static assets live in `public/`. `scripts/parseChainXlsx.ts` regenerates `src/mock/industryChainGraphData.ts` and `src/data/industry-keywords.json` from the xlsx source files under `产业链全环节企业放入逻辑/`. `dashboard/` is a separate Vite-based visualization app with its own `src/`, `package.json`, and lint/format rules. Treat `dist/` and both `node_modules/` folders as generated output.
 
 ## Build, Test, and Development Commands
 Run commands from `yc/` unless noted otherwise.
@@ -15,7 +15,7 @@ Run commands from `yc/` unless noted otherwise.
 - `cd dashboard && npm run dev`: start the full-screen dashboard locally.
 - `cd dashboard && npm run build`: build the dashboard app.
 - `cd dashboard && npm run lint`: run dashboard ESLint rules.
-- `npx tsx scripts/parseChainMd.ts`: regenerate industry-chain mock data after updating the source Markdown files.
+- `npx tsx scripts/parseChainXlsx.ts`: regenerate industry-chain mock data (graph + keywords) after updating the xlsx source files.
 
 ## Coding Style & Naming Conventions
 Use 2-space indentation. In `src/`, component and page files use PascalCase, for example `Home.tsx` and `MainLayout.tsx`; utilities and mock data use camelCase, such as `industryChainGraphData.ts`. In `dashboard/src`, preserve the existing lowercase `jsx` and `scss` filenames unless you are doing a wider cleanup. Follow the root ESLint config for TypeScript and the dashboard ESLint + Prettier setup (`tabWidth: 2`, `singleQuote: true`, `semi: true`). Keep existing file header blocks and nearby `INDEX.md` docs in sync when editing documented modules.
