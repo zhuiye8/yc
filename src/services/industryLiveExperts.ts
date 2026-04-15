@@ -218,15 +218,11 @@ async function computeLightTotal(state: ChainExpertLiveState) {
         result: await fetchExpertPage(queryString, 0, 1, state.city),
       })),
     )
-    const rawTotal = results.reduce((sum, entry) => {
+    const total = results.reduce((sum, entry) => {
       const queryTotal = getTotal(entry.result)
       state.queryTotals.set(entry.queryString, queryTotal)
       return sum + queryTotal
     }, 0)
-
-    // 节点累加去重系数：每人平均被 10 个节点重复匹配，结果除以 10 估算真实人数
-    const DEDUP_FACTOR = 10
-    const total = Math.round(rawTotal / DEDUP_FACTOR)
 
     state.total = total
     return total
