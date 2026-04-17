@@ -264,8 +264,6 @@ function buildKeywordTreemapOption(keywordStat: { name: string; value: number }[
     items = [...top7, { name: `其他（${otherCount}个方向）`, value: otherValue }]
   }
 
-  const maxValue = Math.max(...items.map((item) => item.value), 1)
-
   return {
     animation: true,
     tooltip: {
