@@ -10,9 +10,14 @@ import {
 } from '@/mock/industryInnovationResources'
 import industryKeywordsJson from '@/data/industry-keywords.json'
 import { getAreaStatistics, type AreaStatistics } from './screen'
-import { getCkeyIndustry } from './talent'
 import { getChainAggregate } from './industryChainAggregation'
-import { getIndustryChainAggregateFromSource } from './industrySource'
+import {
+  searchChainTalents,
+  getChainTalentProvinceDistribution,
+  getChainTalentCityDistribution,
+  getChainTalentYearTrend,
+} from './chainTalent'
+import { getIndustryChainAggregateFromSource, getIndustryChainCityDistributionFromSource } from './industrySource'
 
 // ========== 省份名称 ↔ 区划代码 映射 ==========
 
@@ -202,97 +207,7 @@ function statsToCards(stats: AreaStatistics, expertTotal?: number, orgTotal?: nu
 
 // ========== 趋势图数据 ==========
 
-const TREND_LABEL_MAP: Record<string, { label: string; color: string }> = {
-  g: { label: '期刊论文', color: '#3B7CFF' },
-  h: { label: '专利', color: '#42B883' },
-  b: { label: '技术标准', color: '#F4B740' },
-  c: { label: '科研项目', color: '#E86452' },
-  a: { label: '科技成果', color: '#6DC8EC' },
-}
-
-async function fetchTrendData(chainKey: string): Promise<{ years: string[]; series: InnovationTrendSeries[] }> {
-  const ckey = industryInnovationChainLabels[chainKey] ?? chainKey
-  const trendCacheKey = `trend:${ckey}`
-  const cached = getCached<{ years: string[]; series: InnovationTrendSeries[] }>(trendCacheKey)
-  if (cached) return cached
-
-  try {
-    const raw = await getCkeyIndustry(ckey)
-    const series: InnovationTrendSeries[] = []
-    let years: number[] = []
-
-    for (const [k, v] of Object.entries(raw)) {
-      if (!v || !v.key || !v.count) continue
-      const meta = TREND_LABEL_MAP[k]
-      if (!meta) continue
-      const startIdx = Math.max(0, v.key.length - 6)
-      if (years.length === 0) years = v.key.slice(startIdx)
-      series.push({
-        key: k,
-        label: meta.label,
-        color: meta.color,
-        values: v.count.slice(startIdx).map((c: string) => Number(c) || 0),
-      })
-    }
-
-    const result = { years: years.map(String), series }
-    setCache(trendCacheKey, result)
-    return result
-  } catch {
-    return { years: [], series: [] }
-  }
-}
-
-// ========== 地图热力缓存（使用 TG 接口） ==========
-
-async function fetchCkeyMapCached(ckey: string): Promise<{ name: string; value: number }[]> {
-  const mapCacheKey = `ckeymap:${ckey}`
-  const cached = getCached<{ name: string; value: number }[]>(mapCacheKey)
-  if (cached) return cached
-
-  try {
-    const { tgFetchWithAuth } = await import('./tgAuth')
-    const url = `/tg-api/api/stats/region-aggregation?keyword=${encodeURIComponent(ckey)}&size=34`
-    const resp = await tgFetchWithAuth(url)
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-    const json = await resp.json()
-    const items = (json?.data as { items?: { name: string; value: number }[] })?.items ?? []
-    setCache(mapCacheKey, items)
-    return items
-  } catch {
-    return []
-  }
-}
-
-// ========== 城市级人才分布（TG region-aggregation + province） ==========
-
-interface CityTalentResult {
-  items: InnovationBarDatum[]
-  total: number
-}
-
-async function fetchCityTalentDistribution(ckey: string, province: string): Promise<CityTalentResult> {
-  const cacheKey = `cityTalent:${ckey}:${province}`
-  const cached = getCached<CityTalentResult>(cacheKey)
-  if (cached) return cached
-
-  try {
-    const { tgFetchWithAuth } = await import('./tgAuth')
-    const url = `/tg-api/api/stats/region-aggregation?keyword=${encodeURIComponent(ckey)}&province=${encodeURIComponent(province)}&size=20`
-    const resp = await tgFetchWithAuth(url)
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-    const json = await resp.json()
-    const data = (json?.data as { items?: InnovationBarDatum[]; total?: number }) ?? {}
-    const items: InnovationBarDatum[] = (data.items ?? [])
-      .sort((a: InnovationBarDatum, b: InnovationBarDatum) => b.value - a.value)
-      .slice(0, 10)
-    const result: CityTalentResult = { items, total: Number(data.total ?? 0) }
-    setCache(cacheKey, result)
-    return result
-  } catch {
-    return { items: [], total: 0 }
-  }
-}
+// 旧的 TG 单关键词接口已被 chain-talents 新接口替代，相关函数已移除
 
 // ========== 热力图（保持 mock，无接口） ==========
 
@@ -347,10 +262,7 @@ export async function getIndustryInnovationOverview(
   chainKey: string,
   regionName = '湖北省',
 ): Promise<InnovationOverviewData> {
-  // 整体缓存：同一 chainKey + regionName 30 分钟内直接返回
-  const overviewCacheKey = `overview:${chainKey}:${regionName}`
-  const cachedOverview = getCached<InnovationOverviewData>(overviewCacheKey)
-  if (cachedOverview) return cachedOverview
+  // 不缓存整体 overview（TG 数据不缓存）
 
   const provinceAdcode = PROVINCE_ADCODE[regionName]
   if (!provinceAdcode) {
@@ -366,22 +278,41 @@ export async function getIndustryInnovationOverview(
   // 省份简称（用于 region-aggregation 的 province 参数）
   const provinceShort = FULL_TO_SHORT[regionName] ?? regionName.replace(/省|市|壮族自治区|回族自治区|维吾尔自治区|自治区|特别行政区/g, '')
 
-  // 并行请求：省级统计 + 地图热力 + 趋势 + 机构总数 + 城市级人才分布（含人才总数）
-  const [provinceStats, mapRaw, trendData, orgResult, cityTalentRaw] = await Promise.all([
+  // 并行请求：省级统计 + 地图热力 + 趋势 + 机构总数 + 城市级人才分布（含人才总数）+ 城市级机构分布
+  // 人才相关优先走 chain-talents 新接口（按产业链全子节点去重），失败时 fallback 到旧接口（单关键词）
+  const [provinceStats, mapRaw, trendData, orgResult, cityTalentRaw, orgCityDist] = await Promise.all([
     fetchStats(provinceAdcode).catch(() => null),
-    fetchCkeyMapCached(ckey),
-    fetchTrendData(chainKey),
+    // 地图热力：chain-talents/province-distribution
+    getChainTalentProvinceDistribution(ckey)
+      .then((r) => r.items.map((i) => ({ name: i.name ?? '', value: i.value })))
+      .catch(() => [] as { name: string; value: number }[]),
+    // 趋势图：chain-talents/year-trend
+    getChainTalentYearTrend(ckey, 2018).then((r) => ({
+      years: r.years.map(String),
+      series: [
+        { key: 'g', label: '期刊论文', color: '#3B7CFF', values: r.papers },
+        { key: 'h', label: '专利', color: '#42B883', values: r.patents },
+        { key: 'b', label: '技术标准', color: '#F4B740', values: r.standards },
+      ].filter((s) => s.values.some((v) => v > 0)),
+    })).catch(() => ({ years: [] as string[], series: [] as InnovationTrendSeries[] })),
     (async () => {
       const cached = await getIndustryChainAggregateFromSource(chainKey, 'orgs').catch(() => null)
       if (cached) return cached
       if (!nodeKeywords) return null
       return getChainAggregate(chainKey, 'orgs', nodeKeywords).catch(() => null)
     })(),
-    // 城市级人才分布 + 人才总数（1 次 TG 请求）
-    fetchCityTalentDistribution(ckey, provinceShort),
+    // 城市级人才分布 + 人才总数：chain-talents/city-distribution
+    getChainTalentCityDistribution(ckey, provinceShort)
+      .then((r) => ({
+        total: r.total,
+        items: r.items.map((i) => ({ name: i.city ?? i.name ?? '', value: i.value })),
+      }))
+      .catch(() => ({ total: 0, items: [] as InnovationBarDatum[] })),
+    // 城市级机构分布（Demo-API 真实数据，失败时 null → fallback 到 HUBEI_CITY_RATIOS 硬编码比例）
+    getIndustryChainCityDistributionFromSource(chainKey, provinceShort).catch(() => null),
   ])
 
-  // 创新人才总数 = region-aggregation 返回的 total（与柱状图、列表 total 三者一致）
+  // 创新人才总数 = chain-talents 返回的去重 total
   const expertTotal = cityTalentRaw.total || undefined
   const orgTotal = orgResult?.total ?? undefined
 
@@ -402,7 +333,10 @@ export async function getIndustryInnovationOverview(
     : distributeByCityRatio(expertTotal ?? (provinceStats ? getStatValue(provinceStats, 'talent') : 0), 'talent')
 
   const orgTotalVal = orgTotal ?? (provinceStats ? getStatValue(provinceStats, 'org') : 0)
-  const orgBars = distributeByCityRatio(orgTotalVal, 'org')
+  // 优先用 Demo-API 真实城市分布；接口不可用或返回空时 fallback 到 HUBEI_CITY_RATIOS 比例
+  const orgBars: InnovationBarDatum[] = (orgCityDist && orgCityDist.length > 0)
+    ? orgCityDist.slice(0, 10).map((item) => ({ name: item.city, value: item.total }))
+    : distributeByCityRatio(orgTotalVal, 'org')
 
   const result: InnovationOverviewData = {
     regionName,
@@ -436,7 +370,6 @@ export async function getIndustryInnovationOverview(
     },
   }
 
-  setCache(overviewCacheKey, result)
   return result
 }
 
@@ -452,20 +385,11 @@ export async function getInnovationExpertList(
   page = 1,
   pageSize = 6,
 ): Promise<InnovationRealListResult> {
-  const cacheKey = `expert-list:${chainKey}:${page}:${pageSize}`
-  const cached = getCached<InnovationRealListResult>(cacheKey)
-  if (cached) return cached
-
-  // 单关键词查询（与总数/柱状图保持一致数据口径）
   const ckey = industryInnovationChainLabels[chainKey] ?? chainKey
-  const { searchExperts } = await import('./talent')
-  const from = (page - 1) * pageSize
-  const res = await searchExperts(ckey, from, pageSize).catch(() => null)
-  const data = res?.data
-  const items = (data?.items ?? data?.expertsRecommend ?? []) as Record<string, unknown>[]
-  const result = { items, total: Number(data?.total ?? 0) }
-  setCache(cacheKey, result)
-  return result
+
+  // chain-talents/search — 后端按产业链全子节点去重
+  const res = await searchChainTalents(ckey, undefined, undefined, page, pageSize)
+  return { items: res.items, total: res.total }
 }
 
 export async function getInnovationOrgList(

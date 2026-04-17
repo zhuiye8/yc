@@ -275,16 +275,41 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
         raw: item,
       })))
 
+      // 用选中人才的 keyword_stat 驱动"研究方向分布"柱状图
+      // 优先从详情接口获取 keyword_stat（真实数据），fallback 到搜索结果的 KEYWORDS
+      const auidForKw = String(expert.ID || '')
+      if (auidForKw) {
+        getTalentBackground(auidForKw).then((bgRes) => {
+          if (ac.signal.aborted) return
+          const rawDetail = ((bgRes as Record<string, unknown>)?.detail ?? {}) as Record<string, unknown>
+          const kwStat = Array.isArray(rawDetail.keyword_stat) ? rawDetail.keyword_stat as Record<string, number>[] : []
+          const parsed = kwStat
+            .map((entry) => { const [k, v] = Object.entries(entry)[0] ?? []; return k ? { name: k, value: Number(v ?? 0) } : null })
+            .filter((item): item is { name: string; value: number } => item !== null)
+            .sort((a, b) => b.value - a.value)
+          if (parsed.length > 0) {
+            // 前 7 个正常展示，第 8 条以后合并为"其他"
+            if (parsed.length <= 8) {
+              setFieldData(parsed)
+            } else {
+              const top7 = parsed.slice(0, 7)
+              const otherValue = parsed.slice(7).reduce((sum, item) => sum + item.value, 0)
+              setFieldData([...top7, { name: '其他', value: otherValue }])
+            }
+          }
+        }).catch(() => { /* ignore */ })
+      }
+
+      // fallback：从搜索结果的 KEYWORDS 聚合（老逻辑，大部分人才不返回此字段）
       const keywordCount: Record<string, number> = {}
       allExperts.forEach((item) => {
-        const keywords = (item.KEYWORDS || []) as { NUM?: number; KEYWORD?: string }[]
-        keywords.forEach((keywordItem) => {
+        const kwList = (item.KEYWORDS || []) as { NUM?: number; KEYWORD?: string }[]
+        kwList.forEach((keywordItem) => {
           if (keywordItem.KEYWORD && keywordItem.KEYWORD.length >= 2 && keywordItem.KEYWORD.length <= 10) {
             keywordCount[keywordItem.KEYWORD] = (keywordCount[keywordItem.KEYWORD] || 0) + (keywordItem.NUM || 1)
           }
         })
       })
-
       const sortedKeywords = Object.entries(keywordCount)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 8)

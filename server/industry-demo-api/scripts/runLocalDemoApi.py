@@ -229,6 +229,29 @@ class DemoApi:
         ).fetchall()
         return {"total": int(total_row["total"] or 0), "items": parse_items(rows)}
 
+    def get_chain_city_distribution(self, chain_key: str, province: str | None) -> list[dict[str, Any]]:
+        """获取产业链在指定省份内各城市的机构分布（去重计数，按机构数降序）"""
+        norm_prov = normalize_province_name(province)
+        if not norm_prov:
+            return []
+
+        rows = self.conn.execute(
+            """
+            SELECT o.norm_city AS city, COUNT(DISTINCT o.org_uid) AS total
+            FROM node_org_hits h
+            JOIN org_entities o ON o.org_uid = h.org_uid
+            JOIN nodes n ON n.node_id = h.node_id
+            WHERE n.chain_key = ?
+              AND o.norm_prov = ?
+              AND o.norm_city IS NOT NULL
+              AND o.norm_city != ''
+            GROUP BY o.norm_city
+            ORDER BY total DESC
+            """,
+            (chain_key, norm_prov),
+        ).fetchall()
+        return [{"city": str(row["city"]), "total": int(row["total"] or 0)} for row in rows]
+
     def get_chain_aggregate(self, chain_key: str, entity_type: str, province: str | None, city: str | None, page: int, page_size: int) -> dict[str, Any]:
         node_ids = [row["node_id"] for row in self.conn.execute("select node_id from nodes where chain_key = ? order by node_name asc", (chain_key,)).fetchall()]
         if not node_ids:
@@ -393,6 +416,15 @@ def build_handler(api: DemoApi):
                 if parsed.path.startswith("/industry/chains/") and parsed.path.endswith("/summary"):
                     chain_key = parsed.path.split("/")[3]
                     self._send_json(200, api.get_chain_summary(chain_key, get_first(params, "province"), get_first(params, "city")))
+                    return
+
+                if parsed.path.startswith("/industry/chains/") and parsed.path.endswith("/city-distribution"):
+                    chain_key = parsed.path.split("/")[3]
+                    province = get_first(params, "province")
+                    if not province:
+                        self._send_json(400, {"error": "province is required"})
+                        return
+                    self._send_json(200, api.get_chain_city_distribution(chain_key, province))
                     return
 
                 if parsed.path.startswith("/industry/chains/") and "/aggregate/" in parsed.path:

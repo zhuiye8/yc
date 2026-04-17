@@ -122,6 +122,27 @@ export async function getDemoNodePage(
   )
 }
 
+export interface DemoCityDistributionItem {
+  city: string
+  total: number
+}
+
+/**
+ * 获取产业链在某省内各城市的机构分布（去重计数）
+ * 返回按机构数降序排列的城市列表
+ */
+export async function getDemoChainCityDistribution(
+  chainKey: string,
+  province: string,
+) {
+  return withDemoDelay(
+    requestDemoApi<DemoCityDistributionItem[]>(
+      `/industry/chains/${chainKey}/city-distribution`,
+      { province },
+    ),
+  )
+}
+
 export async function searchIndustryInDemoApi(keyword: string, region?: IndustryRegionFilter) {
   return withDemoDelay(
     requestDemoApi<{

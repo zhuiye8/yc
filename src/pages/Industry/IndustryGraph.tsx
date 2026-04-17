@@ -15,8 +15,8 @@ import { getChainAggregate, clearChainAggregateCache } from '@/services/industry
 import {
   clearIndustryChainExpertLiveCache,
   getIndustryChainExpertPageLive,
-  getIndustryChainExpertPreviewLive,
 } from '@/services/industryLiveExperts'
+import { searchChainTalents } from '@/services/chainTalent'
 import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
 import {
   getIndustryChainAggregateFromSource,
@@ -248,12 +248,11 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
           expertTotal: 0,
         })
 
-        const expertAggregate = await getIndustryChainExpertPreviewLive(
-          chainKey,
-          nodeKeywords,
-          localRegion.city || undefined,
-          8,
-        ).catch(() => ({ items: [], total: 0 }))
+        // chain-talents/search — 后端按全子节点去重，一次请求
+        const chainLabel = chainKeyToLabel[chainKey] || chainKey
+        const expertAggregate = await searchChainTalents(chainLabel, undefined, localRegion.city || undefined, 1, 8)
+          .then((r) => ({ items: r.items, total: r.total }))
+          .catch(() => ({ items: [] as Record<string, unknown>[], total: 0 }))
         if (cancelled) return
 
         setChainList((prev) => ({
@@ -542,20 +541,21 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
               <thead>
                 <tr>
                   <th>人才</th>
-                  <th>机构</th>
-                  <th>H指数</th>
+                  <th>职称</th>
                 </tr>
               </thead>
               <tbody>
-                {chainList.experts.slice(0, 8).map((expert, index) => (
-                  <tr key={index}>
-                    <td>{String(expert.CNAME || expert.name || '未知')}</td>
-                    <td title={String(expert.AORG || expert.org || '')} style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {String(expert.AORG || expert.org || '')}
-                    </td>
-                    <td><Tag color="blue">{String(expert.H ?? '-')}</Tag></td>
-                  </tr>
-                ))}
+                {chainList.experts.slice(0, 8).map((expert, index) => {
+                  const rawTitle = String(expert.TITLE || expert.title || '')
+                  const title = rawTitle.replace(/^\[|]$/g, '').trim()
+                  const titleColors = ['blue', 'orange', 'green', 'purple', 'cyan']
+                  return (
+                    <tr key={index}>
+                      <td>{String(expert.CNAME || expert.name || '未知')}</td>
+                      <td>{title ? <Tag color={titleColors[index % titleColors.length]}>{title}</Tag> : '—'}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           ) : (

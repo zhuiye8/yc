@@ -2,6 +2,7 @@ import express from 'express';
 import { config } from './config.mjs';
 import {
   getChainAggregate,
+  getChainCityDistribution,
   getChainSummary,
   getHealth,
   getNodeItems,
@@ -21,6 +22,16 @@ app.get('/industry/chains/:chainKey/summary', (req, res) => {
   const { chainKey } = req.params;
   const { province, city } = req.query;
   res.json(getChainSummary(chainKey, province, city));
+});
+
+app.get('/industry/chains/:chainKey/city-distribution', (req, res) => {
+  const { chainKey } = req.params;
+  const { province } = req.query;
+  if (!province) {
+    res.status(400).json({ error: 'province is required' });
+    return;
+  }
+  res.json(getChainCityDistribution(chainKey, province));
 });
 
 app.get('/industry/chains/:chainKey/aggregate/:type', (req, res) => {

@@ -7,6 +7,7 @@ import {
 } from './industryCache'
 import {
   getDemoChainAggregate,
+  getDemoChainCityDistribution,
   getDemoChainCoverage,
   getDemoNodePage,
   getDemoNodeStats,
@@ -67,6 +68,22 @@ export async function getIndustryChainAggregateFromSource(
       total: cached.total,
       items: cached.items.slice(from, from + pageSize),
     }
+  }
+
+  return null
+}
+
+/**
+ * 获取产业链省内各城市机构分布
+ * - Demo-API 模式：直接调 city-distribution 接口
+ * - 非 demo 模式：返回 null（上层 fallback 到硬编码比例）
+ */
+export async function getIndustryChainCityDistributionFromSource(
+  chainKey: string,
+  province: string,
+) {
+  if (isIndustryDemoApiEnabled()) {
+    return getDemoChainCityDistribution(chainKey, province)
   }
 
   return null

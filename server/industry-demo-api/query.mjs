@@ -1,5 +1,5 @@
 import { getDb } from './db.mjs';
-import { normalizeSearchText, parseJsonText, resolveScope } from './shared.mjs';
+import { normalizeProvinceName, normalizeSearchText, parseJsonText, resolveScope } from './shared.mjs';
 
 function getNodeStatus(orgCount) {
   if (orgCount === 0) return 'missing';
@@ -365,6 +365,44 @@ export function getNodeItems(chainKey, nodeName, type, province, city, page = 1,
   }
 
   return getAggregatedNodeItems([node.node_id], type, scope, page, pageSize);
+}
+
+/**
+ * 获取某产业链在指定省份内各城市的机构分布
+ * - 按 org_uid 去重（一家企业命中多节点只计一次）
+ * - 只返回 norm_city 非空的记录
+ * - 按机构数从多到少排序
+ *
+ * @param {string} chainKey
+ * @param {string} province - 省份名（会自动 normalize，如 "湖北省" → "湖北"）
+ * @returns {Array<{ city: string, total: number }>}
+ */
+export function getChainCityDistribution(chainKey, province) {
+  const normProv = normalizeProvinceName(province);
+  if (!normProv) {
+    return [];
+  }
+
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT o.norm_city AS city, COUNT(DISTINCT o.org_uid) AS total
+       FROM node_org_hits h
+       JOIN org_entities o ON o.org_uid = h.org_uid
+       JOIN nodes n ON n.node_id = h.node_id
+       WHERE n.chain_key = ?
+         AND o.norm_prov = ?
+         AND o.norm_city IS NOT NULL
+         AND o.norm_city != ''
+       GROUP BY o.norm_city
+       ORDER BY total DESC`,
+    )
+    .all(chainKey, normProv);
+
+  return rows.map((row) => ({
+    city: String(row.city),
+    total: Number(row.total ?? 0),
+  }));
 }
 
 export function searchIndustry(keyword, province, city, limit = 50) {

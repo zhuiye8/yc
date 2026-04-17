@@ -245,87 +245,44 @@ function buildActivityOption(data: ActivitySeries): EChartsOption {
   }
 }
 
-function buildResearchDirectionOption(): EChartsOption {
-  const years = ['1993', '2004', '2007', '2009', '2011', '2013', '2015', '2021']
+/** 研究方向频次横向柱状图（基于 keyword_stat） */
+function buildKeywordBarOption(keywordStat: { name: string; value: number }[]): EChartsOption {
+  // 前 7 正常展示，第 8 条以后合并为"其他"
+  let items: { name: string; value: number }[]
+  if (keywordStat.length <= 8) {
+    items = keywordStat
+  } else {
+    const top7 = keywordStat.slice(0, 7)
+    const otherValue = keywordStat.slice(7).reduce((sum, item) => sum + item.value, 0)
+    items = [...top7, { name: '其他', value: otherValue }]
+  }
+  const reversed = [...items].reverse()
   return {
     animation: false,
-    tooltip: { trigger: 'axis' },
-    legend: {
-      top: 0,
-      left: 0,
-      itemWidth: 12,
-      itemHeight: 8,
-      icon: 'rect',
-      textStyle: { color: '#7a8595', fontSize: 11 },
-      data: ['卫星', '小波分析', '飞行动力学', '姿态控制', '姿态控制系统'],
-    },
-    grid: { left: 8, right: 8, top: 34, bottom: 8, containLabel: true },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: 8, right: 24, top: 8, bottom: 8, containLabel: true },
     xAxis: {
-      type: 'category',
-      data: years,
-      boundaryGap: false,
-      axisLine: { lineStyle: { color: '#edf2fb' } },
-      axisTick: { show: false },
+      type: 'value',
       axisLabel: { color: '#8c96a7', fontSize: 11 },
-      splitLine: { show: true, lineStyle: { color: '#eef3fb', type: 'dashed' } },
+      splitLine: { lineStyle: { color: '#eef3fb', type: 'dashed' } },
     },
     yAxis: {
-      type: 'value',
-      show: false,
-      splitLine: { show: false },
+      type: 'category',
+      data: reversed.map((item) => item.name),
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: '#4e5969', fontSize: 12, width: 80, overflow: 'truncate' },
     },
-    series: [
-      {
-        name: '卫星',
-        type: 'line',
-        smooth: true,
-        symbol: 'none',
-        stack: 'total',
-        data: [18, 2, 0, 12, 0, 28, 0, 0],
-        lineStyle: { width: 0 },
-        areaStyle: { color: 'rgba(87, 109, 223, 0.78)' },
+    series: [{
+      type: 'bar',
+      data: reversed.map((item) => item.value),
+      barMaxWidth: 18,
+      itemStyle: {
+        borderRadius: [0, 4, 4, 0],
+        color: { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: '#6ea8fe' }, { offset: 1, color: '#2468F2' }] } as unknown as string,
       },
-      {
-        name: '小波分析',
-        type: 'line',
-        smooth: true,
-        symbol: 'none',
-        stack: 'total',
-        data: [0, 14, 10, 8, 0, 20, 18, 0],
-        lineStyle: { width: 0 },
-        areaStyle: { color: 'rgba(146, 133, 235, 0.72)' },
-      },
-      {
-        name: '飞行动力学',
-        type: 'line',
-        smooth: true,
-        symbol: 'none',
-        stack: 'total',
-        data: [0, 6, 22, 4, 26, 10, 0, 0],
-        lineStyle: { width: 0 },
-        areaStyle: { color: 'rgba(120, 215, 247, 0.78)' },
-      },
-      {
-        name: '姿态控制',
-        type: 'line',
-        smooth: true,
-        symbol: 'none',
-        stack: 'total',
-        data: [0, 0, 0, 0, 0, 12, 0, 0],
-        lineStyle: { width: 0 },
-        areaStyle: { color: 'rgba(111, 212, 159, 0.76)' },
-      },
-      {
-        name: '姿态控制系统',
-        type: 'line',
-        smooth: true,
-        symbol: 'none',
-        stack: 'total',
-        data: [0, 0, 0, 24, 0, 0, 12, 0],
-        lineStyle: { width: 0 },
-        areaStyle: { color: 'rgba(255, 210, 96, 0.86)' },
-      },
-    ],
+      label: { show: true, position: 'right', color: '#4e5969', fontSize: 11 },
+    }],
   }
 }
 
@@ -629,6 +586,7 @@ export default function TalentDetail() {
   const [intro, setIntro] = useState('')
   const [detail, setDetail] = useState<Record<string, unknown>>({})
   const [keywords, setKeywords] = useState<string[]>([])
+  const [keywordStat, setKeywordStat] = useState<{ name: string; value: number }[]>([])
   const [outputStats, setOutputStats] = useState<Record<string, unknown>>({})
   const [trendData, setTrendData] = useState<TrendData>(EMPTY_TREND)
   const [coopTalents, setCoopTalents] = useState<RelationItem[]>([])
@@ -690,6 +648,13 @@ export default function TalentDetail() {
         setDetail(rawDetail)
         setIntro(normalizedIntro)
         setKeywords(Array.isArray(normalizedKeywords?.keywords) ? normalizedKeywords!.keywords : [])
+        // 解析 keyword_stat: [{keyword: count}, ...]
+        const rawKwStat = Array.isArray(rawDetail.keyword_stat) ? rawDetail.keyword_stat as Record<string, number>[] : []
+        const parsedKwStat = rawKwStat
+          .map((entry) => { const [name, value] = Object.entries(entry)[0] ?? []; return name ? { name, value: Number(value ?? 0) } : null })
+          .filter((item): item is { name: string; value: number } => item !== null)
+          .sort((a, b) => b.value - a.value)
+        setKeywordStat(parsedKwStat)
         setOutputStats(output)
         setCoopTalents(
           coopTalentList.slice(0, 8).map((item, index) => ({
@@ -838,26 +803,22 @@ export default function TalentDetail() {
     : `${introText.slice(0, 180)}...`
   const directionSummary = direction || majorText || '该专家主要研究方向为航天器总体设计技术、航天器动力学与控制技术、飞行动力学与姿态模拟技术。'
   const directionKeywords = useMemo(() => {
-    const baseKeywords = [
-      ...keywords,
-      ...cleanText(detail.TAGLARG)
-        .split(/[、,，/；;\s]+/)
-        .map((item) => item.trim())
-        .filter(Boolean),
-      ...cleanText(detail.DIRECTION)
-        .split(/[、,，/；;：:\s]+/)
-        .map((item) => item.trim())
-        .filter((item) => item.length >= 2),
-    ]
-    const uniqueKeywords = Array.from(new Set(baseKeywords)).slice(0, DIRECTION_KEYWORD_LAYOUTS.length)
-    if (uniqueKeywords.length >= 8) {
-      return DIRECTION_KEYWORD_LAYOUTS.map((layout, index) => ({
+    // 用 keyword_stat 驱动标签云（不展示 TAGLARG）
+    const kwSource = keywordStat.length > 0
+      ? keywordStat.map((item) => item.name)
+      : [
+          ...keywords,
+          ...cleanText(detail.DIRECTION).split(/[、,，/；;：:\s]+/).map((item) => item.trim()).filter((item) => item.length >= 2),
+        ]
+    const uniqueKeywords = Array.from(new Set(kwSource)).slice(0, DIRECTION_KEYWORD_LAYOUTS.length)
+    if (uniqueKeywords.length > 0) {
+      return DIRECTION_KEYWORD_LAYOUTS.slice(0, Math.min(uniqueKeywords.length, DIRECTION_KEYWORD_LAYOUTS.length)).map((layout, index) => ({
         ...layout,
         text: uniqueKeywords[index] ?? layout.text,
       }))
     }
     return DIRECTION_KEYWORD_LAYOUTS
-  }, [detail.DIRECTION, detail.TAGLARG, keywords])
+  }, [detail.DIRECTION, keywords, keywordStat])
   const activitySeries = useMemo<ActivitySeries>(() => {
     if (trendData.years.length > 0) {
       const annual = trendData.years.map((_, index) => {
@@ -1377,7 +1338,7 @@ export default function TalentDetail() {
                           ))}
                         </div>
                         <div className={styles.directionTrend}>
-                          <ReactECharts option={buildResearchDirectionOption()} style={{ height: '100%' }} />
+                          <ReactECharts option={buildKeywordBarOption(keywordStat)} style={{ height: '100%' }} notMerge />
                         </div>
                       </div>
                     </div>
