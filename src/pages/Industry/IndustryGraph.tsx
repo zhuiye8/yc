@@ -300,13 +300,10 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
         return
       }
 
-      const result = await getIndustryChainExpertPageLive(
-        chainKey,
-        nodeKeywords,
-        region.city || undefined,
-        page,
-        10,
-      ).catch(() => ({ items: [], total: 0 }))
+      const chainLabel = chainKeyToLabel[chainKey] || chainKey
+      const result = await searchChainTalents(chainLabel, undefined, region.city || undefined, page, 10)
+        .then((r) => ({ items: r.items, total: r.total }))
+        .catch(() => ({ items: [] as Record<string, unknown>[], total: 0 }))
       setChainDrawer((prev) => ({ ...prev, loading: false, data: result.items, total: result.total, page }))
     })().catch(() => {
       setChainDrawer((prev) => ({ ...prev, loading: false, data: [], total: 0 }))

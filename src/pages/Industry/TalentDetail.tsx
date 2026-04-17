@@ -685,7 +685,7 @@ export default function TalentDetail() {
         setKeywordStat(parsedKwStat)
         setOutputStats(output)
         setCoopTalents(
-          coopTalentList.slice(0, 8).map((item, index) => ({
+          coopTalentList.map((item, index) => ({
             id: String(item.id ?? item.AUID ?? `talent-${index}`),
             name: cleanText(item.CNAME ?? item.name) || `合作人才${index + 1}`,
             org: cleanText(item.AORG ?? item.org),
@@ -694,7 +694,7 @@ export default function TalentDetail() {
           })),
         )
         setCoopOrgs(
-          coopOrgList.slice(0, 8).map((item, index) => ({
+          coopOrgList.map((item, index) => ({
             id: String(item.orgId ?? item.id ?? `org-${index}`),
             name: cleanText(item.ORG ?? item.orgName ?? item.name) || `合作机构${index + 1}`,
             org: cleanText(item.TYPE ?? item.type ?? item.region),
@@ -951,8 +951,8 @@ export default function TalentDetail() {
     normalizedCoopTalentPage * coopTalentPageSize,
   )
   const collaborativeGraphNodes = useMemo(
-    () => buildCollaborativeTalentGraphNodes(name, coopTalentRows),
-    [name, coopTalentRows],
+    () => buildCollaborativeTalentGraphNodes(name, collaborativeTalentBaseItems),
+    [name, collaborativeTalentBaseItems],
   )
   const collaborativeOrgBaseItems = useMemo<CollaborativeOrgCardItem[]>(() => {
     return coopOrgs.map((item) => ({
@@ -975,8 +975,8 @@ export default function TalentDetail() {
     normalizedCoopOrgPage * coopOrgPageSize,
   )
   const collaborativeOrgGraphNodes = useMemo(
-    () => buildCollaborativeOrgGraphNodes(name, coopOrgRows),
-    [name, coopOrgRows],
+    () => buildCollaborativeOrgGraphNodes(name, collaborativeOrgBaseItems),
+    [name, collaborativeOrgBaseItems],
   )
 
   useEffect(() => {
