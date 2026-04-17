@@ -14,7 +14,6 @@ import { getChainCoverage, clearCoverageCache } from '@/services/coverageCache'
 import { getChainAggregate, clearChainAggregateCache } from '@/services/industryChainAggregation'
 import {
   clearIndustryChainExpertLiveCache,
-  getIndustryChainExpertPageLive,
 } from '@/services/industryLiveExperts'
 import { searchChainTalents } from '@/services/chainTalent'
 import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
