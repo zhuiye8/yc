@@ -780,7 +780,7 @@ export default function TalentDetail() {
     const result: string[] = []
     if (title) result.push(title)
     if (cleanText(detail.DEGREE)) result.push(cleanText(detail.DEGREE))
-    if (cleanText(detail.TAGLARG)) result.push(cleanText(detail.TAGLARG))
+    if (cleanText(detail.DIRECTION)) result.push(cleanText(detail.DIRECTION))
     return Array.from(new Set(result.filter(Boolean))).slice(0, 4)
   }, [detail, title])
 

@@ -384,11 +384,12 @@ export async function getInnovationExpertList(
   chainKey: string,
   page = 1,
   pageSize = 6,
+  province?: string,
 ): Promise<InnovationRealListResult> {
   const ckey = industryInnovationChainLabels[chainKey] ?? chainKey
 
-  // chain-talents/search — 后端按产业链全子节点去重
-  const res = await searchChainTalents(ckey, undefined, undefined, page, pageSize)
+  // chain-talents/search — 后端按产业链全子节点去重，传 province 与指标卡口径一致
+  const res = await searchChainTalents(ckey, province, undefined, page, pageSize)
   return { items: res.items, total: res.total }
 }
 

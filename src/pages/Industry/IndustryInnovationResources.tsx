@@ -120,8 +120,9 @@ export default function IndustryInnovationResources({ chainKey }: Props) {
     if (isRealTalent || isRealOrg) {
       void Promise.resolve().then(() => {
         if (!cancelled) setListLoading(true)
+        const regionShort = selectedRegion.replace(/省|市|壮族自治区|回族自治区|维吾尔自治区|自治区|特别行政区/g, '')
         return isRealTalent
-          ? getInnovationExpertList(chainKey, page, 6)
+          ? getInnovationExpertList(chainKey, page, 6, regionShort)
           : getInnovationOrgList(chainKey, page, 6)
       }).then((result) => {
         if (cancelled || !result) return
