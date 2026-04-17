@@ -245,43 +245,73 @@ function buildActivityOption(data: ActivitySeries): EChartsOption {
   }
 }
 
-/** 研究方向频次横向柱状图（基于 keyword_stat） */
-function buildKeywordBarOption(keywordStat: { name: string; value: number }[]): EChartsOption {
-  // 前 7 正常展示，第 8 条以后合并为"其他"
+const TREEMAP_COLORS = [
+  '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
+  '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#6ea8fe',
+]
+
+/** 研究方向矩形树图（基于 keyword_stat） */
+function buildKeywordTreemapOption(keywordStat: { name: string; value: number }[]): EChartsOption {
+  // 过滤空 key，前 7 正常展示，第 8 条以后合并为"其他（x个方向）"
+  const filtered = keywordStat.filter((item) => item.name && item.name.trim() && item.value > 0)
   let items: { name: string; value: number }[]
-  if (keywordStat.length <= 8) {
-    items = keywordStat
+  if (filtered.length <= 8) {
+    items = filtered
   } else {
-    const top7 = keywordStat.slice(0, 7)
-    const otherValue = keywordStat.slice(7).reduce((sum, item) => sum + item.value, 0)
-    items = [...top7, { name: '其他', value: otherValue }]
+    const top7 = filtered.slice(0, 7)
+    const otherCount = filtered.length - 7
+    const otherValue = filtered.slice(7).reduce((sum, item) => sum + item.value, 0)
+    items = [...top7, { name: `其他（${otherCount}个方向）`, value: otherValue }]
   }
-  const reversed = [...items].reverse()
+
+  const maxValue = Math.max(...items.map((item) => item.value), 1)
+
   return {
-    animation: false,
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    grid: { left: 8, right: 24, top: 8, bottom: 8, containLabel: true },
-    xAxis: {
-      type: 'value',
-      axisLabel: { color: '#8c96a7', fontSize: 11 },
-      splitLine: { lineStyle: { color: '#eef3fb', type: 'dashed' } },
-    },
-    yAxis: {
-      type: 'category',
-      data: reversed.map((item) => item.name),
-      axisLine: { show: false },
-      axisTick: { show: false },
-      axisLabel: { color: '#4e5969', fontSize: 12, width: 80, overflow: 'truncate' },
+    animation: true,
+    tooltip: {
+      formatter: (params: unknown) => {
+        const p = params as { name: string; value: number }
+        return `<b>${p.name}</b><br/>频次：${p.value}`
+      },
     },
     series: [{
-      type: 'bar',
-      data: reversed.map((item) => item.value),
-      barMaxWidth: 18,
-      itemStyle: {
-        borderRadius: [0, 4, 4, 0],
-        color: { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: '#6ea8fe' }, { offset: 1, color: '#2468F2' }] } as unknown as string,
+      type: 'treemap',
+      width: '100%',
+      height: '100%',
+      roam: false,
+      nodeClick: false,
+      breadcrumb: { show: false },
+      label: {
+        show: true,
+        formatter: (params: unknown) => {
+          const p = params as { name: string; value: number; treePathInfo?: { treeChildren?: { value: number }[] }[] }
+          // 通过 treeAncestors 拿到总值算占比，占比太小只显示名称
+          const total = items.reduce((s, i) => s + i.value, 0)
+          const ratio = total > 0 ? p.value / total : 0
+          if (ratio < 0.04) return ''
+          return ratio < 0.08 ? p.name : `${p.name}\n${p.value}`
+        },
+        fontSize: 11,
+        color: '#fff',
+        lineHeight: 15,
+        align: 'center' as const,
+        verticalAlign: 'middle' as const,
+        minMargin: 4,
       },
-      label: { show: true, position: 'right', color: '#4e5969', fontSize: 11 },
+      itemStyle: {
+        borderColor: '#fff',
+        borderWidth: 2,
+        gapWidth: 2,
+        borderRadius: 4,
+      },
+      levels: [{
+        itemStyle: { borderColor: '#fff', borderWidth: 2, gapWidth: 2 },
+      }],
+      data: items.map((item, index) => ({
+        name: item.name,
+        value: item.value,
+        itemStyle: { color: TREEMAP_COLORS[index % TREEMAP_COLORS.length] },
+      })),
     }],
   }
 }
@@ -1338,7 +1368,7 @@ export default function TalentDetail() {
                           ))}
                         </div>
                         <div className={styles.directionTrend}>
-                          <ReactECharts option={buildKeywordBarOption(keywordStat)} style={{ height: '100%' }} notMerge />
+                          <ReactECharts option={buildKeywordTreemapOption(keywordStat)} style={{ height: '100%' }} notMerge />
                         </div>
                       </div>
                     </div>

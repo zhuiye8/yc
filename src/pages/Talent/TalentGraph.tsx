@@ -293,8 +293,9 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
               setFieldData(parsed)
             } else {
               const top7 = parsed.slice(0, 7)
+              const otherCount = parsed.length - 7
               const otherValue = parsed.slice(7).reduce((sum, item) => sum + item.value, 0)
-              setFieldData([...top7, { name: '其他', value: otherValue }])
+              setFieldData([...top7, { name: `其他（${otherCount}个方向）`, value: otherValue }])
             }
           }
         }).catch(() => { /* ignore */ })
