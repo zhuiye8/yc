@@ -9,9 +9,14 @@ import IndustryReport from './IndustryReport'
 import { regionOptions } from '@/mock/regions'
 import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
 import { searchIndustryFromSource } from '@/services/industrySource'
-import { searchIndustryExpertsLive } from '@/services/industryLiveExperts'
+import { searchChainTalents } from '@/services/chainTalent'
 import { searchOrgs } from '@/services/industry'
 import { exportRecordsCsv } from '@/utils/exportCsv'
+import {
+  industryKeywordOptions,
+  resolveIndustryKeywordOption,
+  type IndustryKeywordOption,
+} from '@/utils/industryKeywordOptions'
 import {
   INDUSTRY_CHAIN_TREE,
   DEFAULT_PRIMARY_KEY,
@@ -22,11 +27,12 @@ import {
 import industryBg from '@/assets/images/hero/industry-bg-plain.jpg'
 import styles from './Industry.module.scss'
 
-const hotTags = ['湿电子化学品', '氯化工', '锂电材料', '生物制药', '智能传感器', '碳纤维', '光伏材料']
+const hotTags = ['服务器制造', 'AI服务器整机', '锂离子电池', '热交换', '再生石墨', '电源模块', '辊压']
 
 interface SearchDrawerState {
   visible: boolean
   keyword: string
+  chain: string
   loading: boolean
   orgs: Record<string, unknown>[]
   orgTotal: number
@@ -85,9 +91,10 @@ export default function Industry() {
   }, [])
   const [regionValue, setRegionValue] = useState<string[]>(['hubei', 'yichang'])
   const [searchDrawer, setSearchDrawer] = useState<SearchDrawerState>({
-    visible: Boolean(initialSearchKeyword),
-    keyword: initialSearchKeyword,
-    loading: Boolean(initialSearchKeyword),
+    visible: false,
+    keyword: '',
+    chain: '',
+    loading: false,
     orgs: [],
     orgTotal: 0,
     experts: [],
@@ -98,9 +105,10 @@ export default function Industry() {
   const selectedRegion = useMemo(() => resolveIndustryRegionFromCascader(regionValue), [regionValue])
   const selectedCity = selectedRegion.city || ''
 
-  const loadSearchResults = useCallback((trimmedKeyword: string) => {
+  const loadSearchResults = useCallback((option: IndustryKeywordOption) => {
     void (async () => {
-      const sourceResult = await searchIndustryFromSource(trimmedKeyword, selectedRegion).catch(() => null)
+      const searchChain = option.chain.trim()
+      const sourceResult = await searchIndustryFromSource(searchChain, selectedRegion).catch(() => null)
       const [orgResult, expertResult] = await Promise.allSettled([
         sourceResult
           ? Promise.resolve({
@@ -109,8 +117,8 @@ export default function Industry() {
               orgRecommend: sourceResult.orgs,
             },
           })
-          : searchOrgs(trimmedKeyword, 0, 20, selectedRegion.city),
-        searchIndustryExpertsLive(trimmedKeyword, 20, selectedRegion.city),
+          : searchOrgs(searchChain, 0, 20, selectedRegion.city),
+        searchChainTalents(searchChain, undefined, undefined, 1, 20),
       ])
 
       const orgData = orgResult.status === 'fulfilled'
@@ -129,14 +137,16 @@ export default function Industry() {
     })()
   }, [selectedRegion])
 
-  const handleSearch = useCallback((keyword: string) => {
-    const trimmedKeyword = keyword.trim()
-    if (!trimmedKeyword) return
+  const handleSearchOptionSelect = useCallback((option: IndustryKeywordOption) => {
+    const label = option.label.trim()
+    const chain = option.chain.trim()
+    if (!label || !chain) return
 
     setSearchDrawer((prev) => ({
       ...prev,
       visible: true,
-      keyword: trimmedKeyword,
+      keyword: label,
+      chain,
       loading: true,
       orgs: [],
       experts: [],
@@ -144,15 +154,24 @@ export default function Industry() {
       expertTotal: 0,
     }))
 
-    message.info(`正在搜索“${trimmedKeyword}”…`)
-    loadSearchResults(trimmedKeyword)
+    message.info(`正在搜索“${label}”…`)
+    loadSearchResults(option)
   }, [loadSearchResults, message])
 
   useEffect(() => {
     if (!initialSearchKeyword) return
-    message.info(`正在搜索“${initialSearchKeyword}”…`)
-    loadSearchResults(initialSearchKeyword)
-  }, [initialSearchKeyword, loadSearchResults, message])
+    const option = resolveIndustryKeywordOption(initialSearchKeyword)
+    if (!option) {
+      message.warning('请先选择匹配的产业链关键词后搜索')
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      handleSearchOptionSelect(option)
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [handleSearchOptionSelect, initialSearchKeyword, message])
 
   const openEnterpriseDetail = useCallback((record: Record<string, unknown>) => {
     const name = String(record.NAME || record.name || '未知企业')
@@ -184,9 +203,10 @@ export default function Industry() {
     <div className={styles.page}>
       <HeroSection
         backgroundImage={industryBg}
-        searchPlaceholder="搜索产业链、产业环节、企业..."
+        searchPlaceholder="输入产业链关键词，选择匹配项后搜索..."
         hotTags={hotTags}
-        onSearch={handleSearch}
+        searchOptions={industryKeywordOptions}
+        onSearchOptionSelect={handleSearchOptionSelect}
         variant="industry"
         titleLine1="摸清产业底数"
         titleLine2="让招引更精准、决策更高效"
@@ -309,7 +329,8 @@ export default function Industry() {
         <div className={styles.drawerIntro}>
           <div className={styles.drawerIntroTitle}>产业链节点介绍</div>
           <div className={styles.drawerIntroText}>
-            围绕“{searchDrawer.keyword}”检索产业链相关企业与人才资源，展示匹配对象的区域、行业标签和科研能力，可用于进一步筛选招引目标与对接人才。
+            围绕“{searchDrawer.chain || searchDrawer.keyword}”检索产业链相关企业与人才资源，展示匹配对象的区域、行业标签和科研能力，可用于进一步筛选招引目标与对接人才。
+            {searchDrawer.chain && searchDrawer.chain !== searchDrawer.keyword ? ` 当前选项：${searchDrawer.keyword}。` : ''}
           </div>
         </div>
 

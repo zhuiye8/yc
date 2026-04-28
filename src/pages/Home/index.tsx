@@ -4,10 +4,53 @@ import homeBg from '@/assets/images/hero/home-bg-plain.jpg'
 import searchIcon from '@/assets/images/icons/小图标_16.png'
 import styles from './Home.module.scss'
 
-const defaultStats = [
-  { number: '200万', unit: '家', label: '企业总数', colorClass: 'color0', link: '/industry' },
-  { number: '4000万', unit: '人', label: '人才总数', colorClass: 'color1', link: '/talent' },
-  { number: '300万', unit: '项', label: '技术标准', colorClass: 'color2', link: '/innovation' },
+const chainStats = [
+  {
+    chainKey: 'wetchem',
+    name: '绿色化工',
+    enterprise: '1.84万',
+    talent: '1.16万',
+    standard: '2,860',
+  },
+  {
+    chainKey: 'newenergy',
+    name: '新能源新材料',
+    enterprise: '2.31万',
+    talent: '1.42万',
+    standard: '3,280',
+  },
+  {
+    chainKey: 'pharma',
+    name: '生命健康',
+    enterprise: '1.67万',
+    talent: '1.28万',
+    standard: '2,410',
+  },
+  {
+    chainKey: 'ship',
+    name: '汽车及装备制造',
+    enterprise: '1.45万',
+    talent: '0.97万',
+    standard: '2,090',
+  },
+  {
+    chainKey: 'ai',
+    name: '大数据与人工智能',
+    enterprise: '3.78万',
+    talent: '2.95万',
+    standard: '7,540',
+  },
+  {
+    chainKey: '',
+    name: '文化旅游',
+    enterprise: '--',
+    talent: '--',
+    standard: '--',
+    disabled: true,
+  },
+]
+
+const serviceStats = [
   { number: '257', unit: '款', label: '金融产品', colorClass: 'color3', link: '/funding' },
   { number: '41', unit: '项', label: '申报政策', colorClass: 'color4', link: '/policy' },
 ]
@@ -45,7 +88,6 @@ function resolveSearchPath(keyword: string) {
 export default function Home() {
   const navigate = useNavigate()
   const [searchKeyword, setSearchKeyword] = useState('')
-  const stats = defaultStats
 
   // useEffect(() => {
   //   getAreaStatistics('4205').then(data => {
@@ -109,10 +151,46 @@ export default function Home() {
 
       {/* 统计数字 */}
       <div className={styles.stats}>
-        <div className={styles.statsRow}>
-          {stats.map((item) => (
-            <div key={item.label} className={styles.statItem} onClick={() => item.link && navigate(item.link)} style={{ cursor: 'pointer' }}>
-              <div className={`${styles.statNumber} ${styles[item.colorClass]}`}>
+        <div className={styles.statsContent}>
+          {chainStats.map((item) => (
+            <div
+              key={item.name}
+              className={`${styles.statItem} ${item.disabled ? styles.disabledStat : ''}`}
+              onClick={() => {
+                if (!item.disabled && item.chainKey) navigate(`/industry?chain=${item.chainKey}`)
+              }}
+            >
+              <div className={styles.chainName}>{item.name}</div>
+              <div className={styles.chainMetricStack}>
+                <div className={styles.chainMetricLine}>
+                  <span className={`${styles.chainMetricValue} ${styles.enterpriseColor}`}>
+                    {item.enterprise}
+                  </span>
+                  <span className={styles.chainMetricLabel}>企业</span>
+                </div>
+                <div className={styles.chainMetricLine}>
+                  <span className={`${styles.chainMetricValue} ${styles.talentColor}`}>
+                    {item.talent}
+                  </span>
+                  <span className={styles.chainMetricLabel}>人才</span>
+                </div>
+                <div className={styles.chainMetricLine}>
+                  <span className={`${styles.chainMetricValue} ${styles.techColor}`}>
+                    {item.standard}
+                  </span>
+                  <span className={styles.chainMetricLabel}>技术</span>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {serviceStats.map((item) => (
+            <div
+              key={item.label}
+              className={styles.statItem}
+              onClick={() => navigate(item.link)}
+            >
+              <div className={`${styles.serviceStatNumber} ${styles[item.colorClass]}`}>
                 {item.number}
                 <span className={styles.statUnit}>{item.unit}</span>
               </div>
