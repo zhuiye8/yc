@@ -176,6 +176,85 @@
   }
 }
 
+.industryHeroOuter {
+  --hero-shell-width: min(1400px, calc(100vw - clamp(24px, 4vw, 64px)));
+  --hero-overhang: 123px;
+  margin-bottom: calc(var(--hero-overhang) + 38px);
+
+  .hero {
+    min-height: 465px;
+  }
+
+  .heroTitle {
+    left: calc((100% - var(--hero-shell-width)) / 2 + 52px);
+  }
+}
+
+.industrySearchWrapper {
+  box-sizing: border-box;
+  height: 240px;
+  padding: 36px 21px 30px 33px;
+  border: 0;
+  background: linear-gradient(180deg, #dce8fd 0%, #ffffff 100%);
+  box-shadow: none;
+
+  .searchRow {
+    gap: 16px;
+  }
+
+  .searchInput {
+    height: 100px;
+    padding: 0 32px;
+    border-color: #c8d9f4;
+    border-radius: 5px;
+    color: #1d2129;
+    font-size: 26px;
+    box-shadow: 0 4px 11px rgba(45, 118, 238, 0.2);
+
+    &::placeholder {
+      color: #9a9a9a;
+    }
+  }
+
+  .searchBtn {
+    width: 203px;
+    height: 100px;
+    justify-content: center;
+    gap: 10px;
+    padding: 0;
+    border-radius: 4px;
+    font-size: 34px;
+    font-weight: 400;
+    background: linear-gradient(135deg, #2f91ef 0%, #1f4cf5 100%);
+    box-shadow: none;
+  }
+
+  .searchIcon {
+    width: 45px;
+    height: 45px;
+  }
+
+  .hotTags {
+    gap: 9px;
+    margin-top: 33px;
+    padding-left: 35px;
+  }
+
+  .hotLabel {
+    margin-right: 8px;
+    font-size: 18px;
+  }
+
+  .hotTag {
+    width: 124px;
+    min-height: 40px;
+    padding: 0;
+    color: #1d2129;
+    font-size: 18px;
+    background: #e4ecfb;
+  }
+}
+
 @media (max-width: 900px) {
   .heroOuter {
     --hero-shell-width: calc(100vw - 24px);
@@ -204,6 +283,62 @@
   .searchBtn {
     width: 100%;
     justify-content: center;
+  }
+
+  .industryHeroOuter {
+    --hero-shell-width: calc(100vw - 24px);
+    --hero-overhang: 118px;
+    margin-bottom: calc(var(--hero-overhang) + 64px);
+
+    .hero {
+      min-height: 340px;
+    }
+
+    .heroTitle {
+      left: calc((100% - var(--hero-shell-width)) / 2);
+    }
+  }
+
+  .industrySearchWrapper {
+    height: auto;
+    padding: 16px;
+
+    .searchRow {
+      gap: 12px;
+    }
+
+    .searchInput {
+      height: 64px;
+      font-size: 18px;
+    }
+
+    .searchBtn {
+      width: 100%;
+      height: 64px;
+      font-size: 22px;
+    }
+
+    .searchIcon {
+      width: 28px;
+      height: 28px;
+    }
+
+    .hotTags {
+      margin-top: 16px;
+      padding-left: 0;
+    }
+
+    .hotLabel {
+      font-size: 14px;
+    }
+
+    .hotTag {
+      width: auto;
+      min-width: 112px;
+      min-height: 32px;
+      padding: 0 12px;
+      font-size: 14px;
+    }
   }
 }
 

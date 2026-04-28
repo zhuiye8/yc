@@ -123,6 +123,7 @@ export default function Policy() {
         backgroundImage={policyBg}
         searchPlaceholder="搜索政策标题、发布单位、补贴类型、申报条件..."
         hotTags={hotTags}
+        variant="industry"
         titleLine1="自动匹配政策福利"
         titleLine2="让政策补贴一键直达"
       />
@@ -151,13 +152,15 @@ export default function Policy() {
           </div>
         </div>
         <div className={styles.tabRight}>
-          <span className={styles.filterLabel}>产业链</span>
-          <Select
-            defaultValue="green-chem"
-            style={{ width: 140 }}
-            size="small"
-            options={[{ value: 'green-chem', label: '绿色化工' }]}
-          />
+          <div className={styles.filterGroup}>
+            <span className={styles.filterLabel}>产业链</span>
+            <Select
+              defaultValue="green-chem"
+              style={{ width: 200 }}
+              size="small"
+              options={[{ value: 'green-chem', label: '绿色化工' }]}
+            />
+          </div>
         </div>
       </div>
 

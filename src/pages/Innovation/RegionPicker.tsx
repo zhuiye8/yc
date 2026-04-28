@@ -171,14 +171,23 @@ export default function RegionPicker({ value, onChange }: Props) {
       <div
         onClick={() => setOpen(!open)}
         style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '4px 12px', border: '1px solid #d9d9d9', borderRadius: 6,
-          cursor: 'pointer', fontSize: 13, background: '#fff',
-          color: '#1D2129', minWidth: 120,
+          position: 'relative',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 200,
+          height: 42,
+          padding: '0 34px 0 16px',
+          border: '1px solid #d9d9d9',
+          borderRadius: 8,
+          cursor: 'pointer',
+          fontSize: 16,
+          background: '#fff',
+          color: '#1D2129',
         }}
       >
         {value.name}
-        <DownOutlined style={{ fontSize: 10, color: '#999' }} />
+        <DownOutlined style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: '#999' }} />
       </div>
 
       {/* 下拉面板 */}

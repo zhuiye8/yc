@@ -127,7 +127,7 @@ const columns: ColumnsType<YichangTalent> = [
     ellipsis: true,
     filters: [
       { text: '文化旅游', value: '文化旅游' },
-      { text: '算力及大数据', value: '算力及大数据' },
+      { text: '大数据和人工智能', value: '大数据和人工智能' },
       { text: '建筑产业链', value: '建筑产业链' },
       { text: '汽车及装备制造', value: '汽车及装备制造' },
       { text: '新能源新材料', value: '新能源新材料' },

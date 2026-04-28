@@ -1,7 +1,7 @@
 @use '@/styles/variables' as *;
 
 .section {
-  width: min(1400px, calc(100vw - 40px));
+  width: min(1400px, calc(100vw - clamp(24px, 4vw, 64px)));
   margin: 0 auto;
   padding: 18px 0 44px;
 }
@@ -423,7 +423,7 @@
 
 @media (max-width: 1120px) {
   .section {
-    width: min(100%, calc(100vw - 32px));
+    width: min(100%, calc(100vw - clamp(24px, 4vw, 64px)));
   }
 
   .mapLayout {
@@ -472,7 +472,7 @@
 
 @media (max-width: 768px) {
   .section {
-    width: calc(100vw - 24px);
+    width: calc(100vw - clamp(24px, 4vw, 64px));
   }
 
   .leadText,

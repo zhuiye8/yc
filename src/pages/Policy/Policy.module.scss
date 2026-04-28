@@ -51,12 +51,70 @@
 .tabRight {
   display: flex;
   align-items: center;
-  gap: $space-md;
+  gap: 12px;
+}
+
+.filterGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  :global(.ant-select),
+  :global(.ant-cascader) {
+    display: flex;
+    align-items: center;
+    height: 42px;
+  }
+
+  :global(.ant-select-single),
+  :global(.ant-select-single.ant-select-sm) {
+    height: 42px;
+  }
+
+  :global(.ant-select-single.ant-select-sm .ant-select-selector),
+  :global(.ant-select-single:not(.ant-select-customize-input) .ant-select-selector),
+  :global(.ant-cascader .ant-select-selector),
+  :global(.ant-select-selector) {
+    height: 42px !important;
+    min-height: 42px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center;
+  }
+
+  :global(.ant-select-single.ant-select-sm .ant-select-selection-item),
+  :global(.ant-select-single.ant-select-sm .ant-select-selection-placeholder),
+  :global(.ant-select-selection-item),
+  :global(.ant-select-selection-placeholder) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px !important;
+    line-height: 1 !important;
+    font-size: 16px;
+    text-align: center;
+  }
+
+  :global(.ant-select-arrow) {
+    margin-top: -4px;
+  }
+
+  :global(.ant-select-clear) {
+    margin-top: -6px;
+  }
 }
 
 .filterLabel {
-  font-size: $font-size-sm;
-  color: $gray-500;
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  font-size: 14px;
+  line-height: 1.25;
+  color: #1d2129;
+
+  &::after {
+    content: '：';
+  }
 }
 
 .tipBar {

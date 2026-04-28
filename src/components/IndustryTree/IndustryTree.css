@@ -39,6 +39,27 @@
   animation: chainAnalysisPulse 1.5s ease-in-out infinite;
 }
 
+.chain-summary-tip {
+  display: inline-flex;
+  align-items: center;
+  min-width: 220px;
+  max-width: clamp(360px, 42vw, 720px);
+  min-height: 54px;
+  flex: 0 1 auto;
+  color: #ff5a3d;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chain-summary-tip::before {
+  content: '';
+  min-width: 0;
+}
+
 @keyframes chainAnalysisPulse {
   0%,
   100% {
@@ -194,6 +215,22 @@
   font-size: 14px;
 }
 
+.chain-popover-intro {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f5f8ff;
+  color: #5f6f8a;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.chain-popover-intro-title {
+  margin-bottom: 2px;
+  color: #2468f2;
+  font-weight: 600;
+}
+
 .chain-popover-actions {
   display: flex;
   gap: 10px;
@@ -212,4 +249,100 @@
   justify-content: space-between;
   align-items: center;
   margin-top: 12px;
+}
+
+.industry-data-drawer-root .ant-drawer-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid #e6effc;
+}
+
+.industry-data-drawer-root .ant-drawer-body {
+  padding: 18px 22px 20px;
+  background: #f7faff;
+}
+
+.industry-drawer-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #1d2129;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.industry-drawer-intro {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border: 1px solid #d9e8ff;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f2f7ff 100%);
+}
+
+.industry-drawer-intro-title {
+  margin-bottom: 6px;
+  color: #1f5fd3;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.industry-drawer-intro-text {
+  color: #52627a;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.industry-drawer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.industry-drawer-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #1d2129;
+  font-size: 14px;
+}
+
+.industry-drawer-filter .anticon {
+  color: #2468f2;
+}
+
+.industry-drawer-toolbar .ant-btn {
+  height: 34px;
+  border-radius: 999px;
+  border-color: #b9d5ff;
+  color: #1f5fd3;
+  font-weight: 600;
+}
+
+.industry-drawer-table {
+  overflow: hidden;
+  border: 1px solid #e0e9f8;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.industry-drawer-table .ant-table {
+  font-size: 14px;
+}
+
+.industry-drawer-table .ant-table-thead > tr > th {
+  padding: 13px 14px;
+  background: #f2f6ff;
+  color: #2f62c8;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.industry-drawer-table .ant-table-tbody > tr > td {
+  padding: 14px;
+  line-height: 1.7;
+}
+
+.industry-drawer-table .ant-table-tbody > tr:hover > td {
+  background: #f6f9ff;
 }

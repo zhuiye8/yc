@@ -80,7 +80,7 @@ export const INDUSTRY_CHAIN_TREE: PrimaryChain[] = [
   },
   {
     key: 'computing-bigdata',
-    label: '算力及大数据',
+    label: '大数据和人工智能',
     enabled: true,
     secondaries: [
       { key: 'ai', label: '人工智能', enabled: true },
@@ -106,7 +106,7 @@ export const INDUSTRY_CHAIN_TREE: PrimaryChain[] = [
   },
 ]
 
-/** 默认选中：一级 "算力及大数据" / 二级 "人工智能" */
+/** 默认选中：一级 "大数据和人工智能" / 二级 "人工智能" */
 export const DEFAULT_PRIMARY_KEY = 'computing-bigdata'
 export const DEFAULT_SECONDARY_KEY = 'ai'
 

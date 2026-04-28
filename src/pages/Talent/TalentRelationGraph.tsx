@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Graph } from '@antv/g6'
-import type { Graph as G6Graph, GraphData } from '@antv/g6'
+import type { Graph as G6Graph, GraphData, IElementEvent } from '@antv/g6'
 
 import type { GraphLink, GraphNode } from '@/services/talent'
 import styles from './TalentRelationGraph.module.scss'
@@ -31,6 +31,7 @@ interface TalentRelationGraphProps {
   nodes: GraphNode[]
   links: GraphLink[]
   centerAuid: string
+  onNodeClick?: (nodeId: string) => void
 }
 
 function buildRelationData(nodes: GraphNode[], links: GraphLink[], centerAuid: string): GraphData {
@@ -146,12 +147,17 @@ function getEdgeStyle(datum: Record<string, unknown>) {
   }
 }
 
-export default function TalentRelationGraph({ nodes, links, centerAuid }: TalentRelationGraphProps) {
+export default function TalentRelationGraph({ nodes, links, centerAuid, onNodeClick }: TalentRelationGraphProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const graphRef = useRef<G6Graph | null>(null)
+  const onNodeClickRef = useRef(onNodeClick)
   const [width, setWidth] = useState(0)
 
   const graphData = useMemo(() => buildRelationData(nodes, links, centerAuid), [nodes, links, centerAuid])
+
+  useEffect(() => {
+    onNodeClickRef.current = onNodeClick
+  }, [onNodeClick])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -229,6 +235,11 @@ export default function TalentRelationGraph({ nodes, links, centerAuid }: Talent
         },
       },
       behaviors: ['drag-canvas', 'zoom-canvas'],
+    })
+
+    graph.on('node:click', (event: IElementEvent) => {
+      const targetId = String(event.target.id || '')
+      if (targetId) onNodeClickRef.current?.(targetId)
     })
 
     graphRef.current = graph

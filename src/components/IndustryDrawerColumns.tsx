@@ -80,12 +80,12 @@ export const orgDrawerColumns = [
       return (
         <Space size={4}>
           {orgType && (
-            <Tag color={orgType.color} style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px', borderRadius: 2, marginRight: 0 }}>
+            <Tag color={orgType.color} style={{ fontSize: 12, lineHeight: '20px', padding: '0 7px', borderRadius: 10, marginRight: 0 }}>
               {orgType.label}
             </Tag>
           )}
           <Tooltip title={name}>
-            <Text strong style={{ fontSize: 13 }}>{name}</Text>
+            <Text strong style={{ fontSize: 15 }}>{name}</Text>
           </Tooltip>
         </Space>
       )
@@ -99,7 +99,7 @@ export const orgDrawerColumns = [
     render: (_: unknown, r: Record<string, unknown>) => {
       const prov = String(r.PROV || '')
       const city = String(r.CITY || '')
-      return <Text type="secondary" style={{ fontSize: 12 }}>{prov}{city && city !== prov ? ` ${city}` : ''}</Text>
+      return <Text type="secondary" style={{ fontSize: 14 }}>{prov}{city && city !== prov ? ` ${city}` : ''}</Text>
     },
   },
   {
@@ -112,7 +112,7 @@ export const orgDrawerColumns = [
       return (
         <Space size={2} wrap>
           {industries.slice(0, 2).map((ind, i) => (
-            <Tag key={i} color={getIndustryColor(ind)} style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px', borderRadius: 2 }}>
+            <Tag key={i} color={getIndustryColor(ind)} style={{ fontSize: 12, lineHeight: '20px', padding: '0 7px', borderRadius: 10 }}>
               {ind.length > 8 ? ind.slice(0, 8) + '...' : ind}
             </Tag>
           ))}
@@ -127,11 +127,11 @@ export const orgDrawerColumns = [
     width: 200,
     render: (_: unknown, r: Record<string, unknown>) => {
       const tags = (r.TAGS || []) as string[]
-      if (tags.length === 0) return <Text type="secondary" style={{ fontSize: 12 }}>-</Text>
+      if (tags.length === 0) return <Text type="secondary" style={{ fontSize: 14 }}>-</Text>
       return (
         <Space size={2} wrap>
           {tags.slice(0, 3).map((t, i) => (
-            <Tag key={i} color={getOrgTagColor(t)} style={{ fontSize: 10, lineHeight: '18px', padding: '0 6px', borderRadius: 10 }}>
+            <Tag key={i} color={getOrgTagColor(t)} style={{ fontSize: 12, lineHeight: '20px', padding: '0 7px', borderRadius: 10 }}>
               {t}
             </Tag>
           ))}
@@ -154,8 +154,8 @@ export const expertDrawerColumns = [
       const title = rawTitle.replace(/^\[|]$/g, '')
       return (
         <div>
-          <Text strong style={{ fontSize: 13 }}>{name}</Text>
-          {title && <div style={{ fontSize: 11, color: '#999', marginTop: 1 }}>{title}</div>}
+          <Text strong style={{ fontSize: 15 }}>{name}</Text>
+          {title && <div style={{ fontSize: 13, color: '#7f8ba3', marginTop: 3 }}>{title}</div>}
         </div>
       )
     },
@@ -170,8 +170,8 @@ export const expertDrawerColumns = [
       return (
         <Tooltip title={org}>
           <Space size={4}>
-            <BankOutlined style={{ color: '#999', fontSize: 11 }} />
-            <Text style={{ fontSize: 12 }}>{org}</Text>
+            <BankOutlined style={{ color: '#8a94a6', fontSize: 13 }} />
+            <Text style={{ fontSize: 14 }}>{org}</Text>
           </Space>
         </Tooltip>
       )
@@ -186,7 +186,7 @@ export const expertDrawerColumns = [
     render: (_: unknown, r: Record<string, unknown>) => {
       const h = Number(r.H ?? 0)
       return (
-        <Tag color={getHIndexColor(h)} style={{ fontWeight: 600, minWidth: 32, textAlign: 'center', borderRadius: 10 }}>
+        <Tag color={getHIndexColor(h)} style={{ fontSize: 13, fontWeight: 600, minWidth: 36, textAlign: 'center', borderRadius: 10 }}>
           {h || '-'}
         </Tag>
       )
@@ -204,7 +204,7 @@ export const expertDrawerColumns = [
     align: 'center' as const,
     render: (_: unknown, r: Record<string, unknown>) => {
       const v = Number(r.QIKAN ?? 0)
-      return <Text style={{ fontSize: 12, color: v > 0 ? '#333' : '#ccc' }}>{v || '-'}</Text>
+      return <Text style={{ fontSize: 14, color: v > 0 ? '#333' : '#ccc' }}>{v || '-'}</Text>
     },
   },
   {
@@ -219,7 +219,7 @@ export const expertDrawerColumns = [
     align: 'center' as const,
     render: (_: unknown, r: Record<string, unknown>) => {
       const v = Number(r.ZHUANLI ?? 0)
-      return <Text style={{ fontSize: 12, color: v > 0 ? '#333' : '#ccc' }}>{v || '-'}</Text>
+      return <Text style={{ fontSize: 14, color: v > 0 ? '#333' : '#ccc' }}>{v || '-'}</Text>
     },
   },
   {
@@ -234,7 +234,7 @@ export const expertDrawerColumns = [
     align: 'center' as const,
     render: (_: unknown, r: Record<string, unknown>) => {
       const v = Number(r.CHENGGUO ?? 0)
-      return <Text style={{ fontSize: 12, color: v > 0 ? '#333' : '#ccc' }}>{v || '-'}</Text>
+      return <Text style={{ fontSize: 14, color: v > 0 ? '#333' : '#ccc' }}>{v || '-'}</Text>
     },
   },
   {
@@ -249,7 +249,7 @@ export const expertDrawerColumns = [
     align: 'center' as const,
     render: (_: unknown, r: Record<string, unknown>) => {
       const v = Number(r.CHANXUEYANHZ ?? 0)
-      return <Text style={{ fontSize: 12, color: v > 0 ? '#333' : '#ccc' }}>{v || '-'}</Text>
+      return <Text style={{ fontSize: 14, color: v > 0 ? '#333' : '#ccc' }}>{v || '-'}</Text>
     },
   },
 ]

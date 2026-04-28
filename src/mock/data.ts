@@ -573,7 +573,7 @@ export const policies = [
   },
   {
     id: 'p14',
-    title: '关于促进算力及大数据产业发展的若干政策',
+    title: '关于促进大数据和人工智能产业发展的若干政策',
     department: '宜昌市发改委',
     publishDate: '2025-11-15',
     deadline: '2026-11-30',

@@ -1,5 +1,5 @@
-import { useState, lazy, Suspense } from 'react'
-import { Select, Spin } from 'antd'
+import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import HeroSection from '@/components/HeroSection'
 import TalentGraph from './TalentGraph'
 import TalentReport from './TalentReport'
@@ -7,23 +7,19 @@ import SupplyDemand from './SupplyDemand'
 import talentBg from '@/assets/images/hero/talent-bg-plain.jpg'
 import styles from './Talent.module.scss'
 
-const YichangTalents = lazy(() => import('./YichangTalents'))
-
 const hotTags = ['生物医药', '新材料', '人工智能', '博士后', '高级工程师', '领军人才']
 
 export default function Talent() {
+  const [searchParams] = useSearchParams()
+  const initialKeyword = searchParams.get('q') ?? ''
   const [activeTab, setActiveTab] = useState<'graph' | 'supply' | 'report'>('graph')
-  const [hometown, setHometown] = useState<'all' | 'yichang'>('all')
-  const [searchKeyword, setSearchKeyword] = useState('')
+  const [searchKeyword, setSearchKeyword] = useState(initialKeyword)
   const [searchCounter, setSearchCounter] = useState(0)
-
-  const isYichangMode = hometown === 'yichang'
 
   const handleSearch = (keyword: string) => {
     setSearchKeyword(keyword)
     setSearchCounter(c => c + 1)
     setActiveTab('graph')
-    setHometown('all')
   }
 
   return (
@@ -33,6 +29,7 @@ export default function Talent() {
         searchPlaceholder="搜索人才姓名、研究方向、所属机构..."
         hotTags={hotTags}
         onSearch={handleSearch}
+        variant="industry"
         titleLine1="智能识别人才"
         titleLine2="让岗位与人才精准匹配"
       />
@@ -59,38 +56,11 @@ export default function Talent() {
           </div>
         </div>
 
-        <div className={styles.tabRight}>
-          <Select defaultValue="all" style={{ width: 120 }} size="small" disabled options={[
-            { value: 'all', label: '全部产业链' },
-          ]} />
-          <Select defaultValue="all" style={{ width: 110 }} size="small" disabled options={[
-            { value: 'all', label: '全部机构' },
-          ]} />
-          <Select
-            value={hometown}
-            onChange={(v) => setHometown(v)}
-            style={{ width: 110 }}
-            size="small"
-            options={[
-              { value: 'all', label: '全部籍贯' },
-              { value: 'yichang', label: '宜昌' },
-            ]}
-          />
-          <Select defaultValue="all" style={{ width: 110 }} size="small" disabled options={[
-            { value: 'all', label: '全部类型' },
-          ]} />
-        </div>
       </div>
 
       {activeTab === 'graph' && (
         <div className={styles.graphSection}>
-          {isYichangMode ? (
-            <Suspense fallback={<div style={{ padding: 60, textAlign: 'center' }}><Spin size="large" /><div style={{ marginTop: 12, color: '#86909C' }}>加载宜昌人才数据...</div></div>}>
-              <YichangTalents />
-            </Suspense>
-          ) : (
-            <TalentGraph key={`${searchKeyword}-${searchCounter}`} searchKeyword={searchKeyword} />
-          )}
+          <TalentGraph key={`${searchKeyword}-${searchCounter}`} searchKeyword={searchKeyword} />
         </div>
       )}
 

@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button, Tag, Spin, Drawer, Cascader, Table } from 'antd'
 import {
   TeamOutlined,
@@ -7,6 +8,9 @@ import {
   PlusOutlined,
   LoadingOutlined,
   EnvironmentOutlined,
+  FullscreenOutlined,
+  FullscreenExitOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons'
 import IndustryChainGraph from '@/components/IndustryTree'
 import { industryChainGraphData } from '@/mock/industryChainGraphData'
@@ -80,7 +84,35 @@ const allRegionOptions = [
   ...regionOptions,
 ]
 
+function cleanText(value: unknown): string {
+  if (Array.isArray(value)) return value.map(cleanText).filter(Boolean).join('、')
+  return String(value ?? '').replace(/^\[|]$/g, '').trim()
+}
+
+function getTalentField(record: Record<string, unknown>, fallback: string): string {
+  const candidates = [
+    record.DIRECTION,
+    record.direction,
+    record.CATE,
+    record.cate,
+    record.FIELD,
+    record.field,
+    record.research_fields,
+    record.KEYWORDS,
+    record.keywords,
+  ]
+
+  const result = candidates.map(cleanText).find(Boolean)
+  return result || fallback || '—'
+}
+
+function formatSummaryCount(value: number, unit: string, loading?: boolean): string {
+  if (loading) return `统计中${unit}`
+  return `${value.toLocaleString()}${unit}`
+}
+
 export default function IndustryGraph({ chainKey, selectedCity, regionValue: externalRegionValue }: IndustryGraphProps) {
+  const navigate = useNavigate()
   const graphData = useMemo(() => industryChainGraphData[chainKey], [chainKey])
 
   const nodeKeywords = useMemo(() => {
@@ -202,6 +234,8 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
     expertTotal: 0,
   })
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const graphAreaRef = useRef<HTMLDivElement | null>(null)
+  const [isGraphFullscreen, setIsGraphFullscreen] = useState(false)
 
   useEffect(() => {
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
@@ -341,6 +375,73 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
     })
   }, [loadChainDrawerData])
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsGraphFullscreen(document.fullscreenElement === graphAreaRef.current)
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
+
+  const handleGraphFullscreen = useCallback(() => {
+    if (document.fullscreenElement === graphAreaRef.current) {
+      void document.exitFullscreen?.()
+      return
+    }
+
+    void graphAreaRef.current?.requestFullscreen?.()
+  }, [])
+
+  const handleGraphDownload = useCallback(() => {
+    const target = graphAreaRef.current
+    if (!target) return
+
+    const canvases = Array.from(target.querySelectorAll('canvas'))
+    if (canvases.length === 0) return
+
+    const targetRect = target.getBoundingClientRect()
+    const scale = window.devicePixelRatio || 1
+    const output = document.createElement('canvas')
+    output.width = Math.max(1, Math.round(targetRect.width * scale))
+    output.height = Math.max(1, Math.round(targetRect.height * scale))
+
+    const ctx = output.getContext('2d')
+    if (!ctx) return
+
+    ctx.scale(scale, scale)
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, targetRect.width, targetRect.height)
+
+    canvases.forEach((canvas) => {
+      const rect = canvas.getBoundingClientRect()
+      ctx.drawImage(canvas, rect.left - targetRect.left, rect.top - targetRect.top, rect.width, rect.height)
+    })
+
+    const link = document.createElement('a')
+    link.download = `${chainLabel || '产业链图谱'}-${new Date().toISOString().slice(0, 10)}.png`
+    link.href = output.toDataURL('image/png')
+    link.click()
+  }, [chainLabel])
+
+  const openEnterpriseDetail = useCallback((record: Record<string, unknown>) => {
+    const name = String(record.NAME || record.name || '未知企业')
+    const id = String(record.ID || record.id || name)
+    const params = new URLSearchParams({
+      name,
+      region: `${record.PROV || record.prov || ''}${record.CITY || record.city ? ` ${record.CITY || record.city}` : ''}`.trim(),
+      tags: ((record.TAGS || record.tags || []) as string[]).join(','),
+      back: '/industry',
+    })
+    navigate(`/industry/enterprise/${encodeURIComponent(id)}?${params.toString()}`)
+  }, [navigate])
+
+  const openTalentDetail = useCallback((record: Record<string, unknown>) => {
+    const id = String(record.ID || record.id || record.auid || '')
+    if (!id) return
+    navigate(`/industry/talent/${encodeURIComponent(id)}`)
+  }, [navigate])
+
   if (!graphData) {
     return <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>暂无该产业链图谱数据</div>
   }
@@ -354,11 +455,25 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
   const analysisLabel = coverageState.loading
     ? `正在统计${localCity}强弱缺链（${coverageState.checked}/${coverageState.total}）`
     : undefined
+  const subChainTotal = coverageState.total || (nodeKeywords ? Object.keys(nodeKeywords).length : 0)
+  const chainSummaryLabel = `初步总结：涉及 ${formatSummaryCount(subChainTotal, '个子产业链', coverageState.loading)}，企业总数 ${formatSummaryCount(chainList.orgTotal, '家', chainList.orgLoading)}，人才总数 ${formatSummaryCount(chainList.expertTotal, '位', chainList.expertLoading)}`
 
   return (
     <div className={styles.graphLayout}>
       <div className={styles.leftColumn}>
-        <div className={styles.graphArea}>
+        <div className={styles.graphArea} ref={graphAreaRef}>
+          <div className={styles.graphToolbar}>
+            <Button
+              size="small"
+              icon={isGraphFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+              onClick={handleGraphFullscreen}
+            >
+              {isGraphFullscreen ? '退出全屏' : '全屏'}
+            </Button>
+            <Button size="small" icon={<DownloadOutlined />} onClick={handleGraphDownload}>
+              下载图谱
+            </Button>
+          </div>
           <div className={styles.legend}>
             <span><span className={styles.legendDot} style={{ background: '#2468F2' }} /> 强链</span>
             <span><span className={styles.legendDot} style={{ background: '#7BA3FA' }} /> 弱链</span>
@@ -391,10 +506,11 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
             nodeOrgCounts={coverageState.nodeOrgCounts}
             analyzing={coverageState.loading}
             analysisLabel={analysisLabel}
+            summaryLabel={chainSummaryLabel}
           />
         </div>
 
-        <div className={styles.panelCard}>
+        <div className={`${styles.panelCard} ${styles.chainEnterpriseCard}`}>
           <div className={styles.sectionHeader}>
             <div className={styles.sectionTitle}>
               <img src={industryChainEnterprisesIcon} alt="" className={styles.sectionIconImage} />
@@ -409,9 +525,9 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
           </div>
 
           {chainList.orgLoading ? (
-            <div style={{ textAlign: 'center', padding: '24px 0' }}>
+            <div className={styles.listState}>
               <Spin indicator={<LoadingOutlined spin />} />
-              <div style={{ color: '#999', fontSize: 12, marginTop: 8 }}>{orgListLoadingText}</div>
+              <div className={styles.listStateText}>{orgListLoadingText}</div>
             </div>
           ) : chainList.orgs.length > 0 ? (
             <div className={styles.enterpriseGrid}>
@@ -423,9 +539,9 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
                   </tr>
                 </thead>
                 <tbody>
-                  {chainList.orgs.slice(0, 5).map((org, index) => (
-                    <tr key={index}>
-                      <td title={String(org.NAME || '')} style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {chainList.orgs.slice(0, 4).map((org, index) => (
+                    <tr key={index} onClick={() => openEnterpriseDetail(org)}>
+                      <td title={String(org.NAME || '')}>
                         {String(org.NAME || org.name || '未知')}
                       </td>
                       <td>{String(org.PROV || org.prov || '')}{org.CITY || org.city ? ` ${org.CITY || org.city}` : ''}</td>
@@ -442,24 +558,32 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
                   </tr>
                 </thead>
                 <tbody>
-                  {chainList.orgs.slice(5, 10).map((org, index) => (
-                    <tr key={index}>
-                      <td title={String(org.NAME || org.name || '')} style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {chainList.orgs.slice(4, 7).map((org, index) => (
+                    <tr key={index} onClick={() => openEnterpriseDetail(org)}>
+                      <td title={String(org.NAME || org.name || '')}>
                         {String(org.NAME || org.name || '未知')}
                       </td>
                       <td>{String(org.PROV || org.prov || '')}{org.CITY || org.city ? ` ${org.CITY || org.city}` : ''}</td>
                     </tr>
                   ))}
+                  <tr className={styles.enterpriseViewAllRow} onClick={() => openChainDrawer('orgs')}>
+                    <td colSpan={2}>查看全部企业 &gt;</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '16px 0', color: '#999', fontSize: 13 }}>暂无{localCity}企业数据</div>
+            <div className={styles.listState}>
+              <div className={styles.skeletonRows} aria-hidden="true">
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className={styles.listStateText}>暂无{localCity}企业数据</div>
+            </div>
           )}
 
-          <div className={styles.viewAll} onClick={() => openChainDrawer('orgs')} style={{ cursor: 'pointer' }}>
-            查看全部企业 &gt;
-          </div>
         </div>
       </div>
 
@@ -484,7 +608,7 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
         <div className={styles.panelCard}>
           <div className={styles.panelTitle}>
             <img src={industryLocalizationRateIcon} alt="" className={styles.iconImage} />
-            本地化率（节点覆盖）
+            本地化率
           </div>
           <div className={styles.statValue} style={{ color: '#2468F2' }}>
             {coverageState.loading ? (
@@ -514,7 +638,7 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
           </div>
         </div>
 
-        <div className={styles.panelCard} style={{ flex: 1 }}>
+        <div className={`${styles.panelCard} ${styles.chainTalentCard}`}>
           <div className={styles.sectionHeader}>
             <div className={styles.sectionTitle}>
               <img src={industryChainTalentsIcon} alt="" className={styles.sectionIconImage} />
@@ -523,42 +647,51 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
             <Button className={styles.listAddButton} type="primary" size="small" icon={<PlusOutlined />}>批量加入清单</Button>
           </div>
 
-          {chainList.expertTotal > 0 && (
-            <div style={{ color: '#999', fontSize: 13, marginBottom: 8 }}>{localCity} 共 {chainList.expertTotal.toLocaleString()} 位</div>
-          )}
-
           {chainList.expertLoading ? (
-            <div style={{ textAlign: 'center', padding: '24px 0' }}>
+            <div className={styles.listState}>
               <Spin indicator={<LoadingOutlined spin />} />
-              <div style={{ color: '#999', fontSize: 12, marginTop: 8 }}>{expertListLoadingText}</div>
+              <div className={styles.listStateText}>{expertListLoadingText}</div>
             </div>
           ) : chainList.experts.length > 0 ? (
-            <table className={styles.talentTable}>
-              <thead>
-                <tr>
-                  <th>人才</th>
-                  <th>职称</th>
-                </tr>
-              </thead>
-              <tbody>
-                {chainList.experts.slice(0, 8).map((expert, index) => {
-                  const rawTitle = String(expert.TITLE || expert.title || '')
-                  const title = rawTitle.replace(/^\[|]$/g, '').trim()
-                  const titleColors = ['blue', 'orange', 'green', 'purple', 'cyan']
-                  return (
-                    <tr key={index}>
-                      <td>{String(expert.CNAME || expert.name || '未知')}</td>
-                      <td>{title ? <Tag color={titleColors[index % titleColors.length]}>{title}</Tag> : '—'}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+            <div className={styles.talentTableWrap}>
+              <table className={styles.talentTable}>
+                <thead>
+                  <tr>
+                    <th>人才</th>
+                    <th>职称</th>
+                    <th>领域</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chainList.experts.slice(0, 8).map((expert, index) => {
+                    const title = cleanText(expert.TITLE || expert.title)
+                    const field = getTalentField(expert, chainLabel)
+                    return (
+                      <tr key={index} onClick={() => openTalentDetail(expert)}>
+                        <td>{String(expert.CNAME || expert.name || '未知')}</td>
+                        <td>
+                          {title ? <span className={styles.talentTitlePill}>{title}</span> : '—'}
+                        </td>
+                        <td title={field}>{field}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '16px 0', color: '#999', fontSize: 13 }}>暂无{localCity}人才数据</div>
+            <div className={styles.listState}>
+              <div className={styles.skeletonRows} aria-hidden="true">
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className={styles.listStateText}>暂无{localCity}人才数据</div>
+            </div>
           )}
 
-          <div className={styles.viewAll} onClick={() => openChainDrawer('experts')} style={{ cursor: 'pointer' }}>
+          <div className={`${styles.viewAll} ${styles.talentViewAll}`} onClick={() => openChainDrawer('experts')} style={{ cursor: 'pointer' }}>
             查看全部人才 &gt;
           </div>
         </div>
@@ -577,16 +710,16 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
         width={860}
         destroyOnClose
       >
-        <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className={styles.filterGroup} style={{ marginBottom: 16 }}>
           <EnvironmentOutlined style={{ color: '#2468F2' }} />
-          <span style={{ fontSize: 13, color: '#666' }}>地区筛选：</span>
+          <span className={styles.filterLabel}>地区筛选：</span>
           <Cascader
             options={allRegionOptions}
             value={chainDrawer.regionValue.length > 0 ? chainDrawer.regionValue : ['__all__']}
             onChange={(val) => handleChainDrawerRegionChange((val || []) as string[])}
             changeOnSelect
             size="small"
-            style={{ width: 220 }}
+            style={{ width: 200 }}
             placeholder="选择地区"
           />
         </div>
@@ -597,6 +730,13 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
           rowKey={(_, index) => String(index)}
           loading={chainDrawer.loading}
           size="small"
+          onRow={(record) => ({
+            onClick: () => {
+              if (chainDrawer.type === 'orgs') openEnterpriseDetail(record)
+              else openTalentDetail(record)
+            },
+            style: { cursor: 'pointer' },
+          })}
           pagination={{
             current: chainDrawer.page,
             total: Math.min(chainDrawer.total, 100),

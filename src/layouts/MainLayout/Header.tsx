@@ -18,11 +18,11 @@ import styles from './MainLayout.module.scss'
 
 const menuItems = [
   { key: '/', label: '首页' },
-  { key: '/industry', label: '产业招引' },
-  { key: '/talent', label: '人才引育' },
-  { key: '/innovation', label: '创新协同' },
-  { key: '/funding', label: '资金对接' },
-  { key: '/policy', label: '政策直达' },
+  { key: '/industry', label: '产业' },
+  { key: '/talent', label: '人才' },
+  { key: '/innovation', label: '创新' },
+  { key: '/funding', label: '资金' },
+  { key: '/policy', label: '政策' },
   { key: '/solutions', label: '解决方案' },
   { key: '/about', label: '关于我们' },
 ]
@@ -86,19 +86,19 @@ export default function Header() {
             placement="bottomRight"
           >
             <div className={styles.headerAction} style={{ cursor: 'pointer' }}>
-              <img src={iconMenu} alt="" style={{ width: 16, height: 16 }} />
+              <img src={iconMenu} alt="" className={styles.actionIcon} />
               <span>快捷菜单 ▼</span>
             </div>
           </Dropdown>
 
           <div className={styles.headerAction} onClick={() => navigate('/screen')}>
-            <img src={iconScreen} alt="" style={{ width: 16, height: 16 }} />
+            <img src={iconScreen} alt="" className={`${styles.actionIcon} ${styles.screenIcon}`} />
             <span>大屏模式</span>
           </div>
 
           <div className={styles.headerAction}>
             <Badge count={3} size="small">
-              <img src={iconBell} alt="" style={{ width: 16, height: 16 }} />
+              <img src={iconBell} alt="" className={styles.actionIcon} />
             </Badge>
             <span>消息</span>
           </div>
@@ -113,7 +113,7 @@ export default function Header() {
             placement="bottomRight"
           >
             <div className={styles.headerAction} style={{ cursor: 'pointer' }}>
-              <img src={iconUser} alt="" style={{ width: 16, height: 16 }} />
+              <img src={iconUser} alt="" className={styles.actionIcon} />
               <span>管理员</span>
             </div>
           </Dropdown>

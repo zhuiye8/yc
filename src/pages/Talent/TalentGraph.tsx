@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react'
 import ReactECharts from 'echarts-for-react'
+import { useNavigate } from 'react-router-dom'
 import { UserOutlined, LoadingOutlined, BankOutlined } from '@ant-design/icons'
 import { Tag, Spin, App, Empty } from 'antd'
 import {
@@ -183,6 +184,7 @@ function buildCoopGraphFallback(currentTalent: TalentInfo, coopList: CoopTalent[
 
 export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
   const { message } = App.useApp()
+  const navigate = useNavigate()
 
   const [currentTalent, setCurrentTalent] = useState<TalentInfo | null>(null)
   const [graphNodes, setGraphNodes] = useState<GraphNode[]>([])
@@ -563,6 +565,7 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
               nodes={relationNodes}
               links={graphLinks}
               centerAuid={currentTalent.auid}
+              onNodeClick={(nodeId) => navigate(`/industry/talent/${encodeURIComponent(nodeId)}`)}
             />
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 420 }}>

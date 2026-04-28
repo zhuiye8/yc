@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { App, Cascader, Drawer, Select, Table, Tag } from 'antd'
-import { BankOutlined, TeamOutlined } from '@ant-design/icons'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { App, Button, Cascader, Drawer, Select, Table, Tag } from 'antd'
+import { BankOutlined, DownloadOutlined, TeamOutlined } from '@ant-design/icons'
 import HeroSection from '@/components/HeroSection'
 import IndustryGraph from './IndustryGraph'
 import IndustryInnovationResources from './IndustryInnovationResources'
@@ -11,6 +11,7 @@ import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
 import { searchIndustryFromSource } from '@/services/industrySource'
 import { searchIndustryExpertsLive } from '@/services/industryLiveExperts'
 import { searchOrgs } from '@/services/industry'
+import { exportRecordsCsv } from '@/utils/exportCsv'
 import {
   INDUSTRY_CHAIN_TREE,
   DEFAULT_PRIMARY_KEY,
@@ -36,9 +37,12 @@ interface SearchDrawerState {
 
 export default function Industry() {
   const { message } = App.useApp()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const initialTab = searchParams.get('tab')
   const initialChain = searchParams.get('chain')
+  const searchKeywordFromUrl = searchParams.get('q') ?? ''
+  const initialSearchKeyword = searchKeywordFromUrl.trim()
   const [activeTab, setActiveTab] = useState<'graph' | 'innovation' | 'report'>(
     initialTab === 'innovation' || initialTab === 'report' ? initialTab : 'graph',
   )
@@ -81,9 +85,9 @@ export default function Industry() {
   }, [])
   const [regionValue, setRegionValue] = useState<string[]>(['hubei', 'yichang'])
   const [searchDrawer, setSearchDrawer] = useState<SearchDrawerState>({
-    visible: false,
-    keyword: '',
-    loading: false,
+    visible: Boolean(initialSearchKeyword),
+    keyword: initialSearchKeyword,
+    loading: Boolean(initialSearchKeyword),
     orgs: [],
     orgTotal: 0,
     experts: [],
@@ -94,23 +98,7 @@ export default function Industry() {
   const selectedRegion = useMemo(() => resolveIndustryRegionFromCascader(regionValue), [regionValue])
   const selectedCity = selectedRegion.city || ''
 
-  const handleSearch = useCallback((keyword: string) => {
-    const trimmedKeyword = keyword.trim()
-    if (!trimmedKeyword) return
-
-    setSearchDrawer((prev) => ({
-      ...prev,
-      visible: true,
-      keyword: trimmedKeyword,
-      loading: true,
-      orgs: [],
-      experts: [],
-      orgTotal: 0,
-      expertTotal: 0,
-    }))
-
-    message.info(`正在搜索“${trimmedKeyword}”…`)
-
+  const loadSearchResults = useCallback((trimmedKeyword: string) => {
     void (async () => {
       const sourceResult = await searchIndustryFromSource(trimmedKeyword, selectedRegion).catch(() => null)
       const [orgResult, expertResult] = await Promise.allSettled([
@@ -139,7 +127,58 @@ export default function Industry() {
         expertTotal: expertData?.total ?? 0,
       }))
     })()
-  }, [message, selectedRegion])
+  }, [selectedRegion])
+
+  const handleSearch = useCallback((keyword: string) => {
+    const trimmedKeyword = keyword.trim()
+    if (!trimmedKeyword) return
+
+    setSearchDrawer((prev) => ({
+      ...prev,
+      visible: true,
+      keyword: trimmedKeyword,
+      loading: true,
+      orgs: [],
+      experts: [],
+      orgTotal: 0,
+      expertTotal: 0,
+    }))
+
+    message.info(`正在搜索“${trimmedKeyword}”…`)
+    loadSearchResults(trimmedKeyword)
+  }, [loadSearchResults, message])
+
+  useEffect(() => {
+    if (!initialSearchKeyword) return
+    message.info(`正在搜索“${initialSearchKeyword}”…`)
+    loadSearchResults(initialSearchKeyword)
+  }, [initialSearchKeyword, loadSearchResults, message])
+
+  const openEnterpriseDetail = useCallback((record: Record<string, unknown>) => {
+    const name = String(record.NAME || record.name || '未知企业')
+    const id = String(record.ID || record.id || name)
+    const params = new URLSearchParams({
+      name,
+      region: `${record.PROV || record.prov || ''}${record.CITY || record.city ? ` ${record.CITY || record.city}` : ''}`.trim(),
+      tags: ((record.TAGS || record.tags || []) as string[]).join(','),
+      back: '/industry',
+    })
+    navigate(`/industry/enterprise/${encodeURIComponent(id)}?${params.toString()}`)
+  }, [navigate])
+
+  const openTalentDetail = useCallback((record: Record<string, unknown>) => {
+    const id = String(record.ID || record.id || record.auid || '')
+    if (!id) return
+    navigate(`/industry/talent/${encodeURIComponent(id)}`)
+  }, [navigate])
+
+  const handleExportSearchDrawerData = useCallback(() => {
+    const isOrgTab = searchDrawer.activeTab === 'orgs'
+    const records = isOrgTab ? searchDrawer.orgs : searchDrawer.experts
+    const typeLabel = isOrgTab ? '企业' : '人才'
+    exportRecordsCsv(records, `搜索-${searchDrawer.keyword}-${typeLabel}`)
+    message.success(`已导出${typeLabel}列表`)
+  }, [message, searchDrawer.activeTab, searchDrawer.experts, searchDrawer.keyword, searchDrawer.orgs])
 
   return (
     <div className={styles.page}>
@@ -148,6 +187,7 @@ export default function Industry() {
         searchPlaceholder="搜索产业链、产业环节、企业..."
         hotTags={hotTags}
         onSearch={handleSearch}
+        variant="industry"
         titleLine1="摸清产业底数"
         titleLine2="让招引更精准、决策更高效"
       />
@@ -176,52 +216,62 @@ export default function Industry() {
 
         {activeTab === 'graph' && (
           <div className={styles.tabRight}>
-            <span className={styles.filterLabel}>地区</span>
-            <Cascader
-              options={regionOptions}
-              value={regionValue}
-              onChange={(value) => setRegionValue((value || []) as string[])}
-              size="small"
-              style={{ width: 200 }}
-              placeholder="选择地区"
-            />
-            <span className={styles.filterLabel}>一级产业链</span>
-            <Select
-              value={selectedPrimary}
-              onChange={handlePrimaryChange}
-              options={primaryOptions}
-              style={{ width: 160 }}
-              size="small"
-            />
-            <span className={styles.filterLabel}>二级产业链</span>
-            <Select
-              value={selectedChain}
-              onChange={setSelectedChain}
-              options={secondaryOptions}
-              style={{ width: 220 }}
-              size="small"
-            />
+            <div className={styles.filterGroup}>
+              <span className={styles.filterLabel}>地区：</span>
+              <Cascader
+                options={regionOptions}
+                value={regionValue}
+                onChange={(value) => setRegionValue((value || []) as string[])}
+                size="small"
+                style={{ width: 200 }}
+                placeholder="选择地区"
+              />
+            </div>
+            <div className={styles.filterGroup}>
+              <span className={styles.filterLabel}>一级产业链：</span>
+              <Select
+                value={selectedPrimary}
+                onChange={handlePrimaryChange}
+                options={primaryOptions}
+                style={{ width: 200 }}
+                size="small"
+              />
+            </div>
+            <div className={styles.filterGroup}>
+              <span className={styles.filterLabel}>二级产业链：</span>
+              <Select
+                value={selectedChain}
+                onChange={setSelectedChain}
+                options={secondaryOptions}
+                style={{ width: 200 }}
+                size="small"
+              />
+            </div>
           </div>
         )}
 
         {activeTab === 'innovation' && (
           <div className={styles.tabRight}>
-            <span className={styles.filterLabel}>一级产业链</span>
-            <Select
-              value={selectedPrimary}
-              onChange={handlePrimaryChange}
-              options={primaryOptions}
-              style={{ width: 160 }}
-              size="small"
-            />
-            <span className={styles.filterLabel}>二级产业链</span>
-            <Select
-              value={selectedChain}
-              onChange={setSelectedChain}
-              options={secondaryOptions}
-              style={{ width: 220 }}
-              size="small"
-            />
+            <div className={styles.filterGroup}>
+              <span className={styles.filterLabel}>一级产业链：</span>
+              <Select
+                value={selectedPrimary}
+                onChange={handlePrimaryChange}
+                options={primaryOptions}
+                style={{ width: 200 }}
+                size="small"
+              />
+            </div>
+            <div className={styles.filterGroup}>
+              <span className={styles.filterLabel}>二级产业链：</span>
+              <Select
+                value={selectedChain}
+                onChange={setSelectedChain}
+                options={secondaryOptions}
+                style={{ width: 200 }}
+                size="small"
+              />
+            </div>
           </div>
         )}
       </div>
@@ -252,9 +302,19 @@ export default function Industry() {
         title={<span><BankOutlined style={{ marginRight: 8 }} />搜索结果：{searchDrawer.keyword}</span>}
         open={searchDrawer.visible}
         onClose={() => setSearchDrawer((prev) => ({ ...prev, visible: false }))}
-        width={860}
+        width={960}
+        rootClassName={styles.industryDataDrawerRoot}
         destroyOnClose
       >
+        <div className={styles.drawerIntro}>
+          <div className={styles.drawerIntroTitle}>产业链节点介绍</div>
+          <div className={styles.drawerIntroText}>
+            围绕“{searchDrawer.keyword}”检索产业链相关企业与人才资源，展示匹配对象的区域、行业标签和科研能力，可用于进一步筛选招引目标与对接人才。
+          </div>
+        </div>
+
+        <div className={styles.drawerToolbar}>
+          <div className={styles.drawerTabs}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <div
             onClick={() => setSearchDrawer((prev) => ({ ...prev, activeTab: 'orgs' }))}
@@ -287,13 +347,27 @@ export default function Industry() {
             人才 ({searchDrawer.expertTotal})
           </div>
         </div>
+          </div>
+          <Button
+            icon={<DownloadOutlined />}
+            disabled={(searchDrawer.activeTab === 'orgs' ? searchDrawer.orgs : searchDrawer.experts).length === 0}
+            onClick={handleExportSearchDrawerData}
+          >
+            批量导出
+          </Button>
+        </div>
 
         {searchDrawer.activeTab === 'orgs' ? (
           <Table
+            className={styles.drawerTable}
             loading={searchDrawer.loading}
             dataSource={searchDrawer.orgs}
             rowKey={(_, index) => String(index)}
             size="small"
+            onRow={(record) => ({
+              onClick: () => openEnterpriseDetail(record),
+              style: { cursor: 'pointer' },
+            })}
             pagination={{ pageSize: 10, showTotal: () => `共 ${searchDrawer.orgTotal} 条` }}
             columns={[
               {
@@ -319,7 +393,7 @@ export default function Industry() {
                   ((record.INDUSTRY || []) as string[])
                     .slice(0, 2)
                     .map((item, index) => (
-                      <Tag key={index} color="blue" style={{ fontSize: 11 }}>
+                      <Tag key={index} color="blue" style={{ fontSize: 12, lineHeight: '20px', padding: '0 7px', borderRadius: 10 }}>
                         {item.length > 8 ? `${item.slice(0, 8)}...` : item}
                       </Tag>
                     )),
@@ -333,7 +407,7 @@ export default function Industry() {
                   ((record.TAGS || []) as string[])
                     .slice(0, 2)
                     .map((item, index) => (
-                      <Tag key={index} style={{ fontSize: 11 }}>
+                      <Tag key={index} style={{ fontSize: 12, lineHeight: '20px', padding: '0 7px', borderRadius: 10 }}>
                         {item}
                       </Tag>
                     )),
@@ -342,10 +416,15 @@ export default function Industry() {
           />
         ) : (
           <Table
+            className={styles.drawerTable}
             loading={searchDrawer.loading}
             dataSource={searchDrawer.experts}
             rowKey={(_, index) => String(index)}
             size="small"
+            onRow={(record) => ({
+              onClick: () => openTalentDetail(record),
+              style: { cursor: 'pointer' },
+            })}
             pagination={{ pageSize: 10, showTotal: () => `共 ${searchDrawer.expertTotal} 条` }}
             columns={[
               {
@@ -364,7 +443,7 @@ export default function Industry() {
                 title: 'H指数',
                 key: 'h',
                 width: 70,
-                render: (_value, record: Record<string, unknown>) => <Tag color="blue">{String(record.H ?? '-')}</Tag>,
+                render: (_value, record: Record<string, unknown>) => <Tag color="blue" style={{ fontSize: 13, minWidth: 36, textAlign: 'center', borderRadius: 10 }}>{String(record.H ?? '-')}</Tag>,
               },
               {
                 title: '论文',

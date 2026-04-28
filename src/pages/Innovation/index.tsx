@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Button, Select, Table, Tag, type TableColumnsType } from 'antd'
 import { ExperimentOutlined } from '@ant-design/icons'
 import HeroSection from '@/components/HeroSection'
-import ResourceHeatMap from './ResourceHeatMap'
+import IndustryInnovationResources from '@/pages/Industry/IndustryInnovationResources'
 import InnovationReport from './InnovationReport'
+import { DEFAULT_SECONDARY_KEY, INDUSTRY_CHAIN_TREE } from '@/data/industryChainTree'
 import innovationBg from '@/assets/images/hero/innovation-bg-plain.jpg'
 import innovationTechnologyHeatIcon from '@/assets/images/icons/innovation-technology-heat-icon.png'
 import innovationPatentListIcon from '@/assets/images/icons/innovation-patent-list-icon.png'
@@ -202,8 +203,18 @@ const coreOrgs: CoreOrg[] = [
   { name: '中船重工710研究所', type: '企业', typeColor: 'orange', patent: 342, project: 52, paper: 84 },
 ]
 
+const chainOptions = INDUSTRY_CHAIN_TREE.flatMap((primary) =>
+  primary.secondaries
+    .filter((secondary) => secondary.enabled)
+    .map((secondary) => ({
+      value: secondary.key,
+      label: secondary.label,
+    })),
+)
+
 export default function Innovation() {
   const [activeTab, setActiveTab] = useState<'resource' | 'gap' | 'report'>('resource')
+  const [selectedChain, setSelectedChain] = useState(DEFAULT_SECONDARY_KEY)
 
   return (
     <div className={styles.page}>
@@ -211,6 +222,7 @@ export default function Innovation() {
         backgroundImage={innovationBg}
         searchPlaceholder="搜索技术成果、专利、机构、科研项目..."
         hotTags={hotTags}
+        variant="industry"
         titleLine1="链接产学研资源"
         titleLine2="让技术成果快速落地"
       />
@@ -223,27 +235,25 @@ export default function Innovation() {
               className={`${styles.tab} ${activeTab === tab ? styles.active : styles.inactive}`}
               onClick={() => setActiveTab(tab)}
             >
-              {tab === 'resource' ? '资源热力' : tab === 'gap' ? '缺口识别' : '专题报告'}
+              {tab === 'resource' ? '创新资源' : tab === 'gap' ? '缺口对标' : '技术报告'}
             </div>
           ))}
         </div>
-        {activeTab !== 'resource' && (
-          <div className={styles.tabRight}>
+        <div className={styles.tabRight}>
+          <div className={styles.filterGroup}>
             <span className={styles.filterLabel}>产业链</span>
             <Select
-              defaultValue="green-chem"
-              style={{ width: 140 }}
+              value={selectedChain}
+              onChange={setSelectedChain}
+              style={{ width: 200 }}
               size="small"
-              options={[
-                { value: 'green-chem', label: '绿色化工' },
-                { value: 'ai', label: '人工智能' },
-              ]}
+              options={chainOptions}
             />
           </div>
-        )}
+        </div>
       </div>
 
-      {activeTab === 'resource' && <ResourceHeatMap />}
+      {activeTab === 'resource' && <IndustryInnovationResources chainKey={selectedChain} />}
 
       {activeTab === 'gap' && (
         <div className={styles.content}>

@@ -102,6 +102,7 @@ export default function Funding() {
         backgroundImage={fundingBg}
         searchPlaceholder="搜索金融产品、机构、基金、融资需求..."
         hotTags={hotTags}
+        variant="industry"
         titleLine1="连接多元资本"
         titleLine2="让人才与技术获得精准融资"
       />
@@ -117,15 +118,15 @@ export default function Funding() {
         </div>
         <div className={styles.tabRight}>
           {activeTab === 'report' && (
-            <>
+            <div className={styles.filterGroup}>
               <span className={styles.filterLabel}>产业链</span>
               <Select
                 defaultValue="green-chem"
-                style={{ width: 140 }}
+                style={{ width: 200 }}
                 size="small"
                 options={[{ value: 'green-chem', label: '绿色化工' }]}
               />
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -199,13 +200,15 @@ export default function Funding() {
                     投资机构
                   </div>
                 </div>
-                <span style={{ fontSize: 13, color: '#86909C' }}>产业链</span>
-                <Select
-                  defaultValue="green-chem"
-                  style={{ width: 130 }}
-                  size="small"
-                  options={[{ value: 'green-chem', label: '绿色化工' }]}
-                />
+                <div className={styles.filterGroup}>
+                  <span className={styles.filterLabel}>产业链</span>
+                  <Select
+                    defaultValue="green-chem"
+                    style={{ width: 200 }}
+                    size="small"
+                    options={[{ value: 'green-chem', label: '绿色化工' }]}
+                  />
+                </div>
               </div>
               {subTab === 'product' ? (
                 <Table<FundingProduct>
