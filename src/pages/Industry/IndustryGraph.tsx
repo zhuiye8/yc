@@ -32,12 +32,17 @@ import industryWarningScoreIcon from '@/assets/images/icons/industry-warning-sco
 import industryLocalizationRateIcon from '@/assets/images/icons/industry-localization-rate-icon.png'
 import industryChainEnterprisesIcon from '@/assets/images/icons/industry-chain-enterprises-icon.png'
 import industryChainTalentsIcon from '@/assets/images/icons/industry-chain-talents-icon.png'
+import industryOverviewChainIcon from '@/assets/images/icons/industry-overview-chain-icon.png'
+import industryOverviewEnterpriseIcon from '@/assets/images/icons/industry-overview-enterprise-icon.png'
+import industryOverviewRegionIcon from '@/assets/images/icons/industry-overview-region-icon.png'
+import industryOverviewCoverageIcon from '@/assets/images/icons/industry-overview-coverage-icon.png'
 import styles from './Industry.module.scss'
 
 interface IndustryGraphProps {
   chainKey: string
   selectedCity?: string
   regionValue?: string[]
+  onRegionChange?: (value: string[]) => void
 }
 
 interface ChainListState {
@@ -59,6 +64,16 @@ interface ChainDrawerState {
   data: Record<string, unknown>[]
   total: number
   page: number
+}
+
+interface CountableGraphNode {
+  children?: CountableGraphNode[]
+}
+
+interface CountableGraphSet {
+  upstream?: { root: CountableGraphNode }
+  midstream?: { root: CountableGraphNode }
+  downstream?: { root: CountableGraphNode }
 }
 
 const chainKeyToLabel: Record<string, string> = {
@@ -84,6 +99,61 @@ const allRegionOptions = [
   ...regionOptions,
 ]
 
+function countGraphLevels(chainKeys: string[], fallbackGraphData?: CountableGraphSet): number[] {
+  const counts = [0, 0, 0, 0]
+  const streams = ['upstream', 'midstream', 'downstream'] as const
+  const graphSets = chainKeys
+    .map((key) => industryChainGraphData[key] as CountableGraphSet | undefined)
+    .filter((item): item is CountableGraphSet => Boolean(item))
+
+  if (graphSets.length === 0 && fallbackGraphData) graphSets.push(fallbackGraphData)
+
+  const walk = (node: CountableGraphNode | undefined, depth: number) => {
+    if (!node) return
+    const levelIndex = Math.min(depth, counts.length - 1)
+    counts[levelIndex] += 1
+    node.children?.forEach((child) => walk(child, depth + 1))
+  }
+
+  graphSets.forEach((graphSet) => {
+    streams.forEach((stream) => {
+      walk(graphSet[stream]?.root, 0)
+    })
+  })
+
+  return counts
+}
+
+function stripLevelPrefix(name: string): string {
+  return name.replace(/^(上游|中游|下游)[：:]/, '').trim()
+}
+
+function collectFirstLevelNames(chainKeys: string[], fallbackGraphData?: CountableGraphSet): string[] {
+  const streams = ['upstream', 'midstream', 'downstream'] as const
+  const graphSets = chainKeys
+    .map((key) => industryChainGraphData[key] as CountableGraphSet | undefined)
+    .filter((item): item is CountableGraphSet => Boolean(item))
+
+  if (graphSets.length === 0 && fallbackGraphData) graphSets.push(fallbackGraphData)
+
+  return graphSets.flatMap((graphSet) =>
+    streams
+      .map((stream) => graphSet[stream]?.root)
+      .filter((node): node is CountableGraphNode & { name?: string } => Boolean(node))
+      .map((node) => stripLevelPrefix(String(node.name || '')))
+      .filter(Boolean),
+  )
+}
+
+function formatLevelBreakdown(counts: number[]): string {
+  const labels = ['二级环节', '三级环节', '四级环节']
+  return counts
+    .slice(1)
+    .map((count, index) => (count > 0 ? `${count.toLocaleString()}个${labels[index]}` : ''))
+    .filter(Boolean)
+    .join('、')
+}
+
 function cleanText(value: unknown): string {
   if (Array.isArray(value)) return value.map(cleanText).filter(Boolean).join('、')
   return String(value ?? '').replace(/^\[|]$/g, '').trim()
@@ -106,12 +176,12 @@ function getTalentField(record: Record<string, unknown>, fallback: string): stri
   return result || fallback || '—'
 }
 
-function formatSummaryCount(value: number, unit: string, loading?: boolean): string {
-  if (loading) return `统计中${unit}`
-  return `${value.toLocaleString()}${unit}`
-}
-
-export default function IndustryGraph({ chainKey, selectedCity, regionValue: externalRegionValue }: IndustryGraphProps) {
+export default function IndustryGraph({
+  chainKey,
+  selectedCity,
+  regionValue: externalRegionValue,
+  onRegionChange,
+}: IndustryGraphProps) {
   const navigate = useNavigate()
   const graphData = useMemo(() => industryChainGraphData[chainKey], [chainKey])
 
@@ -123,6 +193,14 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
 
   const chainLabel = chainKeyToLabel[chainKey] || ''
   const chainSearchKey = chainKeyToSearchKey[chainKey] || chainLabel
+  const chainLevelCounts = useMemo(
+    () => countGraphLevels([chainKey], graphData as CountableGraphSet | undefined),
+    [chainKey, graphData],
+  )
+  const firstLevelNames = useMemo(
+    () => collectFirstLevelNames([chainKey], graphData as CountableGraphSet | undefined),
+    [chainKey, graphData],
+  )
   const localRegion = useMemo(() => resolveIndustryRegionFromCascader(externalRegionValue), [externalRegionValue])
   const localCity = localRegion.city || selectedCity || '宜昌'
 
@@ -456,12 +534,71 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
     ? `正在统计${localCity}强弱缺链（${coverageState.checked}/${coverageState.total}）`
     : undefined
   const subChainTotal = coverageState.total || (nodeKeywords ? Object.keys(nodeKeywords).length : 0)
-  const chainSummaryLabel = `初步总结：涉及 ${formatSummaryCount(subChainTotal, '个子产业链', coverageState.loading)}，企业总数 ${formatSummaryCount(chainList.orgTotal, '家', chainList.orgLoading)}，人才总数 ${formatSummaryCount(chainList.expertTotal, '位', chainList.expertLoading)}`
+  const firstLevelText = firstLevelNames.join('、')
+  const levelBreakdown = formatLevelBreakdown(chainLevelCounts)
+  const overviewCards = [
+    {
+      icon: industryOverviewChainIcon,
+      value: coverageState.loading ? '统计中' : subChainTotal.toLocaleString(),
+      unit: coverageState.loading ? '' : '个',
+      label: '全产业链环节',
+    },
+    {
+      icon: industryOverviewEnterpriseIcon,
+      value: chainList.orgLoading ? '统计中' : chainList.orgTotal.toLocaleString(),
+      unit: chainList.orgLoading ? '' : '家',
+      label: '企业数量',
+    },
+    {
+      icon: industryOverviewCoverageIcon,
+      value: coverageState.loading ? '统计中' : `${localizationRateStr}%`,
+      unit: '',
+      label: '产业覆盖度',
+    },
+  ]
 
   return (
-    <div className={styles.graphLayout}>
-      <div className={styles.leftColumn}>
-        <div className={styles.graphArea} ref={graphAreaRef}>
+    <>
+      <div className={styles.chainOverview}>
+        <div className={styles.chainOverviewHeader}>
+          <div className={styles.chainOverviewTitleGroup}>
+            <span className={styles.chainOverviewTitle}>{chainLabel}</span>
+            <div className={styles.chainOverviewRegionWrap}>
+              <img src={industryOverviewRegionIcon} alt="" className={styles.chainOverviewRegionIcon} />
+              <Cascader
+                options={regionOptions}
+                value={externalRegionValue}
+                onChange={(value) => onRegionChange?.((value || []) as string[])}
+                size="small"
+                className={styles.chainOverviewRegion}
+                placeholder="全国"
+              />
+            </div>
+          </div>
+          <span className={styles.chainOverviewDate}>数据更新至:2026年04月</span>
+        </div>
+        <div className={styles.chainOverviewDesc}>
+          {chainLabel}产业链共{subChainTotal.toLocaleString()}个环节，包含{chainLevelCounts[0] > 0 ? `${chainLevelCounts[0]}个一级环节（${firstLevelText}）` : ''}{levelBreakdown ? `、${levelBreakdown}` : ''}。
+        </div>
+        <div className={styles.chainOverviewCards}>
+          {overviewCards.map((card) => (
+            <div className={styles.chainOverviewCard} key={card.label}>
+              <div>
+                <div className={styles.chainOverviewValue}>
+                  {card.value}
+                  {card.unit && <span>{card.unit}</span>}
+                </div>
+                <div className={styles.chainOverviewCardLabel}>{card.label}</div>
+              </div>
+              <img src={card.icon} alt="" className={styles.chainOverviewIcon} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className={styles.graphLayout}>
+        <div className={styles.leftColumn}>
+          <div className={styles.graphArea} ref={graphAreaRef}>
           <div className={styles.graphToolbar}>
             <Button
               size="small"
@@ -506,7 +643,6 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
             nodeOrgCounts={coverageState.nodeOrgCounts}
             analyzing={coverageState.loading}
             analysisLabel={analysisLabel}
-            summaryLabel={chainSummaryLabel}
           />
         </div>
 
@@ -697,6 +833,8 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
         </div>
       </div>
 
+      </div>
+
       <Drawer
         title={(
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -750,6 +888,6 @@ export default function IndustryGraph({ chainKey, selectedCity, regionValue: ext
           }}
         />
       </Drawer>
-    </div>
+    </>
   )
 }

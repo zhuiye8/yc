@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { App, Button, Cascader, Drawer, Select, Table, Tag } from 'antd'
+import { App, Button, Drawer, Select, Table, Tag } from 'antd'
 import { BankOutlined, DownloadOutlined, TeamOutlined } from '@ant-design/icons'
 import HeroSection from '@/components/HeroSection'
 import IndustryGraph from './IndustryGraph'
-import IndustryInnovationResources from './IndustryInnovationResources'
 import IndustryReport from './IndustryReport'
-import { regionOptions } from '@/mock/regions'
 import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
 import { searchIndustryFromSource } from '@/services/industrySource'
 import { searchChainTalents } from '@/services/chainTalent'
@@ -49,8 +47,8 @@ export default function Industry() {
   const initialChain = searchParams.get('chain')
   const searchKeywordFromUrl = searchParams.get('q') ?? ''
   const initialSearchKeyword = searchKeywordFromUrl.trim()
-  const [activeTab, setActiveTab] = useState<'graph' | 'innovation' | 'report'>(
-    initialTab === 'innovation' || initialTab === 'report' ? initialTab : 'graph',
+  const [activeTab, setActiveTab] = useState<'graph' | 'report'>(
+    initialTab === 'report' ? 'report' : 'graph',
   )
   // 从 URL 初始化二级 chainKey（若有效）
   const initialSecondary = initialChain && findPrimaryKeyByChainKey(initialChain)
@@ -221,12 +219,6 @@ export default function Industry() {
             产业图谱
           </div>
           <div
-            className={`${styles.tab} ${activeTab === 'innovation' ? styles.active : styles.inactive}`}
-            onClick={() => setActiveTab('innovation')}
-          >
-            创新资源
-          </div>
-          <div
             className={`${styles.tab} ${activeTab === 'report' ? styles.active : styles.inactive}`}
             onClick={() => setActiveTab('report')}
           >
@@ -237,17 +229,6 @@ export default function Industry() {
         {activeTab === 'graph' && (
           <div className={styles.tabRight}>
             <div className={styles.filterGroup}>
-              <span className={styles.filterLabel}>地区：</span>
-              <Cascader
-                options={regionOptions}
-                value={regionValue}
-                onChange={(value) => setRegionValue((value || []) as string[])}
-                size="small"
-                style={{ width: 200 }}
-                placeholder="选择地区"
-              />
-            </div>
-            <div className={styles.filterGroup}>
               <span className={styles.filterLabel}>一级产业链：</span>
               <Select
                 value={selectedPrimary}
@@ -270,50 +251,17 @@ export default function Industry() {
           </div>
         )}
 
-        {activeTab === 'innovation' && (
-          <div className={styles.tabRight}>
-            <div className={styles.filterGroup}>
-              <span className={styles.filterLabel}>一级产业链：</span>
-              <Select
-                value={selectedPrimary}
-                onChange={handlePrimaryChange}
-                options={primaryOptions}
-                style={{ width: 200 }}
-                size="small"
-              />
-            </div>
-            <div className={styles.filterGroup}>
-              <span className={styles.filterLabel}>二级产业链：</span>
-              <Select
-                value={selectedChain}
-                onChange={setSelectedChain}
-                options={secondaryOptions}
-                style={{ width: 200 }}
-                size="small"
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       {activeTab === 'graph' ? (
         <div className={styles.graphSection}>
-          <div className={styles.graphDesc}>
-            当前产业链：{
-              INDUSTRY_CHAIN_TREE
-                .flatMap((p) => p.secondaries)
-                .find((s) => s.key === selectedChain)?.label
-            }
-            ，展示上游原料、中游制造、下游应用的产业链全景结构，节点颜色标识强链、弱链、缺链状态。
-          </div>
           <IndustryGraph
             chainKey={selectedChain}
             selectedCity={selectedCity}
             regionValue={regionValue}
+            onRegionChange={setRegionValue}
           />
         </div>
-      ) : activeTab === 'innovation' ? (
-        <IndustryInnovationResources chainKey={selectedChain} />
       ) : (
         <IndustryReport />
       )}
