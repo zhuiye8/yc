@@ -9,15 +9,13 @@ import { orgDrawerColumns, expertDrawerColumns } from '@/components/IndustryDraw
 import type { IndustryGraphNode } from '@/mock/data'
 import { regionOptions } from '@/mock/regions'
 import { aggregateStatus, getNodeStatus } from '@/services/coverageCache'
-import {
-  getIndustryNodeExpertPageLive,
-  getIndustryNodeExpertTotalsLive,
-} from '@/services/industryLiveExperts'
+import { searchChainTalents } from '@/services/chainTalent'
 import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
 import {
   getIndustryNodePageFromSource,
   getIndustryNodeStatsFromSource,
 } from '@/services/industrySource'
+import { getIndustryNodeProfileText } from '@/services/industryNodeProfile'
 import { exportRecordsCsv } from '@/utils/exportCsv'
 import { searchOrgs } from '@/services/industry'
 import './IndustryTree.css'
@@ -44,6 +42,7 @@ interface Props {
   analyzing?: boolean
   analysisLabel?: string
   summaryLabel?: string
+  onNodeContextSelect?: (node: IndustryGraphNode) => void
 }
 
 interface PopoverData {
@@ -52,6 +51,7 @@ interface PopoverData {
   screenY: number
   loading: boolean
   queryString: string
+  talentChain: string
   orgTotal: number
   localOrgTotal: number
   expertTotal: number
@@ -63,6 +63,7 @@ interface DrawerState {
   type: 'orgs' | 'experts'
   nodeName: string
   queryString: string
+  talentChain: string
   city: string
   regionValue: string[]
   loading: boolean
@@ -137,6 +138,11 @@ const STATUS_LABELS: Record<NodeStatus, string> = {
   analyzing: '分析中',
 }
 
+function getRenderableStreamRoots(root: IndustryGraphNode, stream: StreamKey) {
+  if (root.name === STREAM_LABELS[stream] && root.children?.length) return root.children
+  return [root]
+}
+
 function stripStreamPrefix(name: string) {
   return name.replace(/^(上游|中游|下游)[：:]/, '').trim()
 }
@@ -153,6 +159,23 @@ function normalizeNodeName(name: string) {
   return name.replace(/[\s：:]/g, '').trim()
 }
 
+function stripStagePrefix(name: string) {
+  return name.replace(/^(?:\u4e0a\u6e38|\u4e2d\u6e38|\u4e0b\u6e38)[\uff1a:]\s*/, '').trim()
+}
+
+function resolveTalentChain(
+  nodeName: string,
+  nodeKeywords?: Record<string, { keywords: string[]; queryString: string }>,
+) {
+  const name = nodeName.trim()
+  if (nodeKeywords?.[name]) return name
+
+  const strippedName = stripStagePrefix(name)
+  if (nodeKeywords?.[strippedName]) return strippedName
+
+  return ''
+}
+
 const allRegionOptions = [{ value: '__all__', label: '全国' }, ...regionOptions]
 
 function collectInitialCollapsedIds(node: IndustryGraphNode, depth = 0, acc: string[] = []) {
@@ -165,9 +188,9 @@ function collectInitialCollapsedIds(node: IndustryGraphNode, depth = 0, acc: str
 
 function buildInitialCollapsedState(graphData: IndustryGraphSet): Record<StreamKey, string[]> {
   return {
-    upstream: collectInitialCollapsedIds(graphData.upstream.root),
-    midstream: collectInitialCollapsedIds(graphData.midstream.root),
-    downstream: collectInitialCollapsedIds(graphData.downstream.root),
+    upstream: getRenderableStreamRoots(graphData.upstream.root, 'upstream').flatMap((root) => collectInitialCollapsedIds(root)),
+    midstream: getRenderableStreamRoots(graphData.midstream.root, 'midstream').flatMap((root) => collectInitialCollapsedIds(root)),
+    downstream: getRenderableStreamRoots(graphData.downstream.root, 'downstream').flatMap((root) => collectInitialCollapsedIds(root)),
   }
 }
 
@@ -416,6 +439,7 @@ export default function IndustryChainGraph({
   analyzing,
   analysisLabel,
   summaryLabel,
+  onNodeContextSelect,
 }: Props) {
   const { message } = App.useApp()
   const navigate = useNavigate()
@@ -427,6 +451,7 @@ export default function IndustryChainGraph({
     type: 'orgs',
     nodeName: '',
     queryString: '',
+    talentChain: '',
     city: '',
     regionValue: [],
     loading: false,
@@ -486,11 +511,17 @@ export default function IndustryChainGraph({
   }, [])
 
   const handleLeafClick = useCallback((node: IndustryGraphNode, event: IElementEvent) => {
+    const talentChain = resolveTalentChain(node.name, nodeKeywords)
+    if (!talentChain) {
+      setPopover(null)
+      return
+    }
+
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
 
-    const mapping = nodeKeywords?.[node.name]
+    const mapping = nodeKeywords?.[talentChain]
     const clientX = typeof event.client?.x === 'number' ? event.client.x : 0
     const clientY = typeof event.client?.y === 'number' ? event.client.y : 0
 
@@ -502,23 +533,25 @@ export default function IndustryChainGraph({
       screenX,
       screenY,
       loading: true,
-      queryString: mapping?.queryString || node.name,
+      queryString: mapping?.queryString || talentChain,
+      talentChain,
       orgTotal: 0,
       localOrgTotal: 0,
       expertTotal: 0,
       localExpertTotal: 0,
     })
 
-    const currentCity = selectedCity || '宜昌'
+    const selectedRegion = resolveIndustryRegionFromCascader(externalRegionValue)
+    const currentCity = selectedRegion.city || selectedCity || '宜昌'
 
     void (async () => {
       const cachedStats = await getIndustryNodeStatsFromSource(
         chainKey,
-        node.name,
-        resolveIndustryRegionFromCascader(externalRegionValue),
+        talentChain,
+        selectedRegion,
       ).catch(() => null)
 
-      const queryString = cachedStats?.queryString || mapping?.queryString || node.name
+      const queryString = cachedStats?.queryString || mapping?.queryString || talentChain
       if (!queryString) {
         if (controller.signal.aborted) return
 
@@ -529,6 +562,7 @@ export default function IndustryChainGraph({
             ...prev,
             loading: false,
             queryString: '',
+            talentChain,
             orgTotal: 0,
             localOrgTotal: 0,
             expertTotal: 0,
@@ -557,10 +591,16 @@ export default function IndustryChainGraph({
         localOrgTotal = getOrgTotal(orgLocal)
       }
 
-      const expertTotals = await getIndustryNodeExpertTotalsLive(queryString, currentCity).catch(() => ({
-        expertTotal: 0,
-        localExpertTotal: 0,
-      }))
+      const [expertAll, expertLocal] = await Promise.all([
+        searchChainTalents(talentChain, undefined, undefined, 1, 1).catch(() => null),
+        searchChainTalents(
+          talentChain,
+          selectedRegion.province || undefined,
+          currentCity || undefined,
+          1,
+          1,
+        ).catch(() => null),
+      ])
       if (controller.signal.aborted) return
 
       setPopover((prev) => {
@@ -572,14 +612,31 @@ export default function IndustryChainGraph({
           queryString,
           orgTotal,
           localOrgTotal,
-          expertTotal: expertTotals.expertTotal,
-          localExpertTotal: expertTotals.localExpertTotal,
+          expertTotal: expertAll?.total ?? 0,
+          localExpertTotal: expertLocal?.total ?? 0,
         }
       })
     })()
   }, [chainKey, externalRegionValue, nodeKeywords, selectedCity])
 
-  const loadDrawerData = useCallback((type: 'orgs' | 'experts', nodeName: string, queryString: string, regionValue: string[], page: number) => {
+  const handleNodeInspect = useCallback((node: IndustryGraphNode, event: IElementEvent) => {
+    if (!resolveTalentChain(node.name, nodeKeywords)) {
+      setPopover(null)
+      return
+    }
+
+    onNodeContextSelect?.(node)
+    handleLeafClick(node, event)
+  }, [handleLeafClick, nodeKeywords, onNodeContextSelect])
+
+  const loadDrawerData = useCallback((
+    type: 'orgs' | 'experts',
+    nodeName: string,
+    queryString: string,
+    regionValue: string[],
+    page: number,
+    talentChain = '',
+  ) => {
     setDrawer((prev) => ({ ...prev, loading: true }))
     const from = (page - 1) * 10
     const region = resolveIndustryRegionFromCascader(regionValue)
@@ -600,7 +657,13 @@ export default function IndustryChainGraph({
       }
 
       if (type === 'experts') {
-        const result = await getIndustryNodeExpertPageLive(queryString, page, 10, region.city || undefined)
+        const result = await searchChainTalents(
+          talentChain || nodeName,
+          region.province || undefined,
+          region.city || undefined,
+          page,
+          10,
+        )
         setDrawer((prev) => ({
           ...prev,
           loading: false,
@@ -646,6 +709,7 @@ export default function IndustryChainGraph({
         type,
         nodeName: currentPopover.node.name,
         queryString: currentPopover.queryString,
+        talentChain: currentPopover.talentChain,
         city: nextRegion.city || '',
         regionValue: region,
         loading: true,
@@ -654,7 +718,14 @@ export default function IndustryChainGraph({
         page: 1,
       })
 
-      loadDrawerData(type, currentPopover.node.name, currentPopover.queryString, region, 1)
+      loadDrawerData(
+        type,
+        currentPopover.node.name,
+        currentPopover.queryString,
+        region,
+        1,
+        currentPopover.talentChain,
+      )
     }
 
     setPopover(null)
@@ -671,7 +742,7 @@ export default function IndustryChainGraph({
     const nextRegion = resolveIndustryRegionFromCascader(value)
 
     setDrawer((prev) => {
-      loadDrawerData(prev.type, prev.nodeName, prev.queryString, value, 1)
+      loadDrawerData(prev.type, prev.nodeName, prev.queryString, value, 1, prev.talentChain)
       return {
         ...prev,
         city: nextRegion.city || '',
@@ -708,9 +779,12 @@ export default function IndustryChainGraph({
   const popoverStatus = popover
     ? (popover.loading ? 'analyzing' : getEffectiveStatus(popover.node))
     : null
-  const popoverKeywords = popover
-    ? (nodeKeywords?.[popover.node.name]?.keywords || []).slice(0, 5)
-    : []
+  const popoverProfileText = popover
+    ? getIndustryNodeProfileText(popover.node.name, { queryString: popover.queryString })
+    : ''
+  const drawerProfileText = drawer.nodeName
+    ? getIndustryNodeProfileText(drawer.nodeName, { queryString: drawer.queryString })
+    : ''
   const popoverPortalTarget = document.fullscreenElement || document.body
 
   return (
@@ -752,20 +826,27 @@ export default function IndustryChainGraph({
           </div>
 
           <div className="chain-stage-body">
-            {STREAMS.map((stream) => (
-              <div key={stream} className={`chain-stage-column stream-${stream}`} onClick={(event) => event.stopPropagation()}>
-                <StreamGraph
-                  streamKey={stream}
-                  root={graphData[stream].root}
-                  getStatus={getEffectiveStatus}
-                  collapsedIds={new Set(collapsedByStream[stream])}
-                  onToggleNode={handleToggleNode}
-                  onLeafClick={handleLeafClick}
-                  onNodeInspect={handleLeafClick}
-                  onCanvasClick={() => setPopover(null)}
-                />
-              </div>
-            ))}
+            {STREAMS.map((stream) => {
+              const streamRoots = getRenderableStreamRoots(graphData[stream].root, stream)
+
+              return (
+                <div key={stream} className={`chain-stage-column stream-${stream}`} onClick={(event) => event.stopPropagation()}>
+                  {streamRoots.map((root) => (
+                    <StreamGraph
+                      key={root.id}
+                      streamKey={stream}
+                      root={root}
+                      getStatus={getEffectiveStatus}
+                      collapsedIds={new Set(collapsedByStream[stream])}
+                      onToggleNode={handleToggleNode}
+                      onLeafClick={handleLeafClick}
+                      onNodeInspect={handleNodeInspect}
+                      onCanvasClick={() => setPopover(null)}
+                    />
+                  ))}
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -790,11 +871,7 @@ export default function IndustryChainGraph({
             <>
               <div className="chain-popover-intro">
                 <div className="chain-popover-intro-title">节点介绍</div>
-                <div>
-                  {popoverKeywords.length > 0
-                    ? `围绕 ${popoverKeywords.join('、')} 等关键方向，展示相关企业与人才储备。`
-                    : `围绕 ${popover.node.name} 展示相关企业与人才储备。`}
-                </div>
+                <div>{popoverProfileText}</div>
               </div>
               <div className="chain-popover-stats">
                 <div>
@@ -856,9 +933,7 @@ export default function IndustryChainGraph({
       >
         <div className="industry-drawer-intro">
           <div className="industry-drawer-intro-title">产业链节点介绍</div>
-          <div className="industry-drawer-intro-text">
-            围绕“{drawer.nodeName}”节点，按关键词 {drawer.queryString || drawer.nodeName} 汇聚相关企业与人才，用于判断该环节的资源储备、区域分布和后续招引对接对象。
-          </div>
+          <div className="industry-drawer-intro-text">{drawerProfileText}</div>
         </div>
 
         <div className="industry-drawer-toolbar">
@@ -873,7 +948,7 @@ export default function IndustryChainGraph({
 
                 if (nextValue.length === 0 || nextValue[0] === '__all__') {
                   setDrawer((prev) => {
-                    loadDrawerData(prev.type, prev.nodeName, prev.queryString, [], 1)
+                    loadDrawerData(prev.type, prev.nodeName, prev.queryString, [], 1, prev.talentChain)
                     return {
                       ...prev,
                       city: '',
@@ -912,7 +987,7 @@ export default function IndustryChainGraph({
 
               if (nextValue.length === 0 || nextValue[0] === '__all__') {
                 setDrawer((prev) => {
-                  loadDrawerData(prev.type, prev.nodeName, prev.queryString, [], 1)
+                  loadDrawerData(prev.type, prev.nodeName, prev.queryString, [], 1, prev.talentChain)
                   return {
                     ...prev,
                     city: '',
@@ -953,7 +1028,7 @@ export default function IndustryChainGraph({
             showSizeChanger: false,
             showTotal: () => `共 ${drawer.total.toLocaleString()} 条`,
             onChange: (page) => {
-              loadDrawerData(drawer.type, drawer.nodeName, drawer.queryString, drawer.regionValue, page)
+              loadDrawerData(drawer.type, drawer.nodeName, drawer.queryString, drawer.regionValue, page, drawer.talentChain)
               setDrawer((prev) => ({ ...prev, page }))
             },
           }}

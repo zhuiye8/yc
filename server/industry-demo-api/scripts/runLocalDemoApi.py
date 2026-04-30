@@ -183,26 +183,28 @@ class DemoApi:
         offset = (page - 1) * page_size
 
         if entity_type == "orgs":
+            filter_sql, filter_params = self.build_org_filter(scope)
+            hit_scope_key = scope.scope_key if scope.is_national else "national"
             total_row = self.conn.execute(
                 f"""
                 SELECT COUNT(DISTINCT o.org_uid) AS total
                 FROM node_org_hits h
                 JOIN org_entities o ON o.org_uid = h.org_uid
-                WHERE h.node_id IN ({placeholders}) AND h.scope_key = ?
+                WHERE h.node_id IN ({placeholders}) AND h.scope_key = ?{filter_sql}
                 """,
-                (*node_ids, scope.scope_key),
+                (*node_ids, hit_scope_key, *filter_params),
             ).fetchone()
             rows = self.conn.execute(
                 f"""
                 SELECT o.raw_json
                 FROM node_org_hits h
                 JOIN org_entities o ON o.org_uid = h.org_uid
-                WHERE h.node_id IN ({placeholders}) AND h.scope_key = ?
+                WHERE h.node_id IN ({placeholders}) AND h.scope_key = ?{filter_sql}
                 GROUP BY o.org_uid
                 ORDER BY o.name ASC
                 LIMIT ? OFFSET ?
                 """,
-                (*node_ids, scope.scope_key, page_size, offset),
+                (*node_ids, hit_scope_key, *filter_params, page_size, offset),
             ).fetchall()
             return {"total": int(total_row["total"] or 0), "items": parse_items(rows)}
 
@@ -251,6 +253,23 @@ class DemoApi:
             (chain_key, norm_prov),
         ).fetchall()
         return [{"city": str(row["city"]), "total": int(row["total"] or 0)} for row in rows]
+
+    def get_chain_province_distribution(self, chain_key: str) -> list[dict[str, Any]]:
+        rows = self.conn.execute(
+            """
+            SELECT o.norm_prov AS province, COUNT(DISTINCT o.org_uid) AS total
+            FROM node_org_hits h
+            JOIN org_entities o ON o.org_uid = h.org_uid
+            JOIN nodes n ON n.node_id = h.node_id
+            WHERE n.chain_key = ?
+              AND o.norm_prov IS NOT NULL
+              AND o.norm_prov != ''
+            GROUP BY o.norm_prov
+            ORDER BY total DESC
+            """,
+            (chain_key,),
+        ).fetchall()
+        return [{"province": str(row["province"]), "total": int(row["total"] or 0)} for row in rows]
 
     def get_chain_aggregate(self, chain_key: str, entity_type: str, province: str | None, city: str | None, page: int, page_size: int) -> dict[str, Any]:
         node_ids = [row["node_id"] for row in self.conn.execute("select node_id from nodes where chain_key = ? order by node_name asc", (chain_key,)).fetchall()]
@@ -425,6 +444,11 @@ def build_handler(api: DemoApi):
                         self._send_json(400, {"error": "province is required"})
                         return
                     self._send_json(200, api.get_chain_city_distribution(chain_key, province))
+                    return
+
+                if parsed.path.startswith("/industry/chains/") and parsed.path.endswith("/province-distribution"):
+                    chain_key = parsed.path.split("/")[3]
+                    self._send_json(200, api.get_chain_province_distribution(chain_key))
                     return
 
                 if parsed.path.startswith("/industry/chains/") and "/aggregate/" in parsed.path:

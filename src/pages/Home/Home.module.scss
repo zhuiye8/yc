@@ -135,13 +135,13 @@
 }
 
 .statsContent {
-  width: min(100% - 80px, 1500px);
-  max-width: none;
+  width: 100%;
+  max-width: 1360px;
   margin: 0 auto;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  align-items: stretch;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
 }
 
 .statItem {
@@ -149,8 +149,9 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 86px;
-  padding: 2px 14px;
+  align-items: center;
+  min-height: 72px;
+  padding: 0 20px;
   text-align: center;
   cursor: pointer;
   transition: transform 0.18s ease, opacity 0.18s ease;
@@ -161,8 +162,8 @@
     top: 50%;
     right: 0;
     width: 1px;
-    height: 58px;
-    background: linear-gradient(180deg, transparent, #dbe4f2 18%, #dbe4f2 82%, transparent);
+    height: 45px;
+    background: #dbe4f2;
     transform: translateY(-50%);
   }
 
@@ -171,68 +172,15 @@
   }
 }
 
-.chainName {
-  overflow: hidden;
-  color: #1D2129;
-  font-size: 14px;
+.statNumber {
+  margin-bottom: 6px;
+  font-size: 44px;
   font-weight: 700;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: normal;
-}
-
-.chainMetricStack {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-  margin-top: 10px;
-}
-
-.chainMetricLine {
-  display: grid;
-  grid-template-rows: 20px 14px;
-  align-items: baseline;
+  line-height: 1;
+  display: inline-flex;
+  align-items: flex-end;
   justify-content: center;
-  min-width: 0;
-}
-
-.chainMetricValue {
-  display: block;
-  min-width: 0;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.1;
-  text-align: center;
   white-space: nowrap;
-}
-
-.chainMetricLabel {
-  display: block;
-  color: #7d8799;
-  font-size: 12px;
-  line-height: 1;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.enterpriseColor { color: #2987ed; }
-.talentColor { color: #68c1b2; }
-.techColor { color: #e86d6a; }
-
-.disabledStat {
-  cursor: default;
-  opacity: 0.58;
-
-  &:hover {
-    transform: none;
-  }
-}
-
-.serviceStatNumber {
-  margin-bottom: 8px;
-  font-size: 34px;
-  font-weight: 700;
-  line-height: 1;
 }
 
 .statUnit {
@@ -242,7 +190,7 @@
 }
 
 .statLabel {
-  font-size: $font-size-sm;
+  font-size: $font-size-base;
   color: $gray-500;
 }
 
@@ -255,22 +203,18 @@
 
 @media (max-width: 1200px) {
   .statsContent {
-    width: min(100% - 40px, 1100px);
-  }
-
-  .statsContent {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    row-gap: 18px;
+    max-width: calc(100% - 40px);
   }
 }
 
 @media (max-width: 768px) {
   .statsContent {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, 1fr);
+    row-gap: 18px;
   }
 
-  .chainMetricValue {
-    font-size: 16px;
+  .statNumber {
+    font-size: 34px;
   }
 }
 

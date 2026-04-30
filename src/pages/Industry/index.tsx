@@ -9,6 +9,7 @@ import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
 import { searchIndustryFromSource } from '@/services/industrySource'
 import { searchChainTalents } from '@/services/chainTalent'
 import { searchOrgs } from '@/services/industry'
+import { getIndustryNodeProfileText } from '@/services/industryNodeProfile'
 import { exportRecordsCsv } from '@/utils/exportCsv'
 import {
   industryKeywordOptions,
@@ -197,6 +198,13 @@ export default function Industry() {
     message.success(`已导出${typeLabel}列表`)
   }, [message, searchDrawer.activeTab, searchDrawer.experts, searchDrawer.keyword, searchDrawer.orgs])
 
+  const searchDrawerProfileText = useMemo(
+    () => getIndustryNodeProfileText(searchDrawer.chain || searchDrawer.keyword, {
+      searchKeyword: searchDrawer.keyword,
+    }),
+    [searchDrawer.chain, searchDrawer.keyword],
+  )
+
   return (
     <div className={styles.page}>
       <HeroSection
@@ -276,10 +284,7 @@ export default function Industry() {
       >
         <div className={styles.drawerIntro}>
           <div className={styles.drawerIntroTitle}>产业链节点介绍</div>
-          <div className={styles.drawerIntroText}>
-            围绕“{searchDrawer.chain || searchDrawer.keyword}”检索产业链相关企业与人才资源，展示匹配对象的区域、行业标签和科研能力，可用于进一步筛选招引目标与对接人才。
-            {searchDrawer.chain && searchDrawer.chain !== searchDrawer.keyword ? ` 当前选项：${searchDrawer.keyword}。` : ''}
-          </div>
+          <div className={styles.drawerIntroText}>{searchDrawerProfileText}</div>
         </div>
 
         <div className={styles.drawerToolbar}>

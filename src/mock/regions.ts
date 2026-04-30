@@ -1,5 +1,5 @@
 /** 全国省市级联数据（含直辖市、自治区、特别行政区） */
-export const regionOptions = [
+const rawRegionOptions = [
   // 直辖市
   { value: 'beijing', label: '北京市', children: [
     { value: 'beijing', label: '北京市' },
@@ -375,4 +375,9 @@ export const regionOptions = [
     { value: 'gaoxiong', label: '高雄市' },
     { value: 'taizhong', label: '台中市' },
   ]},
+]
+
+export const regionOptions = [
+  ...rawRegionOptions.filter((option) => option.value === 'hubei'),
+  ...rawRegionOptions.filter((option) => option.value !== 'hubei'),
 ]

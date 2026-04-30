@@ -11,6 +11,7 @@ import {
   getDemoChainCoverage,
   getDemoNodePage,
   getDemoNodeStats,
+  getDemoChainProvinceDistribution,
   isIndustryDemoApiEnabled,
   searchIndustryInDemoApi,
 } from './industryDemoApi'
@@ -84,6 +85,14 @@ export async function getIndustryChainCityDistributionFromSource(
 ) {
   if (isIndustryDemoApiEnabled()) {
     return getDemoChainCityDistribution(chainKey, province)
+  }
+
+  return null
+}
+
+export async function getIndustryChainProvinceDistributionFromSource(chainKey: string) {
+  if (isIndustryDemoApiEnabled()) {
+    return getDemoChainProvinceDistribution(chainKey)
   }
 
   return null

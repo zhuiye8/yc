@@ -3,6 +3,7 @@ import { config } from './config.mjs';
 import {
   getChainAggregate,
   getChainCityDistribution,
+  getChainProvinceDistribution,
   getChainSummary,
   getHealth,
   getNodeItems,
@@ -32,6 +33,11 @@ app.get('/industry/chains/:chainKey/city-distribution', (req, res) => {
     return;
   }
   res.json(getChainCityDistribution(chainKey, province));
+});
+
+app.get('/industry/chains/:chainKey/province-distribution', (req, res) => {
+  const { chainKey } = req.params;
+  res.json(getChainProvinceDistribution(chainKey));
 });
 
 app.get('/industry/chains/:chainKey/aggregate/:type', (req, res) => {

@@ -145,32 +145,38 @@ function getEntityOrderSql(type, alias) {
   return `ORDER BY ${alias}.name ASC`;
 }
 
+function getOrgHitScopeForList(scope) {
+  return scope.isNational ? scope.scopeKey : 'national';
+}
+
 function getAggregatedNodeItems(nodeIds, type, scope, page, pageSize) {
   const db = getDb();
   const placeholders = nodeIds.map(() => '?').join(', ');
   const offset = (page - 1) * pageSize;
 
   if (type === 'orgs') {
+    const regionFilter = buildOrgRegionFilter(scope, 'o');
+    const hitScopeKey = getOrgHitScopeForList(scope);
     const totalRow = db
       .prepare(
         `SELECT COUNT(DISTINCT o.org_uid) AS total
          FROM node_org_hits h
          JOIN org_entities o ON o.org_uid = h.org_uid
-         WHERE h.node_id IN (${placeholders}) AND h.scope_key = ?`,
+         WHERE h.node_id IN (${placeholders}) AND h.scope_key = ?${regionFilter.sql}`,
       )
-      .get(...nodeIds, scope.scopeKey);
+      .get(...nodeIds, hitScopeKey, ...regionFilter.params);
 
     const rows = db
       .prepare(
         `SELECT o.raw_json
          FROM node_org_hits h
          JOIN org_entities o ON o.org_uid = h.org_uid
-         WHERE h.node_id IN (${placeholders}) AND h.scope_key = ?
+         WHERE h.node_id IN (${placeholders}) AND h.scope_key = ?${regionFilter.sql}
          GROUP BY o.org_uid
          ${getEntityOrderSql('orgs', 'o')}
          LIMIT ? OFFSET ?`,
       )
-      .all(...nodeIds, scope.scopeKey, pageSize, offset);
+      .all(...nodeIds, hitScopeKey, ...regionFilter.params, pageSize, offset);
 
     return { total: Number(totalRow?.total ?? 0), items: parseItems(rows) };
   }
@@ -401,6 +407,28 @@ export function getChainCityDistribution(chainKey, province) {
 
   return rows.map((row) => ({
     city: String(row.city),
+    total: Number(row.total ?? 0),
+  }));
+}
+
+export function getChainProvinceDistribution(chainKey) {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT o.norm_prov AS province, COUNT(DISTINCT o.org_uid) AS total
+       FROM node_org_hits h
+       JOIN org_entities o ON o.org_uid = h.org_uid
+       JOIN nodes n ON n.node_id = h.node_id
+       WHERE n.chain_key = ?
+         AND o.norm_prov IS NOT NULL
+         AND o.norm_prov != ''
+       GROUP BY o.norm_prov
+       ORDER BY total DESC`,
+    )
+    .all(chainKey);
+
+  return rows.map((row) => ({
+    province: String(row.province),
     total: Number(row.total ?? 0),
   }));
 }

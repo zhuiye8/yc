@@ -127,6 +127,11 @@ export interface DemoCityDistributionItem {
   total: number
 }
 
+export interface DemoProvinceDistributionItem {
+  province: string
+  total: number
+}
+
 /**
  * 获取产业链在某省内各城市的机构分布（去重计数）
  * 返回按机构数降序排列的城市列表
@@ -139,6 +144,14 @@ export async function getDemoChainCityDistribution(
     requestDemoApi<DemoCityDistributionItem[]>(
       `/industry/chains/${chainKey}/city-distribution`,
       { province },
+    ),
+  )
+}
+
+export async function getDemoChainProvinceDistribution(chainKey: string) {
+  return withDemoDelay(
+    requestDemoApi<DemoProvinceDistributionItem[]>(
+      `/industry/chains/${chainKey}/province-distribution`,
     ),
   )
 }
