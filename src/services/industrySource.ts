@@ -14,6 +14,8 @@ import {
   getDemoChainProvinceDistribution,
   isIndustryDemoApiEnabled,
   searchIndustryInDemoApi,
+  getDemoNodeGroupPage,
+  getDemoNodeGroupStats,
 } from './industryDemoApi'
 import type { IndustryRegionFilter } from './industryRegion'
 
@@ -53,9 +55,14 @@ export async function getIndustryChainAggregateFromSource(
   region?: IndustryRegionFilter,
   page = 1,
   pageSize = 10,
+  tags?: string,
 ) {
   if (isIndustryDemoApiEnabled()) {
-    return getDemoChainAggregate(chainKey, type, region, page, pageSize)
+    return getDemoChainAggregate(chainKey, type, region, page, pageSize, tags)
+  }
+
+  if (tags) {
+    return null
   }
 
   if (page === 1 && pageSize >= 10 && canUseStaticCache(region)) {
@@ -114,6 +121,19 @@ export async function getIndustryNodeStatsFromSource(
   return null
 }
 
+export async function getIndustryNodeGroupStatsFromSource(
+  chainKey: string,
+  nodeName: string,
+  nodeNames: string[],
+  region?: IndustryRegionFilter,
+) {
+  if (isIndustryDemoApiEnabled()) {
+    return getDemoNodeGroupStats(chainKey, nodeName, nodeNames, region)
+  }
+
+  return null
+}
+
 export async function getIndustryNodePageFromSource(
   chainKey: string,
   nodeName: string,
@@ -121,13 +141,35 @@ export async function getIndustryNodePageFromSource(
   region?: IndustryRegionFilter,
   page = 1,
   pageSize = 10,
+  tags?: string,
 ) {
   if (isIndustryDemoApiEnabled()) {
-    return getDemoNodePage(chainKey, nodeName, type, region, page, pageSize)
+    return getDemoNodePage(chainKey, nodeName, type, region, page, pageSize, tags)
+  }
+
+  if (tags) {
+    return null
   }
 
   if (canUseStaticCache(region)) {
     return getCachedNodePage(chainKey, nodeName, type, region?.city, page, pageSize)
+  }
+
+  return null
+}
+
+export async function getIndustryNodeGroupPageFromSource(
+  chainKey: string,
+  nodeName: string,
+  nodeNames: string[],
+  type: EntityType,
+  region?: IndustryRegionFilter,
+  page = 1,
+  pageSize = 10,
+  tags?: string,
+) {
+  if (isIndustryDemoApiEnabled()) {
+    return getDemoNodeGroupPage(chainKey, nodeName, nodeNames, type, region, page, pageSize, tags)
   }
 
   return null

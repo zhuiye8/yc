@@ -47,7 +47,7 @@ export interface GraphNode {
   name: string
   org?: string
   h?: number
-  class: 'PERSON' | 'ORG'
+  class: 'PERSON' | 'ORG' | 'TECH' | 'CHAIN_ROOT' | 'CHAIN'
   orgid?: string
   [key: string]: unknown
 }

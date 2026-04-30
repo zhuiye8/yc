@@ -104,6 +104,12 @@ class DemoApi:
             return f" AND {alias}.norm_prov = ?", [scope.province or ""]
         return "", []
 
+    def build_org_tag_filter(self, tags: str | None, alias: str = "o") -> tuple[str, list[str]]:
+        tag = str(tags or "").strip()
+        if not tag:
+            return "", []
+        return f" AND {alias}.tags_text LIKE ?", [f"%{tag}%"]
+
     def get_node_scope_totals(self, node_id: str, scope_key: str) -> dict[str, Any]:
         row = self.conn.execute(
             """
@@ -178,33 +184,34 @@ class DemoApi:
             "nodeOrgCounts": node_org_counts,
         }
 
-    def get_aggregated_items(self, node_ids: list[str], entity_type: str, scope: Scope, page: int, page_size: int) -> dict[str, Any]:
+    def get_aggregated_items(self, node_ids: list[str], entity_type: str, scope: Scope, page: int, page_size: int, tags: str | None = None) -> dict[str, Any]:
         placeholders = ",".join(["?"] * len(node_ids))
         offset = (page - 1) * page_size
 
         if entity_type == "orgs":
             filter_sql, filter_params = self.build_org_filter(scope)
+            tag_sql, tag_params = self.build_org_tag_filter(tags)
             hit_scope_key = scope.scope_key if scope.is_national else "national"
             total_row = self.conn.execute(
                 f"""
                 SELECT COUNT(DISTINCT o.org_uid) AS total
                 FROM node_org_hits h
                 JOIN org_entities o ON o.org_uid = h.org_uid
-                WHERE h.node_id IN ({placeholders}) AND h.scope_key = ?{filter_sql}
+                WHERE h.node_id IN ({placeholders}) AND h.scope_key = ?{filter_sql}{tag_sql}
                 """,
-                (*node_ids, hit_scope_key, *filter_params),
+                (*node_ids, hit_scope_key, *filter_params, *tag_params),
             ).fetchone()
             rows = self.conn.execute(
                 f"""
                 SELECT o.raw_json
                 FROM node_org_hits h
                 JOIN org_entities o ON o.org_uid = h.org_uid
-                WHERE h.node_id IN ({placeholders}) AND h.scope_key = ?{filter_sql}
+                WHERE h.node_id IN ({placeholders}) AND h.scope_key = ?{filter_sql}{tag_sql}
                 GROUP BY o.org_uid
                 ORDER BY o.name ASC
                 LIMIT ? OFFSET ?
                 """,
-                (*node_ids, hit_scope_key, *filter_params, page_size, offset),
+                (*node_ids, hit_scope_key, *filter_params, *tag_params, page_size, offset),
             ).fetchall()
             return {"total": int(total_row["total"] or 0), "items": parse_items(rows)}
 
@@ -271,11 +278,11 @@ class DemoApi:
         ).fetchall()
         return [{"province": str(row["province"]), "total": int(row["total"] or 0)} for row in rows]
 
-    def get_chain_aggregate(self, chain_key: str, entity_type: str, province: str | None, city: str | None, page: int, page_size: int) -> dict[str, Any]:
+    def get_chain_aggregate(self, chain_key: str, entity_type: str, province: str | None, city: str | None, page: int, page_size: int, tags: str | None = None) -> dict[str, Any]:
         node_ids = [row["node_id"] for row in self.conn.execute("select node_id from nodes where chain_key = ? order by node_name asc", (chain_key,)).fetchall()]
         if not node_ids:
             return {"total": 0, "items": []}
-        return self.get_aggregated_items(node_ids, entity_type, resolve_scope(province, city), page, page_size)
+        return self.get_aggregated_items(node_ids, entity_type, resolve_scope(province, city), page, page_size, tags)
 
     def get_node_stats(self, chain_key: str, node_name: str, province: str | None, city: str | None) -> dict[str, Any] | None:
         node = self.conn.execute(
@@ -306,14 +313,68 @@ class DemoApi:
             "expertTruncated": scoped_summary["expert_truncated"],
         }
 
-    def get_node_items(self, chain_key: str, node_name: str, entity_type: str, province: str | None, city: str | None, page: int, page_size: int) -> dict[str, Any]:
+    def get_node_records(self, chain_key: str, node_names: list[str]) -> list[sqlite3.Row]:
+        names = list(dict.fromkeys([str(name or "").strip() for name in node_names if str(name or "").strip()]))
+        if not names:
+            return []
+
+        placeholders = ",".join(["?"] * len(names))
+        return self.conn.execute(
+            f"""
+            SELECT node_id, node_name, query_string
+            FROM nodes
+            WHERE chain_key = ? AND node_name IN ({placeholders})
+            ORDER BY node_name ASC
+            """,
+            (chain_key, *names),
+        ).fetchall()
+
+    def get_node_group_stats(self, chain_key: str, node_name: str, node_names: list[str], province: str | None, city: str | None) -> dict[str, Any]:
+        scope = resolve_scope(province, city)
+        nodes = self.get_node_records(chain_key, node_names)
+        node_ids = [row["node_id"] for row in nodes]
+        national_totals = self.get_reported_totals_for_nodes(node_ids, "national")
+        scoped_totals = national_totals if scope.is_national else self.get_reported_totals_for_nodes(node_ids, scope.scope_key)
+        org_total = self.get_aggregated_items(node_ids, "orgs", resolve_scope(None, None), 1, 1)["total"] if node_ids else 0
+        local_org_total = self.get_aggregated_items(node_ids, "orgs", scope, 1, 1)["total"] if node_ids else 0
+
+        return {
+            "queryString": node_name or (nodes[0]["node_name"] if nodes else ""),
+            "orgTotal": org_total,
+            "localOrgTotal": local_org_total,
+            "expertTotal": national_totals["expert_total"],
+            "localExpertTotal": scoped_totals["expert_total"],
+            "scopeKey": scope.scope_key,
+            "matchedNodeCount": len(nodes),
+        }
+
+    def get_node_items(self, chain_key: str, node_name: str, entity_type: str, province: str | None, city: str | None, page: int, page_size: int, tags: str | None = None) -> dict[str, Any]:
         node = self.conn.execute(
             "select node_id from nodes where chain_key = ? and node_name = ? limit 1",
             (chain_key, node_name),
         ).fetchone()
         if not node:
             return {"total": 0, "items": []}
-        return self.get_aggregated_items([node["node_id"]], entity_type, resolve_scope(province, city), page, page_size)
+        return self.get_aggregated_items([node["node_id"]], entity_type, resolve_scope(province, city), page, page_size, tags)
+
+    def get_node_group_items(
+        self,
+        chain_key: str,
+        node_name: str,
+        node_names: list[str],
+        entity_type: str,
+        province: str | None,
+        city: str | None,
+        page: int,
+        page_size: int,
+        tags: str | None = None,
+    ) -> dict[str, Any]:
+        nodes = self.get_node_records(chain_key, node_names)
+        node_ids = [row["node_id"] for row in nodes]
+        if not node_ids:
+            return {"total": 0, "items": [], "nodeName": node_name}
+
+        return self.get_aggregated_items(node_ids, entity_type, resolve_scope(province, city), page, page_size, tags)
 
     def search_entities(self, entity_type: str, scope: Scope, keyword: str, limit: int) -> dict[str, Any]:
         like = f"%{keyword}%"
@@ -464,6 +525,7 @@ def build_handler(api: DemoApi):
                             get_first(params, "city"),
                             int(get_first(params, "page", "1") or 1),
                             int(get_first(params, "pageSize", "10") or 10),
+                            get_first(params, "tags"),
                         ),
                     )
                     return
@@ -479,6 +541,25 @@ def build_handler(api: DemoApi):
                         self._send_json(404, {"error": "node not found"})
                         return
                     self._send_json(200, result)
+                    return
+
+                if parsed.path == "/industry/nodes/group-stats":
+                    chain_key = get_first(params, "chainKey")
+                    node_name = get_first(params, "nodeName", "") or ""
+                    node_names = get_first(params, "nodeNames", "") or ""
+                    if not chain_key or not node_names:
+                        self._send_json(400, {"error": "chainKey and nodeNames are required"})
+                        return
+                    self._send_json(
+                        200,
+                        api.get_node_group_stats(
+                            chain_key,
+                            node_name,
+                            node_names.split("\n"),
+                            get_first(params, "province"),
+                            get_first(params, "city"),
+                        ),
+                    )
                     return
 
                 if parsed.path == "/industry/nodes/items":
@@ -498,6 +579,31 @@ def build_handler(api: DemoApi):
                             get_first(params, "city"),
                             int(get_first(params, "page", "1") or 1),
                             int(get_first(params, "pageSize", "10") or 10),
+                            get_first(params, "tags"),
+                        ),
+                    )
+                    return
+
+                if parsed.path == "/industry/nodes/group-items":
+                    chain_key = get_first(params, "chainKey")
+                    node_name = get_first(params, "nodeName", "") or ""
+                    node_names = get_first(params, "nodeNames", "") or ""
+                    entity_type = get_first(params, "type")
+                    if not chain_key or not node_names or not entity_type:
+                        self._send_json(400, {"error": "chainKey, nodeNames and type are required"})
+                        return
+                    self._send_json(
+                        200,
+                        api.get_node_group_items(
+                            chain_key,
+                            node_name,
+                            node_names.split("\n"),
+                            entity_type,
+                            get_first(params, "province"),
+                            get_first(params, "city"),
+                            int(get_first(params, "page", "1") or 1),
+                            int(get_first(params, "pageSize", "10") or 10),
+                            get_first(params, "tags"),
                         ),
                     )
                     return

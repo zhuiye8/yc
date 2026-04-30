@@ -35,6 +35,7 @@ export async function searchOrgs(
   from = 0,
   size = 10,
   city?: string,
+  tags?: string,
 ): Promise<OrgSearchResult> {
   // text 取 queryString 中第一个关键词（OR 分隔）
   const firstKeyword = queryString.split(/\s+OR\s+/)[0].trim()
@@ -55,6 +56,10 @@ export async function searchOrgs(
   // city 筛选（注意：prov 参数不生效，只用 city）
   if (city) {
     url += `&city=${encodeURIComponent(city)}`
+  }
+
+  if (tags) {
+    url += `&tags=${encodeURIComponent(tags)}`
   }
 
   const resp = await fetch(url, { method: 'GET', headers })

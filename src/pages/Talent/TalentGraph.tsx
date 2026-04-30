@@ -9,11 +9,13 @@ import {
   getExpertSummary,
   getTalentBackground,
   getCoopTalentList,
+  getCoopOrgList,
   getCkeyIndustry,
   type GraphNode,
   type GraphLink,
   type GraphRelation,
 } from '@/services/talent'
+import { industryKeywordOptions } from '@/utils/industryKeywordOptions'
 import TalentRelationGraph from './TalentRelationGraph'
 import {
   getMockTalentPreview,
@@ -112,9 +114,148 @@ interface TalentInfo {
 }
 
 interface CoopTalent {
+  id?: string
   name: string
   org: string
   field: string
+}
+
+interface CoopOrg {
+  id: string
+  name: string
+  region: string
+  count: number
+}
+
+function normalizeMatchText(value: string) {
+  return value.replace(/\s/g, '').toLowerCase()
+}
+
+function extractKeywordStats(detail: Record<string, unknown> | null | undefined) {
+  const kwStat = Array.isArray(detail?.keyword_stat) ? detail.keyword_stat as Record<string, number>[] : []
+  return kwStat
+    .map((entry) => {
+      const [name, value] = Object.entries(entry)[0] ?? []
+      return name ? { name, value: Number(value ?? 0) } : null
+    })
+    .filter((item): item is { name: string; value: number } => item !== null)
+    .sort((left, right) => right.value - left.value)
+}
+
+function resolveIndustryNodes(textParts: string[]) {
+  const haystack = normalizeMatchText(textParts.filter(Boolean).join(' '))
+  if (!haystack) return []
+
+  const matched = new Map<string, { chain: string; parentChain?: string }>()
+  industryKeywordOptions.forEach((option) => {
+    const label = normalizeMatchText(option.label)
+    const chain = normalizeMatchText(option.chain)
+    if (!label || label.length < 2) return
+    if (haystack.includes(label) || haystack.includes(chain)) {
+      matched.set(option.chain, { chain: option.chain, parentChain: option.parentChain })
+    }
+  })
+
+  return [...matched.values()].slice(0, 8)
+}
+
+function buildTalentRelationGraph(
+  currentTalent: TalentInfo,
+  rawGraphNodes: GraphNode[],
+  relations: GraphRelation[],
+  coopList: CoopTalent[],
+  coopOrgList: CoopOrg[],
+  keywordStats: { name: string; value: number }[],
+) {
+  const nodeMap = new Map<string, GraphNode>()
+  const linkMap = new Map<string, GraphLink>()
+  const centerNode: GraphNode = {
+    id: currentTalent.auid,
+    name: currentTalent.name,
+    org: currentTalent.org,
+    h: currentTalent.hIndex,
+    class: 'PERSON',
+  }
+
+  const addNode = (node: GraphNode) => {
+    if (!node.id || nodeMap.has(String(node.id))) return
+    nodeMap.set(String(node.id), node)
+  }
+
+  const addLink = (source: string, target: string, type: string, value = 1) => {
+    if (!source || !target || source === target) return
+    const key = `${source}->${target}:${type}`
+    if (linkMap.has(key)) return
+    linkMap.set(key, { source, target, type, value })
+  }
+
+  addNode(centerNode)
+  rawGraphNodes.forEach(addNode)
+  relations.forEach((relation) => {
+    addLink(String(relation.startid || ''), String(relation.endid || ''), String(relation.type || ''), Number(relation.cnt || 1))
+  })
+
+  coopList.slice(0, 16).forEach((talent, index) => {
+    const id = talent.id || `coauthor-${currentTalent.auid}-${index}`
+    addNode({
+      id,
+      name: talent.name,
+      org: talent.org,
+      class: 'PERSON',
+      h: Math.max(1, 12 - index),
+    })
+    addLink(currentTalent.auid, id, 'COAUTHOR', Math.max(1, 8 - index * 0.3))
+  })
+
+  coopOrgList.slice(0, 14).forEach((org, index) => {
+    addNode({
+      id: org.id || `org-${currentTalent.auid}-${index}`,
+      name: org.name,
+      org: org.region,
+      class: 'ORG',
+    })
+    addLink(currentTalent.auid, org.id || `org-${currentTalent.auid}-${index}`, 'COOPERATE', org.count || 1)
+  })
+
+  keywordStats.slice(0, 14).forEach((item, index) => {
+    const id = `tech-${currentTalent.auid}-${index}-${item.name}`
+    addNode({
+      id,
+      name: item.name,
+      org: `${item.value || 1}`,
+      class: 'TECH',
+    })
+    addLink(currentTalent.auid, id, 'TECH', item.value || 1)
+  })
+
+  const chainMatches = resolveIndustryNodes([
+    currentTalent.field,
+    currentTalent.direction,
+    ...currentTalent.keywords,
+    ...keywordStats.slice(0, 12).map((item) => item.name),
+  ])
+  const roots = new Set<string>()
+
+  chainMatches.forEach((item, index) => {
+    const rootName = item.parentChain || item.chain
+    const rootId = `chain-root-${rootName}`
+    if (!roots.has(rootName)) {
+      roots.add(rootName)
+      addNode({ id: rootId, name: rootName, class: 'CHAIN_ROOT' })
+      addLink(currentTalent.auid, rootId, 'CHAIN_ROOT', 1)
+    }
+
+    if (item.parentChain && item.chain !== item.parentChain) {
+      const chainId = `chain-${index}-${item.chain}`
+      addNode({ id: chainId, name: item.chain, org: item.parentChain, class: 'CHAIN' })
+      addLink(rootId, chainId, 'CHAIN', 1)
+    }
+  })
+
+  return {
+    nodes: [...nodeMap.values()],
+    links: [...linkMap.values()],
+  }
 }
 
 function getHLevelTag(h: number): { label: string; color: string } {
@@ -349,7 +490,7 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
         .catch(() => undefined)
 
       setGraphLoading(true)
-      const graphResult = await getTalentGraph(auid, 1, 20).catch(() => null)
+      const graphResult = await getTalentGraph(auid, 1, 100).catch(() => null)
       if (ac.signal.aborted) return
 
       const rawGraphNodes = graphResult?.data?.sources?.nodes || []
@@ -395,7 +536,8 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
           if (Array.isArray(inner.list)) list = inner.list
           else if (Array.isArray(inner.records)) list = inner.records
         }
-        coopList = list.slice(0, 6).map((item) => ({
+        coopList = list.slice(0, 12).map((item) => ({
+          id: String(item.id || item.ID || ''),
           name: String(item.name || item.CNAME || ''),
           org: String(item.org || item.AORG || ''),
           field: String(item.cate || item.CATE || item.field || ''),
@@ -406,30 +548,57 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
         const graphPeople = (graphResult?.data?.sources?.nodes || []).filter(
           (node: Record<string, unknown>) => node.class === 'PERSON' && String(node.id) !== auid,
         )
-        coopList = graphPeople.slice(0, 6).map((node: Record<string, unknown>) => ({
+        coopList = graphPeople.slice(0, 12).map((node: Record<string, unknown>) => ({
+          id: String(node.id || ''),
           name: String(node.name || ''),
           org: String(node.org || ''),
           field: '',
         }))
       }
 
-      const personIds = new Set(
-        rawGraphNodes.filter((node) => node.class === 'PERSON').map((node) => String(node.id)),
-      )
-      const personLinks = relations.filter(
-        (relation) => personIds.has(String(relation.startid)) && personIds.has(String(relation.endid)),
-      )
-      const mappedPersonLinks = personLinks.map((relation) => ({
-        source: relation.startid,
-        target: relation.endid,
-        value: relation.cnt || 1,
-        ...relation,
-      }))
+      const coopOrgRes = await getCoopOrgList(auid).catch(() => null)
+      if (ac.signal.aborted) return
 
-      if (mappedPersonLinks.length > 0) {
-        setGraphNodes(rawGraphNodes)
-        setGraphLinks(mappedPersonLinks)
-      } else if (coopList.length > 0) {
+      let coopOrgList: CoopOrg[] = []
+      if (coopOrgRes) {
+        const data = coopOrgRes as Record<string, unknown>
+        const list = Array.isArray(data.data) ? data.data as Record<string, unknown>[] : []
+        coopOrgList = list.slice(0, 14).map((item, index) => ({
+          id: String(item.orgId || item.id || `coop-org-${auid}-${index}`),
+          name: String(item.orgName || item.name || item.org || ''),
+          region: String(item.region || ''),
+          count: Number(item.count || 1),
+        })).filter((item) => item.name)
+      }
+
+      const detail = ((bgRes as Record<string, unknown> | null)?.detail ?? {}) as Record<string, unknown>
+      const keywordStats = extractKeywordStats(detail)
+      const relationGraph = buildTalentRelationGraph(
+        {
+          auid,
+          name,
+          org,
+          field,
+          hIndex,
+          papers: Number(expert.QIKAN || 0),
+          patents: Number(expert.ZHUANLI || 0),
+          achievements: Number(expert.CHENGGUO || 0),
+          direction,
+          title,
+          background: '',
+          keywords: expertKeywords,
+        },
+        rawGraphNodes,
+        relations,
+        coopList,
+        coopOrgList,
+        keywordStats,
+      )
+
+      if (relationGraph.nodes.length > 1) {
+        setGraphNodes(relationGraph.nodes)
+        setGraphLinks(relationGraph.links)
+      } else {
         const fallbackGraph = buildCoopGraphFallback(
           {
             auid,
@@ -449,9 +618,6 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
         )
         setGraphNodes(fallbackGraph.nodes)
         setGraphLinks(fallbackGraph.links)
-      } else {
-        setGraphNodes(rawGraphNodes)
-        setGraphLinks(mappedPersonLinks)
       }
 
       setCoopTalents(coopList)
@@ -565,6 +731,7 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
               nodes={relationNodes}
               links={graphLinks}
               centerAuid={currentTalent.auid}
+              centerName={currentTalent.name}
               onNodeClick={(nodeId) => navigate(`/industry/talent/${encodeURIComponent(nodeId)}`)}
             />
           ) : (

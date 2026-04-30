@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { App, Button, Cascader, Drawer, Spin, Table, Tag, Typography } from 'antd'
+import { App, Button, Cascader, Drawer, Select, Spin, Table, Tabs, Tag, Typography } from 'antd'
 import { BankOutlined, DownloadOutlined, EnvironmentOutlined, LoadingOutlined, PlusOutlined, TeamOutlined } from '@ant-design/icons'
 import { Graph, treeToGraphData } from '@antv/g6'
 import type { GraphData, Graph as G6Graph, IElementEvent } from '@antv/g6'
@@ -12,9 +12,16 @@ import { aggregateStatus, getNodeStatus } from '@/services/coverageCache'
 import { searchChainTalents } from '@/services/chainTalent'
 import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
 import {
+  getIndustryNodeExpertPageLive,
+  getIndustryNodeExpertTotalsLive,
+} from '@/services/industryLiveExperts'
+import {
+  getIndustryNodeGroupPageFromSource,
+  getIndustryNodeGroupStatsFromSource,
   getIndustryNodePageFromSource,
   getIndustryNodeStatsFromSource,
 } from '@/services/industrySource'
+import { ORG_TAG_FILTER_OPTIONS, normalizeOrgTagFilter } from '@/services/industryOrgTags'
 import { getIndustryNodeProfileText } from '@/services/industryNodeProfile'
 import { exportRecordsCsv } from '@/utils/exportCsv'
 import { searchOrgs } from '@/services/industry'
@@ -52,6 +59,7 @@ interface PopoverData {
   loading: boolean
   queryString: string
   talentChain: string
+  groupNodeNames: string[]
   orgTotal: number
   localOrgTotal: number
   expertTotal: number
@@ -64,8 +72,10 @@ interface DrawerState {
   nodeName: string
   queryString: string
   talentChain: string
+  groupNodeNames: string[]
   city: string
   regionValue: string[]
+  orgTag: string
   loading: boolean
   data: Record<string, unknown>[]
   total: number
@@ -174,6 +184,23 @@ function resolveTalentChain(
   if (nodeKeywords?.[strippedName]) return strippedName
 
   return ''
+}
+
+function collectQueryableNodeNames(
+  node: IndustryGraphNode,
+  nodeKeywords?: Record<string, { keywords: string[]; queryString: string }>,
+) {
+  const names = new Set<string>()
+
+  const visit = (current: IndustryGraphNode) => {
+    const talentChain = resolveTalentChain(current.name, nodeKeywords)
+    if (talentChain) names.add(talentChain)
+
+    current.children?.forEach(visit)
+  }
+
+  visit(node)
+  return Array.from(names)
 }
 
 const allRegionOptions = [{ value: '__all__', label: '全国' }, ...regionOptions]
@@ -452,8 +479,10 @@ export default function IndustryChainGraph({
     nodeName: '',
     queryString: '',
     talentChain: '',
+    groupNodeNames: [],
     city: '',
     regionValue: [],
+    orgTag: '',
     loading: false,
     data: [],
     total: 0,
@@ -512,16 +541,13 @@ export default function IndustryChainGraph({
 
   const handleLeafClick = useCallback((node: IndustryGraphNode, event: IElementEvent) => {
     const talentChain = resolveTalentChain(node.name, nodeKeywords)
-    if (!talentChain) {
-      setPopover(null)
-      return
-    }
-
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
 
-    const mapping = nodeKeywords?.[talentChain]
+    const sourceNodeName = talentChain || stripStagePrefix(node.name) || node.name
+    const mapping = nodeKeywords?.[sourceNodeName]
+    const groupNodeNames = talentChain ? [] : collectQueryableNodeNames(node, nodeKeywords)
     const clientX = typeof event.client?.x === 'number' ? event.client.x : 0
     const clientY = typeof event.client?.y === 'number' ? event.client.y : 0
 
@@ -533,8 +559,9 @@ export default function IndustryChainGraph({
       screenX,
       screenY,
       loading: true,
-      queryString: mapping?.queryString || talentChain,
+      queryString: mapping?.queryString || sourceNodeName,
       talentChain,
+      groupNodeNames,
       orgTotal: 0,
       localOrgTotal: 0,
       expertTotal: 0,
@@ -545,13 +572,20 @@ export default function IndustryChainGraph({
     const currentCity = selectedRegion.city || selectedCity || '宜昌'
 
     void (async () => {
-      const cachedStats = await getIndustryNodeStatsFromSource(
+      const nodeStats = await getIndustryNodeStatsFromSource(
         chainKey,
-        talentChain,
+        sourceNodeName,
         selectedRegion,
-      ).catch(() => null)
+      ).catch(() => null) ?? (groupNodeNames.length > 0
+        ? await getIndustryNodeGroupStatsFromSource(
+          chainKey,
+          sourceNodeName,
+          groupNodeNames,
+          selectedRegion,
+        ).catch(() => null)
+        : null)
 
-      const queryString = cachedStats?.queryString || mapping?.queryString || talentChain
+      const queryString = nodeStats?.queryString || mapping?.queryString || sourceNodeName
       if (!queryString) {
         if (controller.signal.aborted) return
 
@@ -572,10 +606,10 @@ export default function IndustryChainGraph({
         return
       }
 
-      let orgTotal = cachedStats?.orgTotal ?? 0
-      let localOrgTotal = cachedStats?.localOrgTotal ?? 0
+      let orgTotal = nodeStats?.orgTotal ?? 0
+      let localOrgTotal = nodeStats?.localOrgTotal ?? 0
 
-      if (!cachedStats) {
+      if (!nodeStats) {
         const [orgAll, orgLocal] = await Promise.all([
           searchOrgs(queryString, 0, 1).catch(() => null),
           searchOrgs(queryString, 0, 1, currentCity).catch(() => null),
@@ -591,16 +625,24 @@ export default function IndustryChainGraph({
         localOrgTotal = getOrgTotal(orgLocal)
       }
 
-      const [expertAll, expertLocal] = await Promise.all([
-        searchChainTalents(talentChain, undefined, undefined, 1, 1).catch(() => null),
-        searchChainTalents(
-          talentChain,
-          selectedRegion.province || undefined,
+      const expertTotals = talentChain
+        ? await Promise.all([
+          searchChainTalents(talentChain, undefined, undefined, 1, 1).catch(() => null),
+          searchChainTalents(
+            talentChain,
+            selectedRegion.province || undefined,
+            currentCity || undefined,
+            1,
+            1,
+          ).catch(() => null),
+        ]).then(([expertAll, expertLocal]) => ({
+          expertTotal: expertAll?.total ?? 0,
+          localExpertTotal: expertLocal?.total ?? 0,
+        }))
+        : await getIndustryNodeExpertTotalsLive(
+          queryString,
           currentCity || undefined,
-          1,
-          1,
-        ).catch(() => null),
-      ])
+        ).catch(() => ({ expertTotal: 0, localExpertTotal: 0 }))
       if (controller.signal.aborted) return
 
       setPopover((prev) => {
@@ -610,22 +652,18 @@ export default function IndustryChainGraph({
           ...prev,
           loading: false,
           queryString,
+          groupNodeNames,
           orgTotal,
           localOrgTotal,
-          expertTotal: expertAll?.total ?? 0,
-          localExpertTotal: expertLocal?.total ?? 0,
+          expertTotal: expertTotals.expertTotal,
+          localExpertTotal: expertTotals.localExpertTotal,
         }
       })
     })()
   }, [chainKey, externalRegionValue, nodeKeywords, selectedCity])
 
   const handleNodeInspect = useCallback((node: IndustryGraphNode, event: IElementEvent) => {
-    if (!resolveTalentChain(node.name, nodeKeywords)) {
-      setPopover(null)
-      return
-    }
-
-    onNodeContextSelect?.(node)
+    if (resolveTalentChain(node.name, nodeKeywords)) onNodeContextSelect?.(node)
     handleLeafClick(node, event)
   }, [handleLeafClick, nodeKeywords, onNodeContextSelect])
 
@@ -636,6 +674,8 @@ export default function IndustryChainGraph({
     regionValue: string[],
     page: number,
     talentChain = '',
+    groupNodeNames: string[] = [],
+    orgTag = '',
   ) => {
     setDrawer((prev) => ({ ...prev, loading: true }))
     const from = (page - 1) * 10
@@ -643,7 +683,19 @@ export default function IndustryChainGraph({
 
     void (async () => {
       if (type === 'orgs') {
-        const cachedPage = await getIndustryNodePageFromSource(chainKey, nodeName, type, region, page, 10).catch(() => null)
+        const tagFilter = normalizeOrgTagFilter(orgTag)
+        const cachedPage = groupNodeNames.length > 0
+          ? await getIndustryNodeGroupPageFromSource(
+            chainKey,
+            nodeName,
+            groupNodeNames,
+            type,
+            region,
+            page,
+            10,
+            tagFilter,
+          ).catch(() => null)
+          : await getIndustryNodePageFromSource(chainKey, nodeName, type, region, page, 10, tagFilter).catch(() => null)
         if (cachedPage) {
           setDrawer((prev) => ({
             ...prev,
@@ -657,13 +709,15 @@ export default function IndustryChainGraph({
       }
 
       if (type === 'experts') {
-        const result = await searchChainTalents(
-          talentChain || nodeName,
-          region.province || undefined,
-          region.city || undefined,
-          page,
-          10,
-        )
+        const result = talentChain
+          ? await searchChainTalents(
+            talentChain,
+            region.province || undefined,
+            region.city || undefined,
+            page,
+            10,
+          )
+          : await getIndustryNodeExpertPageLive(queryString || nodeName, page, 10, region.city || undefined)
         setDrawer((prev) => ({
           ...prev,
           loading: false,
@@ -674,7 +728,7 @@ export default function IndustryChainGraph({
         return
       }
 
-      const result = await searchOrgs(queryString, from, 10, region.city || undefined)
+      const result = await searchOrgs(queryString, from, 10, region.city || undefined, normalizeOrgTagFilter(orgTag) || undefined)
       const data = result?.data as Record<string, unknown> | undefined
       const list = ((data?.orgRecommend ?? []) as Record<string, unknown>[])
       const total = Number(data?.total || list.length)
@@ -700,6 +754,7 @@ export default function IndustryChainGraph({
     if (!popover) return
 
     const currentPopover = popover
+    const drawerNodeName = stripStagePrefix(currentPopover.node.name) || currentPopover.node.name
     const region = externalRegionValue || ['hubei', 'yichang']
     const nextRegion = resolveIndustryRegionFromCascader(region)
 
@@ -707,24 +762,28 @@ export default function IndustryChainGraph({
       setDrawer({
         visible: true,
         type,
-        nodeName: currentPopover.node.name,
+        nodeName: drawerNodeName,
         queryString: currentPopover.queryString,
         talentChain: currentPopover.talentChain,
+        groupNodeNames: currentPopover.groupNodeNames,
         city: nextRegion.city || '',
         regionValue: region,
         loading: true,
         data: [],
         total: 0,
         page: 1,
+        orgTag: '',
       })
 
       loadDrawerData(
         type,
-        currentPopover.node.name,
+        drawerNodeName,
         currentPopover.queryString,
         region,
         1,
         currentPopover.talentChain,
+        currentPopover.groupNodeNames,
+        '',
       )
     }
 
@@ -742,7 +801,7 @@ export default function IndustryChainGraph({
     const nextRegion = resolveIndustryRegionFromCascader(value)
 
     setDrawer((prev) => {
-      loadDrawerData(prev.type, prev.nodeName, prev.queryString, value, 1, prev.talentChain)
+      loadDrawerData(prev.type, prev.nodeName, prev.queryString, value, 1, prev.talentChain, prev.groupNodeNames, prev.orgTag)
       return {
         ...prev,
         city: nextRegion.city || '',
@@ -751,6 +810,52 @@ export default function IndustryChainGraph({
       }
     })
   }, [loadDrawerData])
+
+  const handleDrawerOrgTagChange = useCallback((value?: string) => {
+    const nextTag = normalizeOrgTagFilter(value)
+
+    setDrawer((prev) => {
+      loadDrawerData(prev.type, prev.nodeName, prev.queryString, prev.regionValue, 1, prev.talentChain, prev.groupNodeNames, nextTag)
+      return {
+        ...prev,
+        orgTag: nextTag,
+        page: 1,
+      }
+    })
+  }, [loadDrawerData])
+
+  const handleDrawerTypeChange = useCallback((activeKey: string) => {
+    const nextType = activeKey === 'experts' ? 'experts' : 'orgs'
+    const nextOrgTag = nextType === 'orgs' ? drawer.orgTag : ''
+
+    setDrawer((prev) => ({
+      ...prev,
+      type: nextType,
+      orgTag: nextOrgTag,
+      data: [],
+      total: 0,
+      page: 1,
+      loading: true,
+    }))
+    loadDrawerData(
+      nextType,
+      drawer.nodeName,
+      drawer.queryString,
+      drawer.regionValue,
+      1,
+      drawer.talentChain,
+      drawer.groupNodeNames,
+      nextOrgTag,
+    )
+  }, [
+    drawer.nodeName,
+    drawer.orgTag,
+    drawer.queryString,
+    drawer.regionValue,
+    drawer.talentChain,
+    drawer.groupNodeNames,
+    loadDrawerData,
+  ])
 
   const openEnterpriseDetail = useCallback((record: Record<string, unknown>) => {
     const name = String(record.NAME || record.name || '未知企业')
@@ -779,6 +884,10 @@ export default function IndustryChainGraph({
   const popoverStatus = popover
     ? (popover.loading ? 'analyzing' : getEffectiveStatus(popover.node))
     : null
+  const popoverDisplayName = popover
+    ? (stripStagePrefix(popover.node.name) || popover.node.name)
+    : ''
+  const drawerDisplayName = stripStagePrefix(drawer.nodeName) || drawer.nodeName
   const popoverProfileText = popover
     ? getIndustryNodeProfileText(popover.node.name, { queryString: popover.queryString })
     : ''
@@ -855,7 +964,7 @@ export default function IndustryChainGraph({
         <div className="chain-popover-portal" style={{ left: popover.screenX, top: popover.screenY }}>
           <div className="chain-popover-header">
             <Text strong style={{ fontSize: 15 }}>
-              {popover.node.name}
+              {popoverDisplayName}
             </Text>
             <Tag color={STATUS_COLORS[popoverStatus || 'strong'].fill}>
               {STATUS_LABELS[popoverStatus || 'strong']}
@@ -902,7 +1011,7 @@ export default function IndustryChainGraph({
               size="small"
               icon={<PlusOutlined />}
               onClick={() => {
-                message.success(`已将“${popover.node.name}”加入清单`)
+                message.success(`已将“${popoverDisplayName}”加入清单`)
                 onNodeAction?.('addList', popover.node)
                 setPopover(null)
               }}
@@ -921,7 +1030,7 @@ export default function IndustryChainGraph({
         title={(
           <div className="industry-drawer-title">
             {drawer.type === 'orgs' ? <BankOutlined /> : <TeamOutlined />}
-            <span>{drawer.nodeName} - {drawer.type === 'orgs' ? '相关企业' : '相关人才'}</span>
+            <span>{drawerDisplayName}</span>
             {drawer.total > 0 && <Tag color="blue">{drawer.total.toLocaleString()}</Tag>}
           </div>
         )}
@@ -936,6 +1045,32 @@ export default function IndustryChainGraph({
           <div className="industry-drawer-intro-text">{drawerProfileText}</div>
         </div>
 
+        <Tabs
+          className="industry-drawer-tabs"
+          activeKey={drawer.type}
+          onChange={handleDrawerTypeChange}
+          items={[
+            {
+              key: 'orgs',
+              label: (
+                <span>
+                  <BankOutlined />
+                  相关企业
+                </span>
+              ),
+            },
+            {
+              key: 'experts',
+              label: (
+                <span>
+                  <TeamOutlined />
+                  相关人才
+                </span>
+              ),
+            },
+          ]}
+        />
+
         <div className="industry-drawer-toolbar">
           <div className="industry-drawer-filter">
             <EnvironmentOutlined />
@@ -948,7 +1083,7 @@ export default function IndustryChainGraph({
 
                 if (nextValue.length === 0 || nextValue[0] === '__all__') {
                   setDrawer((prev) => {
-                    loadDrawerData(prev.type, prev.nodeName, prev.queryString, [], 1, prev.talentChain)
+                    loadDrawerData(prev.type, prev.nodeName, prev.queryString, [], 1, prev.talentChain, prev.groupNodeNames, prev.orgTag)
                     return {
                       ...prev,
                       city: '',
@@ -967,6 +1102,20 @@ export default function IndustryChainGraph({
               placeholder="选择地区"
             />
           </div>
+          {drawer.type === 'orgs' && (
+            <div className="industry-drawer-filter">
+              <span>企业类型：</span>
+              <Select
+                allowClear
+                size="small"
+                style={{ width: 190 }}
+                placeholder="全部企业类型"
+                value={drawer.orgTag || undefined}
+                onChange={handleDrawerOrgTagChange}
+                options={ORG_TAG_FILTER_OPTIONS.map((tag) => ({ label: tag, value: tag }))}
+              />
+            </div>
+          )}
           <Button
             icon={<DownloadOutlined />}
             disabled={drawer.data.length === 0}
@@ -987,7 +1136,7 @@ export default function IndustryChainGraph({
 
               if (nextValue.length === 0 || nextValue[0] === '__all__') {
                 setDrawer((prev) => {
-                  loadDrawerData(prev.type, prev.nodeName, prev.queryString, [], 1, prev.talentChain)
+                  loadDrawerData(prev.type, prev.nodeName, prev.queryString, [], 1, prev.talentChain, prev.groupNodeNames, prev.orgTag)
                   return {
                     ...prev,
                     city: '',
@@ -1014,6 +1163,7 @@ export default function IndustryChainGraph({
           rowKey={(_, index) => String(index)}
           loading={drawer.loading}
           size="small"
+          rowClassName={() => `industry-drawer-row industry-drawer-row-${drawer.type === 'orgs' ? 'org' : 'expert'}`}
           onRow={(record) => ({
             onClick: () => {
               if (drawer.type === 'orgs') openEnterpriseDetail(record)
@@ -1028,7 +1178,7 @@ export default function IndustryChainGraph({
             showSizeChanger: false,
             showTotal: () => `共 ${drawer.total.toLocaleString()} 条`,
             onChange: (page) => {
-              loadDrawerData(drawer.type, drawer.nodeName, drawer.queryString, drawer.regionValue, page, drawer.talentChain)
+              loadDrawerData(drawer.type, drawer.nodeName, drawer.queryString, drawer.regionValue, page, drawer.talentChain, drawer.groupNodeNames, drawer.orgTag)
               setDrawer((prev) => ({ ...prev, page }))
             },
           }}

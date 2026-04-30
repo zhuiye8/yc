@@ -1,5 +1,5 @@
 import { ClockCircleOutlined } from '@ant-design/icons'
-import aboutBg from '@/assets/images/hero/about-bg.jpg'
+import aboutBg from '@/assets/images/hero/about-bg-202604.jpg'
 import bannerLeft from '@/assets/images/icons/小图标_78.png'
 import bannerRight from '@/assets/images/icons/小图标_81.png'
 import goalImg1 from '@/assets/images/icons/小图标_131.png'

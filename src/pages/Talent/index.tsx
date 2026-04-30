@@ -7,7 +7,7 @@ import SupplyDemand from './SupplyDemand'
 import talentBg from '@/assets/images/hero/talent-bg-plain.jpg'
 import styles from './Talent.module.scss'
 
-const hotTags = ['生物医药', '新材料', '人工智能', '博士后', '高级工程师', '领军人才']
+const hotTags = ['人工智能', '生物医药', '新材料', '智能制造', '大数据', '博士后']
 
 export default function Talent() {
   const [searchParams] = useSearchParams()
@@ -30,8 +30,8 @@ export default function Talent() {
         hotTags={hotTags}
         onSearch={handleSearch}
         variant="industry"
-        titleLine1="智能识别人才"
-        titleLine2="让岗位与人才精准匹配"
+        titleLine1="人才智能画像"
+        titleLine2="人岗精准对接"
       />
 
       <div className={styles.tabBar}>
@@ -55,7 +55,6 @@ export default function Talent() {
             人才报告
           </div>
         </div>
-
       </div>
 
       {activeTab === 'graph' && (

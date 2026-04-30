@@ -6,6 +6,8 @@ import {
   getChainProvinceDistribution,
   getChainSummary,
   getHealth,
+  getNodeGroupItems,
+  getNodeGroupStats,
   getNodeItems,
   getNodeStats,
   searchIndustry,
@@ -42,7 +44,7 @@ app.get('/industry/chains/:chainKey/province-distribution', (req, res) => {
 
 app.get('/industry/chains/:chainKey/aggregate/:type', (req, res) => {
   const { chainKey, type } = req.params;
-  const { province, city, page = '1', pageSize = '10' } = req.query;
+  const { province, city, page = '1', pageSize = '10', tags = '' } = req.query;
   res.json(
     getChainAggregate(
       chainKey,
@@ -51,6 +53,7 @@ app.get('/industry/chains/:chainKey/aggregate/:type', (req, res) => {
       city,
       Number(page),
       Number(pageSize),
+      tags,
     ),
   );
 });
@@ -71,6 +74,24 @@ app.get('/industry/nodes/stats', (req, res) => {
   res.json(result);
 });
 
+app.get('/industry/nodes/group-stats', (req, res) => {
+  const { chainKey, nodeName = '', nodeNames = '', province, city } = req.query;
+  if (!chainKey || !nodeNames) {
+    res.status(400).json({ error: 'chainKey and nodeNames are required' });
+    return;
+  }
+
+  res.json(
+    getNodeGroupStats(
+      chainKey,
+      nodeName,
+      String(nodeNames).split('\n'),
+      province,
+      city,
+    ),
+  );
+});
+
 app.get('/industry/nodes/items', (req, res) => {
   const {
     chainKey,
@@ -80,6 +101,7 @@ app.get('/industry/nodes/items', (req, res) => {
     city,
     page = '1',
     pageSize = '10',
+    tags = '',
   } = req.query;
 
   if (!chainKey || !nodeName || !type) {
@@ -96,6 +118,40 @@ app.get('/industry/nodes/items', (req, res) => {
       city,
       Number(page),
       Number(pageSize),
+      tags,
+    ),
+  );
+});
+
+app.get('/industry/nodes/group-items', (req, res) => {
+  const {
+    chainKey,
+    nodeName = '',
+    nodeNames = '',
+    type,
+    province,
+    city,
+    page = '1',
+    pageSize = '10',
+    tags = '',
+  } = req.query;
+
+  if (!chainKey || !nodeNames || !type) {
+    res.status(400).json({ error: 'chainKey, nodeNames and type are required' });
+    return;
+  }
+
+  res.json(
+    getNodeGroupItems(
+      chainKey,
+      nodeName,
+      String(nodeNames).split('\n'),
+      type,
+      province,
+      city,
+      Number(page),
+      Number(pageSize),
+      tags,
     ),
   );
 });

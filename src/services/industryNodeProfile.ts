@@ -14,8 +14,12 @@ interface NodeProfileOptions {
 const keywordMap = industryKeywords as Record<string, Record<string, NodeKeywordEntry>>
 const profileMap = industryNodeProfiles as Record<string, Record<string, string>>
 
+function stripStagePrefix(value: string) {
+  return value.replace(/^(?:上游|中游|下游)[：:]\s*/, '').trim()
+}
+
 function normalizeText(value: string) {
-  return value.replace(/\s+/g, '').trim()
+  return stripStagePrefix(value).replace(/\s+/g, '').trim()
 }
 
 function uniqueValues(values: string[]) {
@@ -77,8 +81,8 @@ function formatKeywords(entry?: NodeKeywordEntry, fallbackQuery?: string) {
 }
 
 export function getIndustryNodeProfileText(nodeName: string, options: NodeProfileOptions = {}) {
-  const displayName = nodeName.trim()
-  if (!displayName) return '当前节点用于汇聚产业链相关企业与人才资源，辅助判断资源储备、区域分布和后续招引对接方向。'
+  const displayName = stripStagePrefix(nodeName)
+  if (!displayName) return '当前节点是产业链中的基础观察单元，承接相关技术、企业和人才能力。'
 
   const cachedProfile = findCachedProfile(displayName)
   if (cachedProfile) {
@@ -96,7 +100,7 @@ export function getIndustryNodeProfileText(nodeName: string, options: NodeProfil
       ? `搜索词“${options.searchKeyword}”已匹配到“${matched.nodeName}”。`
       : ''
 
-    return `${searchPrefix}“${matched.nodeName}”为产业链方向，当前本地维护 ${matched.nodeCount} 个可查询环节，用于汇聚该方向下企业、人才与技术资源，支撑产业链覆盖分析、资源筛选和招引研判。`
+    return `${searchPrefix}“${matched.nodeName}”为产业链方向，包含 ${matched.nodeCount} 个可查询环节，体现该方向的企业、人才与技术能力分布。`
   }
 
   if (matched) {
@@ -105,13 +109,13 @@ export function getIndustryNodeProfileText(nodeName: string, options: NodeProfil
       ? `搜索词“${options.searchKeyword}”已匹配到“${matched.nodeName}”节点。`
       : ''
 
-    return `${searchPrefix}“${matched.nodeName}”属于“${matched.chainName}”产业链的可查询节点${keywordText}。该节点用于汇聚相关企业、人才与技术资源，辅助判断资源储备、区域分布、薄弱环节和后续招引对接目标。`
+    return `${searchPrefix}“${matched.nodeName}”属于“${matched.chainName}”产业链的可查询节点${keywordText}，反映该环节的技术能力、企业基础和人才储备。`
   }
 
-  const keywordText = options.queryString ? `，按“${options.queryString}”进行资源匹配` : ''
+  const keywordText = options.queryString ? `，当前关联词为“${options.queryString}”` : ''
   const searchPrefix = options.searchKeyword && normalizeText(options.searchKeyword) !== normalizeText(displayName)
     ? `搜索词“${options.searchKeyword}”已匹配到“${displayName}”。`
     : ''
 
-  return `${searchPrefix}“${displayName}”用于检索产业链相关企业与人才资源${keywordText}，辅助判断该方向的资源储备、区域分布和后续招引对接目标。`
+  return `${searchPrefix}“${displayName}”是产业链中的观察节点${keywordText}，可结合企业、人才和技术数据判断该方向的发展基础。`
 }

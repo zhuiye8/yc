@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Tag, Spin, Drawer, Cascader, Table } from 'antd'
+import { Button, Tag, Spin, Drawer, Cascader, Table, Select } from 'antd'
 import ReactECharts from 'echarts-for-react'
 import type { EChartsOption } from 'echarts'
 import {
@@ -33,6 +33,7 @@ import {
 import { regionOptions } from '@/mock/regions'
 import industryKeywords from '@/data/industry-keywords.json'
 import { orgDrawerColumns, expertDrawerColumns } from '@/components/IndustryDrawerColumns'
+import { ORG_TAG_FILTER_OPTIONS, normalizeOrgTagFilter } from '@/services/industryOrgTags'
 import industryWarningScoreIcon from '@/assets/images/icons/industry-warning-score-icon.png'
 import industryLocalizationRateIcon from '@/assets/images/icons/industry-localization-rate-icon.png'
 import industryChainEnterprisesIcon from '@/assets/images/icons/industry-chain-enterprises-icon.png'
@@ -66,6 +67,7 @@ interface ChainDrawerState {
   city: string
   regionValue: string[]
   queryChain?: string
+  orgTag: string
   loading: boolean
   data: Record<string, unknown>[]
   total: number
@@ -753,13 +755,14 @@ export default function IndustryGraph({
     city: '',
     regionValue: [],
     queryChain: undefined,
+    orgTag: '',
     loading: false,
     data: [],
     total: 0,
     page: 1,
   })
 
-  const loadChainDrawerData = useCallback((type: 'orgs' | 'experts', regionValue: string[], page: number, queryChain?: string) => {
+  const loadChainDrawerData = useCallback((type: 'orgs' | 'experts', regionValue: string[], page: number, queryChain?: string, orgTag = '') => {
     setChainDrawer((prev) => ({ ...prev, loading: true }))
     if (!nodeKeywords) {
       setChainDrawer((prev) => ({ ...prev, loading: false, data: [], total: 0, page }))
@@ -769,11 +772,22 @@ export default function IndustryGraph({
     void (async () => {
       const region = resolveIndustryRegionFromCascader(regionValue)
       if (type === 'orgs') {
-        const cachedAggregate = await getIndustryChainAggregateFromSource(chainKey, type, region, page, 10).catch(() => null)
+        const tagFilter = normalizeOrgTagFilter(orgTag)
+        const cachedAggregate = await getIndustryChainAggregateFromSource(chainKey, type, region, page, 10, tagFilter).catch(() => null)
         const result = cachedAggregate
-          ?? await getChainAggregate(chainKey, 'orgs', nodeKeywords, region.city || undefined).catch(() => ({ items: [], total: 0 }))
+          ?? (
+            tagFilter
+              ? await searchOrgs(chainSearchKey, (page - 1) * 10, 10, region.city || undefined, tagFilter)
+                .then((res) => {
+                  const data = res?.data as Record<string, unknown> | undefined
+                  const items = ((data?.orgRecommend ?? data?.items ?? []) as Record<string, unknown>[])
+                  return { items, total: Number(data?.total || items.length) }
+                })
+                .catch(() => ({ items: [], total: 0 }))
+              : await getChainAggregate(chainKey, 'orgs', nodeKeywords, region.city || undefined).catch(() => ({ items: [], total: 0 }))
+          )
 
-        const list = cachedAggregate ? result.items : result.items.slice((page - 1) * 10, page * 10)
+        const list = cachedAggregate || tagFilter ? result.items : result.items.slice((page - 1) * 10, page * 10)
         setChainDrawer((prev) => ({ ...prev, loading: false, data: list, total: result.total, page }))
         return
       }
@@ -786,7 +800,7 @@ export default function IndustryGraph({
     })().catch(() => {
       setChainDrawer((prev) => ({ ...prev, loading: false, data: [], total: 0 }))
     })
-  }, [chainKey, nodeKeywords])
+  }, [chainKey, chainSearchKey, nodeKeywords])
 
   const openChainDrawer = useCallback((type: 'orgs' | 'experts', regionOverride?: string[]) => {
     const region = regionOverride || externalRegionValue || ['hubei', 'yichang']
@@ -797,12 +811,13 @@ export default function IndustryGraph({
       city: nextRegion.city || '',
       regionValue: region,
       queryChain: undefined,
+      orgTag: '',
       loading: true,
       data: [],
       total: 0,
       page: 1,
     })
-    loadChainDrawerData(type, region, 1)
+    loadChainDrawerData(type, region, 1, undefined, '')
   }, [externalRegionValue, loadChainDrawerData])
 
   const openEnterpriseProvinceDrawer = useCallback((provinceName: string) => {
@@ -814,6 +829,7 @@ export default function IndustryGraph({
         city: provinceName,
         regionValue: findRegionValueByProvinceName(provinceName),
         queryChain: undefined,
+        orgTag: '',
         loading: false,
         data: sampledRecords.slice(0, 10),
         total: Math.min(sampledRecords.length, 10),
@@ -833,6 +849,7 @@ export default function IndustryGraph({
       city: nodeName,
       regionValue: [],
       queryChain: nodeName,
+      orgTag: '',
       loading: true,
       data: [],
       total: 0,
@@ -862,7 +879,7 @@ export default function IndustryGraph({
   const handleChainDrawerRegionChange = useCallback((val: string[]) => {
     if (!val || val.length === 0 || val[0] === '__all__') {
       setChainDrawer((prev) => {
-        loadChainDrawerData(prev.type, [], 1, prev.queryChain)
+      loadChainDrawerData(prev.type, [], 1, prev.queryChain, prev.orgTag)
         return { ...prev, city: '', regionValue: [], page: 1 }
       })
       return
@@ -870,8 +887,21 @@ export default function IndustryGraph({
 
     const nextRegion = resolveIndustryRegionFromCascader(val)
     setChainDrawer((prev) => {
-      loadChainDrawerData(prev.type, val, 1, prev.queryChain)
+      loadChainDrawerData(prev.type, val, 1, prev.queryChain, prev.orgTag)
       return { ...prev, city: nextRegion.city || '', regionValue: val, page: 1 }
+    })
+  }, [loadChainDrawerData])
+
+  const handleChainDrawerOrgTagChange = useCallback((value?: string) => {
+    const nextTag = normalizeOrgTagFilter(value)
+
+    setChainDrawer((prev) => {
+      loadChainDrawerData(prev.type, prev.regionValue, 1, prev.queryChain, nextTag)
+      return {
+        ...prev,
+        orgTag: nextTag,
+        page: 1,
+      }
     })
   }, [loadChainDrawerData])
 
@@ -1299,6 +1329,20 @@ export default function IndustryGraph({
             style={{ width: 200 }}
             placeholder="选择地区"
           />
+          {chainDrawer.type === 'orgs' && (
+            <>
+              <span className={styles.filterLabel}>企业类型：</span>
+              <Select
+                allowClear
+                size="small"
+                style={{ width: 190 }}
+                placeholder="全部企业类型"
+                value={chainDrawer.orgTag || undefined}
+                onChange={handleChainDrawerOrgTagChange}
+                options={ORG_TAG_FILTER_OPTIONS.map((tag) => ({ label: tag, value: tag }))}
+              />
+            </>
+          )}
         </div>
 
         <Table
@@ -1321,7 +1365,7 @@ export default function IndustryGraph({
             showSizeChanger: false,
             showTotal: () => `共 ${chainDrawer.total.toLocaleString()} 条`,
             onChange: (page) => {
-              loadChainDrawerData(chainDrawer.type, chainDrawer.regionValue, page, chainDrawer.queryChain)
+              loadChainDrawerData(chainDrawer.type, chainDrawer.regionValue, page, chainDrawer.queryChain, chainDrawer.orgTag)
               setChainDrawer((prev) => ({ ...prev, page }))
             },
           }}

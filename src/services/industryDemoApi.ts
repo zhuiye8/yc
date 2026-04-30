@@ -65,6 +65,7 @@ export async function getDemoChainAggregate(
   region?: IndustryRegionFilter,
   page = 1,
   pageSize = 10,
+  tags?: string,
 ) {
   return withDemoDelay(
     requestDemoApi<{ total: number; items: Record<string, unknown>[] }>(
@@ -73,6 +74,7 @@ export async function getDemoChainAggregate(
         ...toQueryParams(region),
         page,
         pageSize,
+        tags,
       },
     ),
   )
@@ -99,6 +101,29 @@ export async function getDemoNodeStats(
   )
 }
 
+export async function getDemoNodeGroupStats(
+  chainKey: string,
+  nodeName: string,
+  nodeNames: string[],
+  region?: IndustryRegionFilter,
+) {
+  return withDemoDelay(
+    requestDemoApi<{
+      queryString: string
+      orgTotal: number
+      localOrgTotal: number
+      expertTotal: number
+      localExpertTotal: number
+      scopeKey: string
+    }>('/industry/nodes/group-stats', {
+      chainKey,
+      nodeName,
+      nodeNames: nodeNames.join('\n'),
+      ...toQueryParams(region),
+    }),
+  )
+}
+
 export async function getDemoNodePage(
   chainKey: string,
   nodeName: string,
@@ -106,6 +131,7 @@ export async function getDemoNodePage(
   region?: IndustryRegionFilter,
   page = 1,
   pageSize = 10,
+  tags?: string,
 ) {
   return withDemoDelay(
     requestDemoApi<{ total: number; items: Record<string, unknown>[] }>(
@@ -117,6 +143,34 @@ export async function getDemoNodePage(
         ...toQueryParams(region),
         page,
         pageSize,
+        tags,
+      },
+    ),
+  )
+}
+
+export async function getDemoNodeGroupPage(
+  chainKey: string,
+  nodeName: string,
+  nodeNames: string[],
+  type: EntityType,
+  region?: IndustryRegionFilter,
+  page = 1,
+  pageSize = 10,
+  tags?: string,
+) {
+  return withDemoDelay(
+    requestDemoApi<{ total: number; items: Record<string, unknown>[] }>(
+      '/industry/nodes/group-items',
+      {
+        chainKey,
+        nodeName,
+        nodeNames: nodeNames.join('\n'),
+        type,
+        ...toQueryParams(region),
+        page,
+        pageSize,
+        tags,
       },
     ),
   )

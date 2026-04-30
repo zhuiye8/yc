@@ -78,16 +78,16 @@ export const orgDrawerColumns = [
       const name = String(r.NAME || '-')
       const orgType = orgTypeMap[String(r.SOURCE || r.ORGTYPE || '')] || orgTypeMap['QY']
       return (
-        <Space size={4}>
+        <div className="industry-drawer-name-cell industry-drawer-org-name-cell">
           {orgType && (
-            <Tag color={orgType.color} style={{ fontSize: 12, lineHeight: '20px', padding: '0 7px', borderRadius: 10, marginRight: 0 }}>
+            <Tag color={orgType.color} className="industry-drawer-compact-tag">
               {orgType.label}
             </Tag>
           )}
           <Tooltip title={name}>
-            <Text strong style={{ fontSize: 15 }}>{name}</Text>
+            <Text strong className="industry-drawer-primary-text">{name}</Text>
           </Tooltip>
-        </Space>
+        </div>
       )
     },
   },
@@ -110,9 +110,9 @@ export const orgDrawerColumns = [
     render: (_: unknown, r: Record<string, unknown>) => {
       const industries = (r.INDUSTRY || []) as string[]
       return (
-        <Space size={2} wrap>
+        <Space size={2} wrap className="industry-drawer-tag-list">
           {industries.slice(0, 2).map((ind, i) => (
-            <Tag key={i} color={getIndustryColor(ind)} style={{ fontSize: 12, lineHeight: '20px', padding: '0 7px', borderRadius: 10 }}>
+            <Tag key={i} color={getIndustryColor(ind)} className="industry-drawer-compact-tag">
               {ind.length > 8 ? ind.slice(0, 8) + '...' : ind}
             </Tag>
           ))}
@@ -129,9 +129,9 @@ export const orgDrawerColumns = [
       const tags = (r.TAGS || []) as string[]
       if (tags.length === 0) return <Text type="secondary" style={{ fontSize: 14 }}>-</Text>
       return (
-        <Space size={2} wrap>
+        <Space size={2} wrap className="industry-drawer-tag-list">
           {tags.slice(0, 3).map((t, i) => (
-            <Tag key={i} color={getOrgTagColor(t)} style={{ fontSize: 12, lineHeight: '20px', padding: '0 7px', borderRadius: 10 }}>
+            <Tag key={i} color={getOrgTagColor(t)} className="industry-drawer-compact-tag">
               {t}
             </Tag>
           ))}
@@ -153,9 +153,9 @@ export const expertDrawerColumns = [
       const rawTitle = Array.isArray(r.TITLE) ? String(r.TITLE[0] || '') : String(r.TITLE || '')
       const title = rawTitle.replace(/^\[|]$/g, '')
       return (
-        <div>
-          <Text strong style={{ fontSize: 15 }}>{name}</Text>
-          {title && <div style={{ fontSize: 13, color: '#7f8ba3', marginTop: 3 }}>{title}</div>}
+        <div className={`industry-drawer-name-cell industry-drawer-expert-name-cell${title ? '' : ' no-title'}`}>
+          <Text strong className="industry-drawer-primary-text">{name}</Text>
+          {title && <div className="industry-drawer-sub-text">{title}</div>}
         </div>
       )
     },

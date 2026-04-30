@@ -25,6 +25,18 @@ function buildOrgRegionFilter(scope, alias = 'o') {
   return { sql: '', params: [] };
 }
 
+function buildOrgTagFilter(tags, alias = 'o') {
+  const tag = String(tags ?? '').trim();
+  if (!tag) {
+    return { sql: '', params: [] };
+  }
+
+  return {
+    sql: ` AND ${alias}.tags_text LIKE ?`,
+    params: [`%${tag}%`],
+  };
+}
+
 function parseItems(rows) {
   return rows.map((row) => JSON.parse(row.raw_json));
 }
@@ -58,6 +70,24 @@ function getNodeRecord(chainKey, nodeName) {
   return db
     .prepare('SELECT node_id, node_name, query_string FROM nodes WHERE chain_key = ? AND node_name = ? LIMIT 1')
     .get(chainKey, nodeName);
+}
+
+function getNodeRecords(chainKey, nodeNames) {
+  const names = Array.from(new Set(nodeNames.map((name) => String(name ?? '').trim()).filter(Boolean)));
+  if (names.length === 0) {
+    return [];
+  }
+
+  const db = getDb();
+  const placeholders = names.map(() => '?').join(', ');
+  return db
+    .prepare(
+      `SELECT node_id, node_name, query_string
+       FROM nodes
+       WHERE chain_key = ? AND node_name IN (${placeholders})
+       ORDER BY node_name ASC`,
+    )
+    .all(chainKey, ...names);
 }
 
 function getNodeOrgTotal(nodeId, scope) {
@@ -149,34 +179,35 @@ function getOrgHitScopeForList(scope) {
   return scope.isNational ? scope.scopeKey : 'national';
 }
 
-function getAggregatedNodeItems(nodeIds, type, scope, page, pageSize) {
+function getAggregatedNodeItems(nodeIds, type, scope, page, pageSize, tags = '') {
   const db = getDb();
   const placeholders = nodeIds.map(() => '?').join(', ');
   const offset = (page - 1) * pageSize;
 
   if (type === 'orgs') {
     const regionFilter = buildOrgRegionFilter(scope, 'o');
+    const tagFilter = buildOrgTagFilter(tags, 'o');
     const hitScopeKey = getOrgHitScopeForList(scope);
     const totalRow = db
       .prepare(
         `SELECT COUNT(DISTINCT o.org_uid) AS total
          FROM node_org_hits h
          JOIN org_entities o ON o.org_uid = h.org_uid
-         WHERE h.node_id IN (${placeholders}) AND h.scope_key = ?${regionFilter.sql}`,
+         WHERE h.node_id IN (${placeholders}) AND h.scope_key = ?${regionFilter.sql}${tagFilter.sql}`,
       )
-      .get(...nodeIds, hitScopeKey, ...regionFilter.params);
+      .get(...nodeIds, hitScopeKey, ...regionFilter.params, ...tagFilter.params);
 
     const rows = db
       .prepare(
         `SELECT o.raw_json
          FROM node_org_hits h
          JOIN org_entities o ON o.org_uid = h.org_uid
-         WHERE h.node_id IN (${placeholders}) AND h.scope_key = ?${regionFilter.sql}
+         WHERE h.node_id IN (${placeholders}) AND h.scope_key = ?${regionFilter.sql}${tagFilter.sql}
          GROUP BY o.org_uid
          ${getEntityOrderSql('orgs', 'o')}
          LIMIT ? OFFSET ?`,
       )
-      .all(...nodeIds, hitScopeKey, ...regionFilter.params, pageSize, offset);
+      .all(...nodeIds, hitScopeKey, ...regionFilter.params, ...tagFilter.params, pageSize, offset);
 
     return { total: Number(totalRow?.total ?? 0), items: parseItems(rows) };
   }
@@ -318,7 +349,7 @@ export function getChainSummary(chainKey, province, city) {
   };
 }
 
-export function getChainAggregate(chainKey, type, province, city, page = 1, pageSize = 10) {
+export function getChainAggregate(chainKey, type, province, city, page = 1, pageSize = 10, tags = '') {
   const db = getDb();
   const scope = resolveScope(province, city);
   const nodeIds = db
@@ -330,7 +361,7 @@ export function getChainAggregate(chainKey, type, province, city, page = 1, page
     return { total: 0, items: [] };
   }
 
-  return getAggregatedNodeItems(nodeIds, type, scope, page, pageSize);
+  return getAggregatedNodeItems(nodeIds, type, scope, page, pageSize, tags);
 }
 
 export function getNodeStats(chainKey, nodeName, province, city) {
@@ -362,7 +393,34 @@ export function getNodeStats(chainKey, nodeName, province, city) {
   };
 }
 
-export function getNodeItems(chainKey, nodeName, type, province, city, page = 1, pageSize = 10) {
+export function getNodeGroupStats(chainKey, nodeName, nodeNames, province, city) {
+  const scope = resolveScope(province, city);
+  const nodes = getNodeRecords(chainKey, nodeNames);
+  const nodeIds = nodes.map((node) => node.node_id);
+  const nationalScope = resolveScope();
+  const nationalTotals = getReportedTotalsForNodes(nodeIds, 'national');
+  const scopedTotals = scope.isNational
+    ? nationalTotals
+    : getReportedTotalsForNodes(nodeIds, scope.scopeKey);
+  const orgTotal = nodeIds.length > 0
+    ? getAggregatedNodeItems(nodeIds, 'orgs', nationalScope, 1, 1).total
+    : 0;
+  const localOrgTotal = nodeIds.length > 0
+    ? getAggregatedNodeItems(nodeIds, 'orgs', scope, 1, 1).total
+    : 0;
+
+  return {
+    queryString: String(nodeName || nodes[0]?.node_name || ''),
+    orgTotal,
+    localOrgTotal,
+    expertTotal: nationalTotals.expertTotal,
+    localExpertTotal: scopedTotals.expertTotal,
+    scopeKey: scope.scopeKey,
+    matchedNodeCount: nodes.length,
+  };
+}
+
+export function getNodeItems(chainKey, nodeName, type, province, city, page = 1, pageSize = 10, tags = '') {
   const scope = resolveScope(province, city);
   const node = getNodeRecord(chainKey, nodeName);
 
@@ -370,7 +428,29 @@ export function getNodeItems(chainKey, nodeName, type, province, city, page = 1,
     return { total: 0, items: [] };
   }
 
-  return getAggregatedNodeItems([node.node_id], type, scope, page, pageSize);
+  return getAggregatedNodeItems([node.node_id], type, scope, page, pageSize, tags);
+}
+
+export function getNodeGroupItems(
+  chainKey,
+  nodeName,
+  nodeNames,
+  type,
+  province,
+  city,
+  page = 1,
+  pageSize = 10,
+  tags = '',
+) {
+  const scope = resolveScope(province, city);
+  const nodes = getNodeRecords(chainKey, nodeNames);
+  const nodeIds = nodes.map((node) => node.node_id);
+
+  if (nodeIds.length === 0) {
+    return { total: 0, items: [], nodeName };
+  }
+
+  return getAggregatedNodeItems(nodeIds, type, scope, page, pageSize, tags);
 }
 
 /**

@@ -3,7 +3,7 @@ import {
   DollarOutlined, FileProtectOutlined, SearchOutlined,
   GlobalOutlined, DesktopOutlined, SyncOutlined,
 } from '@ant-design/icons'
-import solutionsBg from '@/assets/images/hero/solutions-bg.jpg'
+import solutionsBg from '@/assets/images/hero/solutions-bg-202604.jpg'
 import styles from './Solutions.module.scss'
 
 const capabilities = [
