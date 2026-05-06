@@ -16,6 +16,25 @@ const FINANCIAL_URL = 'https://www.threegorges-financial.com/'
 
 const hotTags = ['科技贷款', '成果转化融资', '产业基金', '政府贴息', 'VC/PE', '天使投资', '供应链金融']
 
+const tagPalette = [
+  { color: '#2468F2', bg: '#EAF2FF', border: '#B9D3FF' },
+  { color: '#13A8A8', bg: '#E8FFFB', border: '#9DEBE3' },
+  { color: '#F26B4A', bg: '#FFF1EB', border: '#FFD0BE' },
+  { color: '#7B61FF', bg: '#F3F0FF', border: '#D8CFFF' },
+  { color: '#D48806', bg: '#FFF7E6', border: '#FFD591' },
+  { color: '#2BA471', bg: '#F0FFF4', border: '#B7E8C3' },
+]
+
+function getTagStyle(tag: string) {
+  const sum = Array.from(tag).reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const palette = tagPalette[sum % tagPalette.length]
+  return {
+    color: palette.color,
+    background: palette.bg,
+    borderColor: palette.border,
+  }
+}
+
 const statCards = [
   { icon: <DollarOutlined />, color: '#2468F2', title: '可对接资金规模', desc: '整合银行、基金、担保和政府引导资金能力。', num: '28', unit: '亿元' },
   { icon: <BankOutlined />, color: '#2BA471', title: '入驻金融机构', desc: '覆盖银行、基金、担保、租赁等多类机构。', num: '15', unit: '家' },
@@ -43,7 +62,12 @@ const productColumns: TableColumnsType<FundingProduct> = [
       </a>
     ),
   },
-  { title: '类型', dataIndex: 'type', key: 'type', render: (value) => <Tag color="blue">{value}</Tag> },
+  {
+    title: '类型',
+    dataIndex: 'type',
+    key: 'type',
+    render: (value) => <Tag className={styles.fundingTag} style={getTagStyle(value)}>{value}</Tag>,
+  },
   { title: '提供机构', dataIndex: 'institution', key: 'institution' },
   { title: '最高额度', dataIndex: 'maxAmount', key: 'maxAmount' },
   { title: '参考利率/贴息', dataIndex: 'rate', key: 'rate' },
@@ -71,7 +95,12 @@ const institutionColumns: TableColumnsType<InvestmentInstitution> = [
       </a>
     ),
   },
-  { title: '机构类型', dataIndex: 'type', key: 'type', render: (value) => <Tag>{value}</Tag> },
+  {
+    title: '机构类型',
+    dataIndex: 'type',
+    key: 'type',
+    render: (value) => <Tag className={styles.fundingTag} style={getTagStyle(value)}>{value}</Tag>,
+  },
   { title: '基金规模', dataIndex: 'fundSize', key: 'fundSize' },
   { title: '关注阶段', dataIndex: 'stage', key: 'stage' },
 ]
@@ -212,6 +241,7 @@ export default function Funding() {
               </div>
               {subTab === 'product' ? (
                 <Table<FundingProduct>
+                  className={styles.fundingTable}
                   columns={productColumns}
                   dataSource={fundingProducts}
                   rowKey="id"
@@ -220,6 +250,7 @@ export default function Funding() {
                 />
               ) : (
                 <Table<InvestmentInstitution>
+                  className={styles.fundingTable}
                   columns={institutionColumns}
                   dataSource={investmentInstitutions}
                   rowKey="id"

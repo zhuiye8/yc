@@ -12,11 +12,36 @@ import styles from './Policy.module.scss'
 
 const hotTags = ['惠企政策', '人才认定', '科技创新券', '产业发展', '项目申报', '专项补贴', '数字经济']
 
+const regionOptions = [
+  { value: 'all', label: '全国' },
+  { value: 'hubei', label: '湖北省' },
+  { value: 'yichang', label: '宜昌市' },
+]
+
 const expiringCount = localPolicies.filter((policy) => {
   if (!policy.expiryDate) return false
   const diff = new Date(policy.expiryDate).getTime() - Date.now()
   return diff > 0 && diff < 180 * 24 * 3600 * 1000
 }).length
+
+const tagPalette = [
+  { color: '#2468F2', bg: '#EAF2FF', border: '#B9D3FF' },
+  { color: '#13A8A8', bg: '#E8FFFB', border: '#9DEBE3' },
+  { color: '#F26B4A', bg: '#FFF1EB', border: '#FFD0BE' },
+  { color: '#7B61FF', bg: '#F3F0FF', border: '#D8CFFF' },
+  { color: '#D48806', bg: '#FFF7E6', border: '#FFD591' },
+  { color: '#2BA471', bg: '#F0FFF4', border: '#B7E8C3' },
+]
+
+function getTagStyle(tag: string) {
+  const sum = Array.from(tag).reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const palette = tagPalette[sum % tagPalette.length]
+  return {
+    color: palette.color,
+    background: palette.bg,
+    borderColor: palette.border,
+  }
+}
 
 const policyColumns: TableColumnsType<LocalPolicy> = [
   {
@@ -64,7 +89,7 @@ const policyColumns: TableColumnsType<LocalPolicy> = [
         .split(',')
         .slice(0, 2)
         .map((tag: string) => (
-          <Tag key={tag} style={{ marginBottom: 2 }}>
+          <Tag key={tag} className={styles.policyTag} style={getTagStyle(tag.trim())}>
             {tag.trim()}
           </Tag>
         )),
@@ -116,6 +141,7 @@ const weeklyUpdates = [
 export default function Policy() {
   const [activeTab, setActiveTab] = useState<'list' | 'report'>('list')
   const [showTip, setShowTip] = useState(true)
+  const [selectedRegion, setSelectedRegion] = useState('all')
 
   return (
     <div className={styles.page}>
@@ -153,12 +179,15 @@ export default function Policy() {
         </div>
         <div className={styles.tabRight}>
           <div className={styles.filterGroup}>
-            <span className={styles.filterLabel}>产业链</span>
+            <span className={styles.filterLabel}>区域</span>
             <Select
-              defaultValue="green-chem"
+              value={selectedRegion}
+              allowClear
+              placeholder="全国"
+              onChange={(value) => setSelectedRegion(value || 'all')}
               style={{ width: 200 }}
               size="small"
-              options={[{ value: 'green-chem', label: '绿色化工' }]}
+              options={regionOptions}
             />
           </div>
         </div>
@@ -180,6 +209,7 @@ export default function Policy() {
                   </div>
                 </div>
                 <Table
+                  className={styles.policyTable}
                   columns={policyColumns}
                   dataSource={localPolicies}
                   rowKey="id"

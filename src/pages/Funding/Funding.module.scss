@@ -2,6 +2,7 @@
 
 .page {
   --funding-shell-width: min(1400px, calc(100vw - clamp(24px, 4vw, 64px)));
+  --funding-table-row-height: clamp(58px, calc((100vh - 460px) / 6), 78px);
 }
 
 .tabBar {
@@ -178,6 +179,9 @@
 .mainBottom {
   grid-column: 1;
   grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .sideBottom {
@@ -194,10 +198,11 @@
 .statCard {
   flex: 1;
   background: $white;
-  border-radius: $radius-md;
+  border: 1px solid #dfe7f4;
+  border-radius: 8px;
   padding: $space-lg $space-md;
   text-align: center;
-  box-shadow: $shadow-sm;
+  box-shadow: 0 8px 20px rgba(43, 88, 165, 0.05);
   transition: box-shadow 0.2s;
 
   &:hover {
@@ -241,10 +246,11 @@
 .fundCard {
   flex: 1;
   background: $white;
-  border-radius: $radius-base;
+  border: 1px solid #dfe7f4;
+  border-radius: 8px;
   padding: $space-md $space-sm;
   text-align: center;
-  box-shadow: $shadow-sm;
+  box-shadow: 0 8px 20px rgba(43, 88, 165, 0.05);
   transition: box-shadow 0.2s;
 
   &:hover {
@@ -296,11 +302,53 @@
   }
 }
 
+.fundingTable {
+  :global(.ant-table) {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  :global(.ant-table-thead > tr > th) {
+    padding: 16px 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1d2129;
+    background: #fbfcff;
+  }
+
+  :global(.ant-table-tbody > tr > td) {
+    height: var(--funding-table-row-height);
+    padding: 0 10px;
+    font-size: 15px;
+    line-height: 1.65;
+    vertical-align: middle;
+  }
+
+  :global(.ant-table-tbody > tr:hover > td) {
+    background: #f7fbff;
+  }
+
+  :global(.ant-pagination) {
+    margin: 16px 0 0;
+  }
+}
+
+.fundingTag {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 13px;
+  font-size: 13px;
+  line-height: 24px;
+  font-weight: 500;
+  margin: 0;
+}
+
 .panel {
   background: $white;
-  border-radius: $radius-md;
+  border: 1px solid #dfe7f4;
+  border-radius: 8px;
   padding: $space-lg;
-  box-shadow: $shadow-sm;
+  box-shadow: 0 8px 20px rgba(43, 88, 165, 0.05);
 }
 
 .panelHeader {
