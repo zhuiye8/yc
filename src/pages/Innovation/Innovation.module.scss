@@ -169,9 +169,10 @@
 
 .panel {
   background: $white;
-  border-radius: $radius-md;
+  border: 1px solid #dfe7f4;
+  border-radius: 8px;
   padding: $space-lg;
-  box-shadow: $shadow-sm;
+  box-shadow: 0 8px 20px rgba(43, 88, 165, 0.05);
   height: 100%;
 }
 

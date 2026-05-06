@@ -16,6 +16,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center 42%;
   }
 
   &::after {
@@ -36,7 +37,7 @@
 .statsRow {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 20px;
+  gap: 14px;
   padding-top: 34px;
 }
 
@@ -45,6 +46,18 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
+  min-height: 74px;
+  padding: 14px 14px;
+  border: 1px solid #dfe7f4;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(43, 88, 165, 0.05);
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    border-color: #bcd2f6;
+    box-shadow: 0 10px 24px rgba(43, 88, 165, 0.08);
+  }
 }
 
 .statIconWrap {
@@ -121,7 +134,7 @@
   margin-top: 28px;
   background: $white;
   border: 1px solid #dfe7f4;
-  border-radius: 16px;
+  border-radius: 8px;
   box-shadow: 0 8px 20px rgba(43, 88, 165, 0.06);
   overflow: hidden;
 }
@@ -170,7 +183,7 @@
   width: 192px;
   height: 32px;
   border: 1px solid #d6e4fb;
-  border-radius: 5px;
+  border-radius: 7px;
   background: linear-gradient(180deg, #dae5fc 0%, #ffffff 100%);
   overflow: hidden;
 }
@@ -292,13 +305,13 @@
 }
 
 .tabChip {
-  height: 30px;
-  padding: 0 16px;
+  height: 34px;
+  padding: 0 18px;
   border: 0;
   border-right: 1px solid rgba(255, 255, 255, 0.24);
   background: linear-gradient(180deg, #49a0ff 0%, #3288f6 100%);
   color: #fff;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   display: inline-flex;
   align-items: center;

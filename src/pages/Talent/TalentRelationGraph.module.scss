@@ -29,17 +29,17 @@
 .searchDock {
   display: inline-flex;
   align-items: stretch;
-  height: 48px;
-  border: 1px solid #d9e1ee;
-  border-radius: 3px;
+  height: 46px;
+  border: 1px solid #d9e6f8;
+  border-radius: 8px;
   background: #ffffff;
-  box-shadow: 0 8px 20px rgba(35, 75, 136, 0.08);
+  box-shadow: 0 10px 24px rgba(35, 75, 136, 0.08);
   overflow: hidden;
   pointer-events: auto;
 }
 
 .searchValue {
-  width: clamp(180px, 21vw, 360px);
+  width: clamp(260px, 24vw, 420px);
   display: flex;
   align-items: center;
   padding: 0 18px;
@@ -51,9 +51,9 @@
 }
 
 .searchButton {
-  width: 185px;
+  width: 108px;
   border: 0;
-  background: #315e96;
+  background: linear-gradient(180deg, #3a80d8 0%, #255d9f 100%);
   color: #ffffff;
   font-size: 16px;
   font-weight: 600;
@@ -65,13 +65,14 @@
 }
 
 .filterBar {
-  min-height: 48px;
-  padding: 0 18px;
+  min-height: 46px;
+  padding: 0 20px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 24px;
-  border: 1px solid #eef2f7;
+  border: 1px solid #dfe8f6;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 8px 20px rgba(35, 75, 136, 0.06);
   pointer-events: auto;
@@ -105,12 +106,12 @@
   top: 50%;
   z-index: 4;
   transform: translateY(-50%);
-  width: 48px;
+  width: 50px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   border: 1px solid #e3e9f3;
-  border-radius: 4px;
+  border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 8px 22px rgba(35, 75, 136, 0.14);
   overflow: hidden;

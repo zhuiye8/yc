@@ -235,7 +235,7 @@ export default function Innovation() {
               className={`${styles.tab} ${activeTab === tab ? styles.active : styles.inactive}`}
               onClick={() => setActiveTab(tab)}
             >
-              {tab === 'resource' ? '创新资源' : tab === 'gap' ? '缺口对标' : '技术报告'}
+              {tab === 'resource' ? '创新资源' : tab === 'gap' ? '技术缺口' : '技术报告'}
             </div>
           ))}
         </div>
