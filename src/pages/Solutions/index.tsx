@@ -3,6 +3,7 @@ import {
   DollarOutlined, FileProtectOutlined, SearchOutlined,
   GlobalOutlined, DesktopOutlined, SyncOutlined,
 } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
 import solutionsBg from '@/assets/images/hero/solutions-bg-202604.jpg'
 import styles from './Solutions.module.scss'
 
@@ -14,6 +15,8 @@ const capabilities = [
   { icon: <FileProtectOutlined />, bg: '#FFF1F0', color: '#F26B4A', title: '政策申报', desc: '政策匹配与申报任务管理' },
   { icon: <DollarOutlined />, bg: '#E6FFFB', color: '#00B8D9', title: '投融资对接', desc: '融资工具与机构精准匹配' },
 ]
+
+const capabilityRoutes = ['/talent', '/industry', '/industry', '/innovation', '/policy', '/funding']
 
 const scenarios = [
   { icon: <GlobalOutlined />, title: '对内治理', desc: '人才引育、产业分析、招商引资' },
@@ -37,6 +40,8 @@ const dataCards = [
 ]
 
 export default function Solutions() {
+  const navigate = useNavigate()
+
   return (
     <div className={styles.page}>
       <img src={solutionsBg} alt="" className={styles.hero} />
@@ -52,14 +57,19 @@ export default function Solutions() {
         {/* 核心能力 */}
         <h2 className={styles.sectionTitle} style={{ fontSize: 20 }}>核心<span className={styles.blue}>能力</span></h2>
         <div className={styles.capGrid}>
-          {capabilities.map(c => (
-            <div key={c.title} className={styles.capCard}>
+          {capabilities.map((c, index) => (
+            <button
+              key={c.title}
+              type="button"
+              className={styles.capCard}
+              onClick={() => navigate(capabilityRoutes[index])}
+            >
               <div className={styles.capIcon} style={{ background: c.bg, color: c.color }}>{c.icon}</div>
               <div className={styles.capText}>
                 <h4>{c.title}</h4>
                 <p>{c.desc}</p>
               </div>
-            </div>
+            </button>
           ))}
         </div>
 
