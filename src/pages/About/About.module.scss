@@ -1,64 +1,72 @@
 @use '@/styles/variables' as *;
 
-.page { background: $white; }
+.page {
+  background: $white;
+}
 
 .hero {
   width: 100%;
-  height: 360px;
+  height: 330px;
   object-fit: cover;
-  object-position: center;
+  object-position: center 42%;
   display: block;
 }
 
 .content {
-  max-width: $content-max-width;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: $space-3xl $space-2xl $space-4xl;
+  padding: 62px 0 96px;
 }
 
-// 蓝黑相间标题
 .sectionTitle {
   text-align: center;
-  font-size: $font-size-2xl;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 500;
   color: $gray-900;
-  margin-bottom: $space-sm;
+  line-height: 1.35;
+  margin: 0 0 18px;
 
-  .blue { color: $primary-500; }
+  .blue {
+    color: $primary-500;
+  }
 }
 
 .sectionSubtitle {
   text-align: center;
-  font-size: $font-size-sm;
-  color: $gray-400;
-  margin-bottom: $space-2xl;
+  font-size: 14px;
+  color: #9aa8bc;
+  line-height: 1.5;
+  margin: 0 auto 34px;
 }
 
 .introText {
-  font-size: $font-size-base;
-  color: $gray-600;
-  line-height: 2;
-  margin-bottom: $space-3xl;
+  max-width: 1120px;
+  margin: 0 auto 44px;
+  text-align: left;
+  font-size: 15px;
+  color: #3d4b61;
+  line-height: 2.05;
   text-indent: 2em;
 }
 
-// 两张图片卡片
 .bannerCards {
   display: flex;
-  gap: $space-lg;
-  margin-bottom: $space-4xl;
+  gap: 26px;
+  width: 100%;
+  margin: 0 auto 78px;
 }
 
 .bannerCard {
   flex: 1;
   position: relative;
-  border-radius: $radius-md;
+  min-height: 160px;
   overflow: hidden;
-  min-height: 140px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: $space-xl $space-2xl;
+  padding: 28px 38px;
+  border-radius: 4px;
+  text-align: left;
 
   img {
     position: absolute;
@@ -69,99 +77,131 @@
     z-index: 0;
   }
 
-  // 深色遮罩确保文字可读
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(0, 40, 100, 0.6) 0%, rgba(0, 40, 100, 0.3) 100%);
-    z-index: 1;
-  }
 }
 
 .bannerContent {
   position: relative;
-  z-index: 2;
+  z-index: 1;
+  width: 100%;
 }
 
 .bannerTag {
-  font-size: $font-size-sm;
-  color: #7BBFFF;
-  font-weight: 600;
-  margin-bottom: $space-sm;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin-bottom: 16px;
+  background: linear-gradient(90deg, #bcffec 0%, #1fffe7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .bannerTitle {
-  font-size: $font-size-2xl;
+  font-size: 20px;
+  line-height: 1.55;
   font-weight: 700;
   color: $white;
-  margin-bottom: $space-sm;
+  margin-bottom: 12px;
 }
 
 .bannerDesc {
-  font-size: $font-size-sm;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.8);
-  line-height: 2;
+  line-height: 1.9;
 }
 
-// 当前版本 + 已上线能力 两栏
 .twoCol {
   display: flex;
-  gap: $space-3xl;
-  margin-bottom: $space-4xl;
+  gap: 128px;
+  align-items: flex-start;
+  width: 100%;
+  margin: 0 auto 98px;
 }
 
 .colItem {
   flex: 1;
 
   h3 {
-    font-size: $font-size-lg;
-    font-weight: 600;
-    color: $gray-800;
-    margin-bottom: $space-md;
-    padding-bottom: $space-sm;
-    border-bottom: 2px solid $primary-500;
+    font-size: 20px;
+    line-height: 1.3;
+    font-weight: 500;
+    color: #222b3a;
+    margin: 0 0 26px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid $primary-500;
     display: inline-block;
 
-    .blue { color: $primary-500; }
+    .blue {
+      color: $primary-500;
+    }
   }
 
   p, li {
-    font-size: $font-size-sm;
-    color: $gray-600;
+    font-size: 14px;
+    color: #3d4b61;
     line-height: 2;
+  }
+
+  p {
+    margin: 0 0 18px;
   }
 
   ul {
     list-style: none;
     padding: 0;
-
-    li::before {
-      content: '✓ ';
-      color: $primary-500;
-      font-weight: 600;
-    }
+    margin: 0;
   }
+}
+
+.versionHeader {
+  display: flex;
+  align-items: center;
 }
 
 .versionTag {
   display: inline-flex;
-  gap: $space-sm;
+  gap: 12px;
   align-items: center;
-  margin-bottom: $space-md;
+  margin-bottom: 20px;
 
   span {
     padding: 2px 10px;
     border-radius: 2px;
-    font-size: $font-size-xs;
+    font-size: 12px;
   }
 }
 
-// 数据更新指标 — 三等分平铺
+.capabilityList {
+  li {
+    position: relative;
+    padding-left: 24px;
+    margin-bottom: 14px;
+
+    &::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      top: 4px;
+      width: 14px;
+      height: 14px;
+      border: 1px solid #58c971;
+      border-radius: 50%;
+      color: #46bf62;
+      font-size: 10px;
+      line-height: 12px;
+      text-align: center;
+      font-weight: 700;
+    }
+  }
+}
+
 .metricsRow {
   display: flex;
-  margin-bottom: $space-4xl;
-  padding: $space-xl 0;
+  justify-content: space-between;
+  width: 100%;
+  margin: 40px auto 88px;
+  padding: 0 8px;
 }
 
 .metricItem {
@@ -170,33 +210,32 @@
 }
 
 .metricLabel {
-  font-size: $font-size-sm;
-  color: $gray-400;
-  margin-bottom: $space-sm;
+  font-size: 14px;
+  color: #a4afbf;
+  margin-bottom: 14px;
 }
 
 .metricNum {
-  font-size: 36px;
+  font-size: 30px;
   font-weight: 700;
-  color: $gray-900;
+  color: #1d2533;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: $space-sm;
+  gap: 8px;
 }
 
 .metricUnit {
-  font-size: $font-size-base;
-  color: $gray-500;
+  font-size: 18px;
+  color: #1d2533;
   font-weight: 400;
 }
 
 .metricIcon {
-  color: $primary-500;
+  color: #1d2533;
   font-size: 20px;
 }
 
-// 未来发展目标
 .goalTags {
   display: flex;
   justify-content: center;
@@ -215,75 +254,131 @@
 
 .goalCards {
   display: flex;
-  gap: $space-lg;
-  margin-bottom: $space-4xl;
+  justify-content: center;
+  gap: 32px;
+  width: 100%;
+  margin: 38px auto 98px;
 }
 
-// 卡片按素材比例 279:337
 .goalCard {
-  flex: 1;
+  flex: 0 0 210px;
+  width: 210px;
+  height: 254px;
   text-align: center;
-  border-radius: $radius-md;
+  border-radius: 6px;
   position: relative;
   overflow: hidden;
-  aspect-ratio: 279 / 337;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 0 $space-lg $space-xl;
-  transition: box-shadow 0.2s;
-  &:hover { box-shadow: $shadow-md; }
+  padding: 0 20px;
+  border: 0;
+  background: transparent;
+  box-shadow: 0 8px 22px rgba(43, 88, 165, 0.04);
+  transition: box-shadow 0.2s, transform 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(43, 88, 165, 0.1);
+  }
 }
 
-// 背景图铺满
 .goalBg {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  inset: -4px;
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+  object-fit: cover;
   z-index: 0;
 }
 
 .goalTitle {
-  position: relative;
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 114px;
   z-index: 1;
-  font-size: $font-size-2xl;
-  font-weight: 700;
-  color: $gray-800;
-  margin-bottom: $space-sm;
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 500;
+  color: #202938;
 }
 
 .goalDesc {
-  position: relative;
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 156px;
   z-index: 1;
-  font-size: $font-size-xs;
-  color: $gray-500;
-  line-height: 2;
+  font-size: 12px;
+  color: #566479;
+  line-height: 1.8;
 }
 
-// 使用帮助
 .helpCards {
   display: flex;
-  gap: $space-lg;
-  margin-bottom: $space-lg;
+  justify-content: center;
+  gap: 18px;
+  margin: 42px auto 36px;
 }
 
 .helpCard {
-  flex: 1;
-  padding: $space-lg;
-  border: 1px solid $primary-500;
-  border-radius: $radius-md;
-  text-align: center;
+  width: 260px;
+  height: 48px;
+  padding: 0 24px;
+  border: 1px solid #6ea2ff;
+  border-radius: 24px;
   cursor: pointer;
-  transition: all 0.2s;
-  font-size: $font-size-base;
-  color: $gray-700;
-  &:hover { border-color: $primary-600; color: $primary-500; box-shadow: $shadow-md; }
+  transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
+  font-size: 14px;
+  color: #2a76fc;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  &:hover {
+    border-color: $primary-500;
+    color: $primary-500;
+    box-shadow: 0 8px 20px rgba(36, 104, 242, 0.12);
+  }
 }
 
 .helpNote {
   text-align: center;
   font-size: $font-size-sm;
-  color: $gray-400;
+  color: #a4afbf;
+}
+
+@media (max-width: 1200px) {
+  .content {
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+
+  .twoCol {
+    gap: 72px;
+  }
+}
+
+@media (max-width: 900px) {
+  .hero {
+    height: 220px;
+  }
+
+  .bannerCards,
+  .twoCol,
+  .metricsRow,
+  .goalCards,
+  .helpCards {
+    flex-direction: column;
+  }
+
+  .twoCol {
+    gap: 36px;
+  }
+
+  .goalCard,
+  .helpCard {
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+  }
 }

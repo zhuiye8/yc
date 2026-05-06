@@ -1,4 +1,4 @@
-import { ClockCircleOutlined } from '@ant-design/icons'
+import { ClockCircleOutlined, DownloadOutlined, MailOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import aboutBg from '@/assets/images/hero/about-bg-202604.jpg'
 import bannerLeft from '@/assets/images/icons/小图标_78.png'
 import bannerRight from '@/assets/images/icons/小图标_81.png'
@@ -30,7 +30,9 @@ export default function About() {
         <p className={styles.introText}>
           宜昌产业人才地图是在宜昌市委组织部指导下，由湖北三峡人才集团牵头建设的综合性产业人才数智化服务平台。
           平台深度聚焦宜昌市绿色化工、新能源新材料、生命健康、汽车及装备制造、大数据和人工智能、文化旅游六大主导产业，
-          汇聚全国范围内的产业数据、人才资源、技术成果、政策信息和金融资源，构建起覆盖"产业人才服务生态"。
+          汇聚全国范围内的产业数据、人才资源、技术成果、政策信息和金融资源，构建起覆盖广泛的产业人才服务生态。通过精准智能分析与高效匹配，
+          平台为合作伙伴提供贯穿产业人才全生命周期的服务支持，助力快速对接对接人才、企业、技术、资金及政策多维资源，为产业分析、人才引育、招商引资、
+          技术对接、融资支持与政策申报等关键环节提供数据赋能，切实增强企业发展动能，提升区域产业核心竞争力，驱动产业结构持续优化升级。
         </p>
 
         {/* 两张图片卡片 */}
@@ -56,16 +58,16 @@ export default function About() {
         {/* 当前版本 + 已上线能力 */}
         <div className={styles.twoCol}>
           <div className={styles.colItem}>
-            <div style={{ display: 'flex' }}>
-              <h3 style={{ margin: 0 }}>
+            <div className={styles.versionHeader}>
+              <h3>
                 当前<span className={styles.blue}>版本</span>
               </h3>
+            </div>
 
-              <div className={styles.versionTag}>
-                <span style={{ background: '#E6F7FF', color: '#2468F2' }}>V1.0</span>
-                <span style={{ background: '#F0FFF4', color: '#2BA471' }}>@V36</span>
-                <span style={{ color: '#86909C', fontSize: 12 }}>2026年1月发布</span>
-              </div>
+            <div className={styles.versionTag}>
+              <span style={{ background: '#E6F7FF', color: '#2468F2' }}>V1.0</span>
+              <span style={{ background: '#F0FFF4', color: '#2BA471' }}>稳定版</span>
+              <span style={{ color: '#86909C', fontSize: 12 }}>2026年1月发布</span>
             </div>
             <p>
               当前版本已实现产业、人才、技术、资金、政策五大模块的核心功能，
@@ -80,7 +82,7 @@ export default function About() {
           </div>
           <div className={styles.colItem}>
             <h3>已上线<span className={styles.blue}>能力</span></h3>
-            <ul>
+            <ul className={styles.capabilityList}>
               <li>全维度检索（企业/人才/技术/政策/机构）</li>
               <li>多维画像与标签化展示</li>
               <li>自定义清单管理与跟进记录</li>
@@ -101,7 +103,7 @@ export default function About() {
             <div className={styles.metricLabel}>数据更新频率</div>
             <div className={styles.metricNum}>
               <ClockCircleOutlined className={styles.metricIcon} />
-              每周
+              每日
             </div>
           </div>
           <div className={styles.metricItem}>
@@ -137,9 +139,9 @@ export default function About() {
         </h2>
         <div className={styles.sectionSubtitle}>操作手册、常见问题与问题反馈</div>
         <div className={styles.helpCards}>
-          <div className={styles.helpCard}>📖 操作手册下载</div>
-          <div className={styles.helpCard}>❓ 常见问题解答</div>
-          <div className={styles.helpCard}>📝 问题反馈</div>
+          <div className={styles.helpCard}><DownloadOutlined />操作手册下载</div>
+          <div className={styles.helpCard}><QuestionCircleOutlined />常见问题解答</div>
+          <div className={styles.helpCard}><MailOutlined />问题反馈</div>
         </div>
         <div className={styles.helpNote}>如有更多问题，请通过左面底部的联系方式与我们取得联系</div>
       </div>
