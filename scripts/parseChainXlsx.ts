@@ -198,6 +198,7 @@ function buildChainTree(rows: XlsxRow[], rootName: string): TreeNode {
 }
 
 /** 合并节点的所有叶子 keywords（用于生成中间/根节点的 queryString） */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function collectAllKeywords(node: TreeNode): string[] {
   if (node.isLeaf) return node.keywords
   const set = new Set<string>()

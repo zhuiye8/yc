@@ -60,12 +60,10 @@ export async function searchChainTalents(
   city?: string,
   page = 1,
   pageSize = 20,
-  nativePlace?: string,
 ): Promise<ChainTalentSearchResult> {
   const params = new URLSearchParams({ chain, page: String(page), pageSize: String(pageSize) })
   if (province) params.set('province', province)
   if (city) params.set('city', city)
-  if (nativePlace) params.set('nativePlace', nativePlace)
 
   const url = `${BASE_URL}/api/chain-talents/search?${params}`
   const resp = await tgFetchWithAuth(url)

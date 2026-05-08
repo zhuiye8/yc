@@ -6,9 +6,8 @@ import HeroSection from '@/components/HeroSection'
 import IndustryGraph from './IndustryGraph'
 import IndustryReport from './IndustryReport'
 import { resolveIndustryRegionFromCascader } from '@/services/industryRegion'
-import { searchIndustryFromSource } from '@/services/industrySource'
+import { searchChainOrgs } from '@/services/chainOrg'
 import { searchChainTalents } from '@/services/chainTalent'
-import { searchOrgs } from '@/services/industry'
 import { getIndustryNodeProfileText } from '@/services/industryNodeProfile'
 import { exportRecordsCsv } from '@/utils/exportCsv'
 import {
@@ -107,28 +106,18 @@ export default function Industry() {
   const loadSearchResults = useCallback((option: IndustryKeywordOption) => {
     void (async () => {
       const searchChain = option.chain.trim()
-      const sourceResult = await searchIndustryFromSource(searchChain, selectedRegion).catch(() => null)
       const [orgResult, expertResult] = await Promise.allSettled([
-        sourceResult
-          ? Promise.resolve({
-            data: {
-              total: sourceResult.orgTotal,
-              orgRecommend: sourceResult.orgs,
-            },
-          })
-          : searchOrgs(searchChain, 0, 20, selectedRegion.city),
-        searchChainTalents(searchChain, undefined, undefined, 1, 20),
+        searchChainOrgs(searchChain, selectedRegion.province, selectedRegion.city, undefined, 1, 20),
+        searchChainTalents(searchChain, selectedRegion.province, selectedRegion.city, 1, 20),
       ])
 
-      const orgData = orgResult.status === 'fulfilled'
-        ? (orgResult.value?.data as Record<string, unknown> | undefined)
-        : undefined
+      const orgData = orgResult.status === 'fulfilled' ? orgResult.value : undefined
       const expertData = expertResult.status === 'fulfilled' ? expertResult.value : undefined
 
       setSearchDrawer((prev) => ({
         ...prev,
         loading: false,
-        orgs: (orgData?.orgRecommend ?? []) as Record<string, unknown>[],
+        orgs: orgData?.items ?? [],
         orgTotal: Number(orgData?.total ?? 0),
         experts: expertData?.items ?? [],
         expertTotal: expertData?.total ?? 0,

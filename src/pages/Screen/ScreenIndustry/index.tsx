@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import ReactECharts from 'echarts-for-react'
 import ScreenMap from '../components/ScreenMap'
 import ScreenTabs from '../components/ScreenTabs'
-import { searchOrgs } from '@/services/industry'
-import { searchExperts } from '@/services/talent'
+import { searchChainOrgs } from '@/services/chainOrg'
+import { searchChainTalents } from '@/services/chainTalent'
 
 const chainOptions = [
   { key: 'wetchem', label: '湿电子化学品', searchKey: '电子化学品 OR 半导体材料 OR 湿电子' },
@@ -70,6 +70,7 @@ export default function ScreenIndustry() {
   const loadIdRef = useRef(0)
 
   const chainSearchKey = chainOptions[selectedChain].searchKey
+  const chainLabel = chainOptions[selectedChain].label
 
   const handleViewChange = useCallback((view: 'china' | 'yichang') => {
     setCity(view === 'yichang' ? '宜昌' : undefined)
@@ -81,11 +82,10 @@ export default function ScreenIndustry() {
 
     // 企业（200条样本：前10给列表，全部做TAGS统计）
     setOrgLoading(true)
-    searchOrgs(chainSearchKey, 0, 200, city).then(res => {
+    searchChainOrgs(chainLabel, undefined, city, undefined, 1, 200).then(res => {
       if (id !== loadIdRef.current) return
-      const d = res?.data as Record<string, unknown> | undefined
-      const list = (d?.orgRecommend || []) as Record<string, unknown>[]
-      const total = (d?.total as number) || 0
+      const list = res.items
+      const total = res.total
 
       setEnterpriseList(list.slice(0, 10).map(o => ({
         name: String(o.NAME || ''),
@@ -114,11 +114,10 @@ export default function ScreenIndustry() {
 
     // 人才
     setTalentLoading(true)
-    searchExperts(chainSearchKey, 0, 12, city).then(res => {
+    searchChainTalents(chainLabel, undefined, city, 1, 12).then(res => {
       if (id !== loadIdRef.current) return
-      const d = res?.data as Record<string, unknown> | undefined
-      const list = (d?.expertsRecommend || []) as Record<string, unknown>[]
-      const total = (d?.total as number) || 0
+      const list = res.items
+      const total = res.total
 
       setTalentList(list.map(e => ({
         name: String(e.CNAME || ''),
@@ -129,7 +128,7 @@ export default function ScreenIndustry() {
       setIndicators(prev => ({ ...prev, talentTotal: total }))
       setTalentLoading(false)
     }).catch(() => { if (id === loadIdRef.current) setTalentLoading(false) })
-  }, [chainSearchKey, city])
+  }, [chainLabel, city])
 
   return (
     <div className="main-content industry-container">

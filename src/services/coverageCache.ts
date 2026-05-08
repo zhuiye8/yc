@@ -1,9 +1,8 @@
-/**
- * 产业链节点覆盖率缓存服务
- * 批量查询每个末端节点在指定城市是否有企业，计算覆盖率
- * 同时返回每个节点的企业数，用于动态判定强/弱/缺链状态
- */
-import { searchOrgs } from './industry'
+import {
+  getChainOrgCoverageSummary,
+  getChainOrgNodeCounts,
+  type ChainOrgNodeCount,
+} from './chainOrg'
 
 export interface CoverageResult {
   covered: number
@@ -11,23 +10,21 @@ export interface CoverageResult {
   rate: number
   chainStatus: 'strong' | 'weak' | 'missing'
   chainOrgTotal: number
-  /** 每个叶子节点名→宜昌企业数 */
   nodeOrgCounts: Record<string, number>
 }
 
-// 内存缓存
 const cache = new Map<string, CoverageResult>()
 const pending = new Map<string, Promise<CoverageResult>>()
 const progressCallbacks = new Map<string, (checked: number, total: number) => void>()
 
 export async function getChainCoverage(
   chainKey: string,
-  nodeKeywords: Record<string, { keywords: string[]; queryString: string }>,
-  chainSearchKey: string,
-  city: string,
+  chainName: string,
+  province?: string,
+  city?: string,
   onProgress?: (checked: number, total: number) => void,
 ): Promise<CoverageResult> {
-  const cacheKey = `${chainKey}:${city}`
+  const cacheKey = `${chainKey}:${province || 'national'}:${city || 'all'}`
 
   if (onProgress) {
     progressCallbacks.set(cacheKey, onProgress)
@@ -47,7 +44,7 @@ export async function getChainCoverage(
     cb?.(checked, total)
   }
 
-  const promise = computeCoverage(nodeKeywords, chainSearchKey, city, proxyProgress)
+  const promise = computeCoverage(chainName, province, city, proxyProgress)
   pending.set(cacheKey, promise)
 
   try {
@@ -70,20 +67,12 @@ export function clearCoverageCache(chainKey?: string) {
   }
 }
 
-/** 根据企业数判定节点状态 */
 export function getNodeStatus(orgCount: number): 'strong' | 'weak' | 'missing' {
   if (orgCount === 0) return 'missing'
   if (orgCount <= 20) return 'weak'
   return 'strong'
 }
 
-/**
- * 根据子节点状态聚合父节点状态
- * - 全部缺链 → 缺链
- * - 有缺有非缺 → 弱链
- * - 全部非缺（强+弱混合）→ 弱链
- * - 全部强链 → 强链
- */
 export function aggregateStatus(childStatuses: ('strong' | 'weak' | 'missing')[]): 'strong' | 'weak' | 'missing' {
   if (childStatuses.length === 0) return 'missing'
   const allMissing = childStatuses.every(s => s === 'missing')
@@ -93,69 +82,64 @@ export function aggregateStatus(childStatuses: ('strong' | 'weak' | 'missing')[]
   return 'weak'
 }
 
-// ---------- 内部实现 ----------
+function stripStagePrefix(name: string) {
+  return name.replace(/^(上游|中游|下游)[：:]\s*/, '').trim()
+}
+
+function addNodeCountAliases(counts: Record<string, number>, name: string, total: number) {
+  if (!name) return
+
+  counts[name] = total
+
+  const stripped = stripStagePrefix(name)
+  if (stripped && stripped !== name && counts[stripped] === undefined) {
+    counts[stripped] = total
+  }
+}
+
+function flattenNodeCounts(node: ChainOrgNodeCount | null, counts: Record<string, number>) {
+  if (!node) return
+
+  addNodeCountAliases(counts, node.name.trim(), node.total)
+  node.children.forEach((child) => flattenNodeCounts(child, counts))
+}
+
+function emptyCoverage(): CoverageResult {
+  return {
+    covered: 0,
+    total: 0,
+    rate: 0,
+    chainStatus: 'missing',
+    chainOrgTotal: 0,
+    nodeOrgCounts: {},
+  }
+}
 
 async function computeCoverage(
-  nodeKeywords: Record<string, { keywords: string[]; queryString: string }>,
-  chainSearchKey: string,
-  city: string,
+  chainName: string,
+  province?: string,
+  city?: string,
   onProgress?: (checked: number, total: number) => void,
 ): Promise<CoverageResult> {
-  const nodes = Object.entries(nodeKeywords)
-  const total = nodes.length
-  const nodeOrgCounts: Record<string, number> = {}
-
-  if (total === 0) {
-    return { covered: 0, total: 0, rate: 0, chainStatus: 'missing', chainOrgTotal: 0, nodeOrgCounts }
-  }
-
-  // 先查产业链整体企业数
-  let chainOrgTotal = 0
   try {
-    const res = await searchOrgs(chainSearchKey, 0, 1, city || undefined)
-    const d = res?.data as Record<string, unknown> | undefined
-    chainOrgTotal = (d?.total as number) || 0
-  } catch {
-    // ignore
-  }
+    const summary = await getChainOrgCoverageSummary(chainName, province, city)
+    onProgress?.(0, summary.totalNodes)
 
-  const chainStatus = getNodeStatus(chainOrgTotal)
+    const nodeCounts = await getChainOrgNodeCounts(chainName, province, city).catch(() => null)
+    const flattenedCounts: Record<string, number> = {}
+    flattenNodeCounts(nodeCounts, flattenedCounts)
 
-  // 分批查询每个节点
-  const BATCH_SIZE = 5
-  const BATCH_DELAY = 1000
-  let covered = 0
-  let checked = 0
+    onProgress?.(summary.totalNodes, summary.totalNodes)
 
-  for (let i = 0; i < nodes.length; i += BATCH_SIZE) {
-    const batch = nodes.slice(i, i + BATCH_SIZE)
-
-    const results = await Promise.allSettled(
-      batch.map(([nodeName, mapping]) =>
-        searchOrgs(mapping.queryString, 0, 1, city || undefined)
-          .then(res => {
-            const d = res?.data as Record<string, unknown> | undefined
-            const count = (d?.total as number) || 0
-            return { nodeName, count }
-          })
-          .catch(() => ({ nodeName, count: 0 }))
-      )
-    )
-
-    for (const r of results) {
-      checked++
-      if (r.status === 'fulfilled') {
-        const { nodeName, count } = r.value
-        nodeOrgCounts[nodeName] = count
-        if (count > 0) covered++
-      }
+    return {
+      covered: summary.coveredNodes,
+      total: summary.totalNodes,
+      rate: summary.coverageRate,
+      chainStatus: getNodeStatus(summary.orgTotal),
+      chainOrgTotal: summary.orgTotal,
+      nodeOrgCounts: flattenedCounts,
     }
-
-    onProgress?.(checked, total)
-    await new Promise(resolve => setTimeout(resolve, i + BATCH_SIZE < nodes.length ? BATCH_DELAY : 0))
+  } catch {
+    return emptyCoverage()
   }
-
-  const rate = total > 0 ? (covered / total) * 100 : 0
-
-  return { covered, total, rate, chainStatus, chainOrgTotal, nodeOrgCounts }
 }

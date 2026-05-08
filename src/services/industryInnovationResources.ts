@@ -8,16 +8,14 @@ import {
   type InnovationHeatmapDatum,
   type InnovationMetricCard,
 } from '@/mock/industryInnovationResources'
-import industryKeywordsJson from '@/data/industry-keywords.json'
 import { getAreaStatistics, type AreaStatistics } from './screen'
-import { getChainAggregate } from './industryChainAggregation'
 import {
   searchChainTalents,
   getChainTalentProvinceDistribution,
   getChainTalentCityDistribution,
   getChainTalentYearTrend,
 } from './chainTalent'
-import { getIndustryChainAggregateFromSource, getIndustryChainCityDistributionFromSource } from './industrySource'
+import { getChainOrgCityDistribution, searchChainOrgs } from './chainOrg'
 
 // ========== 省份名称 ↔ 区划代码 映射 ==========
 
@@ -242,14 +240,6 @@ const chainKeyToLabel: Record<string, string> = {
   ai: '人工智能',
 }
 
-let industryKeywordsData: Record<string, Record<string, NodeKeywordMapping>> | null = null
-
-async function loadIndustryKeywords(): Promise<Record<string, Record<string, NodeKeywordMapping>>> {
-  if (industryKeywordsData) return industryKeywordsData
-  industryKeywordsData = industryKeywordsJson as Record<string, Record<string, NodeKeywordMapping>>
-  return industryKeywordsData
-}
-
 export function getNodeKeywordsForChain(chainKey: string, data: Record<string, Record<string, NodeKeywordMapping>>): Record<string, NodeKeywordMapping> | undefined {
   const label = chainKeyToLabel[chainKey]
   if (!label) return undefined
@@ -272,14 +262,11 @@ export async function getIndustryInnovationOverview(
   const ckey = industryInnovationChainLabels[chainKey] ?? chainKey
 
   // 加载 nodeKeywords
-  const kwData = await loadIndustryKeywords()
-  const nodeKeywords = getNodeKeywordsForChain(chainKey, kwData)
-
   // 省份简称（用于 region-aggregation 的 province 参数）
   const provinceShort = FULL_TO_SHORT[regionName] ?? regionName.replace(/省|市|壮族自治区|回族自治区|维吾尔自治区|自治区|特别行政区/g, '')
 
   // 并行请求：省级统计 + 地图热力 + 趋势 + 机构总数 + 城市级人才分布（含人才总数）+ 城市级机构分布
-  // 人才相关优先走 chain-talents 新接口（按产业链全子节点去重），失败时 fallback 到旧接口（单关键词）
+  // 人才和机构统一走 TG 链路接口，避免与产业图谱口径不一致。
   const [provinceStats, mapRaw, trendData, orgResult, cityTalentRaw, orgCityDist] = await Promise.all([
     fetchStats(provinceAdcode).catch(() => null),
     // 地图热力：chain-talents/province-distribution
@@ -295,12 +282,7 @@ export async function getIndustryInnovationOverview(
         { key: 'b', label: '技术标准', color: '#F4B740', values: r.standards },
       ].filter((s) => s.values.some((v) => v > 0)),
     })).catch(() => ({ years: [] as string[], series: [] as InnovationTrendSeries[] })),
-    (async () => {
-      const cached = await getIndustryChainAggregateFromSource(chainKey, 'orgs').catch(() => null)
-      if (cached) return cached
-      if (!nodeKeywords) return null
-      return getChainAggregate(chainKey, 'orgs', nodeKeywords).catch(() => null)
-    })(),
+    searchChainOrgs(ckey, undefined, undefined, undefined, 1, 1).catch(() => null),
     // 城市级人才分布 + 人才总数：chain-talents/city-distribution
     getChainTalentCityDistribution(ckey, provinceShort)
       .then((r) => ({
@@ -308,8 +290,10 @@ export async function getIndustryInnovationOverview(
         items: r.items.map((i) => ({ name: i.city ?? i.name ?? '', value: i.value })),
       }))
       .catch(() => ({ total: 0, items: [] as InnovationBarDatum[] })),
-    // 城市级机构分布（Demo-API 真实数据，失败时 null → fallback 到 HUBEI_CITY_RATIOS 硬编码比例）
-    getIndustryChainCityDistributionFromSource(chainKey, provinceShort).catch(() => null),
+    // 城市级机构分布：ChainOrg 城市聚合接口
+    getChainOrgCityDistribution(ckey, provinceShort)
+      .then((r) => r.items)
+      .catch(() => null),
   ])
 
   // 创新人才总数 = chain-talents 返回的去重 total
@@ -333,9 +317,9 @@ export async function getIndustryInnovationOverview(
     : distributeByCityRatio(expertTotal ?? (provinceStats ? getStatValue(provinceStats, 'talent') : 0), 'talent')
 
   const orgTotalVal = orgTotal ?? (provinceStats ? getStatValue(provinceStats, 'org') : 0)
-  // 优先用 Demo-API 真实城市分布；接口不可用或返回空时 fallback 到 HUBEI_CITY_RATIOS 比例
+  // 机构城市分布优先使用 ChainOrg 城市聚合接口；接口为空时只保留视觉比例占位。
   const orgBars: InnovationBarDatum[] = (orgCityDist && orgCityDist.length > 0)
-    ? orgCityDist.slice(0, 10).map((item) => ({ name: item.city, value: item.total }))
+    ? orgCityDist.slice(0, 10).map((item) => ({ name: item.name, value: item.total }))
     : distributeByCityRatio(orgTotalVal, 'org')
 
   const result: InnovationOverviewData = {
@@ -402,26 +386,13 @@ export async function getInnovationOrgList(
   const cached = getCached<InnovationRealListResult>(cacheKey)
   if (cached) return cached
 
-  // 优先本地缓存小服务，fallback 远程接口（和产业图谱一致）
-  const cachedSource = await getIndustryChainAggregateFromSource(chainKey, 'orgs', undefined, page, pageSize).catch(() => null)
-  if (cachedSource) {
-    const result = { total: cachedSource.total, items: cachedSource.items as Record<string, unknown>[] }
-    setCache(cacheKey, result)
-    return result
-  }
-
-  const kwData = await loadIndustryKeywords()
-  const nodeKeywords = getNodeKeywordsForChain(chainKey, kwData)
-  if (!nodeKeywords) return { items: [], total: 0 }
-
-  const result = await getChainAggregate(chainKey, 'orgs', nodeKeywords)
-  const start = (page - 1) * pageSize
-  const paged = {
-    total: result.total,
-    items: result.items.slice(start, start + pageSize),
-  }
-  setCache(cacheKey, paged)
-  return paged
+  // 企业列表统一走 ChainOrg，避免创新页与产业图谱企业口径不一致。
+  const ckey = industryInnovationChainLabels[chainKey] ?? chainKey
+  const result = await searchChainOrgs(ckey, undefined, undefined, undefined, page, pageSize)
+    .then((res) => ({ total: res.total, items: res.items }))
+    .catch(() => ({ items: [] as Record<string, unknown>[], total: 0 }))
+  setCache(cacheKey, result)
+  return result
 }
 
 // ========== 兼容：其余分类保持 mock ==========

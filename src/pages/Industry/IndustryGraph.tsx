@@ -18,18 +18,9 @@ import IndustryChainGraph from '@/components/IndustryTree'
 import { industryChainGraphData } from '@/mock/industryChainGraphData'
 import type { IndustryGraphNode } from '@/mock/data'
 import { getChainCoverage, clearCoverageCache } from '@/services/coverageCache'
-import { getChainAggregate, clearChainAggregateCache } from '@/services/industryChainAggregation'
-import {
-  clearIndustryChainExpertLiveCache,
-} from '@/services/industryLiveExperts'
 import { searchChainTalents } from '@/services/chainTalent'
+import { getChainOrgProvinceDistribution, searchChainOrgs } from '@/services/chainOrg'
 import { normalizeProvinceName, resolveIndustryRegionFromCascader } from '@/services/industryRegion'
-import { searchOrgs } from '@/services/industry'
-import {
-  getIndustryChainAggregateFromSource,
-  getIndustryChainCoverageFromSource,
-  getIndustryChainProvinceDistributionFromSource,
-} from '@/services/industrySource'
 import { regionOptions } from '@/mock/regions'
 import industryKeywords from '@/data/industry-keywords.json'
 import { orgDrawerColumns, expertDrawerColumns } from '@/components/IndustryDrawerColumns'
@@ -95,7 +86,6 @@ interface ProvinceDistributionState {
   loading: boolean
   items: ChartBarItem[]
   total: number
-  recordsByProvince: Record<string, Record<string, unknown>[]>
 }
 
 interface TalentChartState {
@@ -117,23 +107,12 @@ const chainKeyToLabel: Record<string, string> = {
   ai: '人工智能',
 }
 
-const chainKeyToSearchKey: Record<string, string> = {
-  wetchem: '电子化学品 OR 半导体材料 OR 湿电子化学品',
-  newenergy: '新能源 OR 新材料 OR 电池 OR 储能',
-  pharma: '制药 OR 仿制药 OR 生物医药 OR 药物制剂',
-  yeast: '酵母 OR 发酵 OR 生物工程 OR 功能食品',
-  ship: '船舶 OR 造船 OR 航运 OR 智能船舶',
-  ai: '人工智能',
-}
-
 const allRegionOptions = [
   { value: '__all__', label: '全国' },
   ...regionOptions,
 ]
 
 const CHART_BAR_COLORS = ['#2A76FC', '#13C1C1']
-const WF_ENTERPRISE_PROVINCE_PAGE_SIZE = 100
-const WF_ENTERPRISE_PROVINCE_MAX_ITEMS = 500
 
 function formatChartValue(value: number) {
   if (value >= 10000) return `${(value / 10000).toFixed(value >= 100000 ? 0 : 1)}万`
@@ -208,50 +187,6 @@ function collectGraphNodes(graphData?: CountableGraphSet): IndustryGraphNode[] {
   return result
 }
 
-function getOrgResultItems(result: Record<string, unknown> | null) {
-  const data = result?.data as Record<string, unknown> | undefined
-  return ((data?.orgRecommend ?? data?.items ?? []) as Record<string, unknown>[])
-}
-
-function getOrgResultTotal(result: Record<string, unknown> | null) {
-  const data = result?.data as Record<string, unknown> | undefined
-  return Number(data?.total || 0)
-}
-
-function getOrgProvince(record: Record<string, unknown>) {
-  return String(
-    record.PROV
-      ?? record.prov
-      ?? record.province
-      ?? record.PROVINCE
-      ?? record.norm_prov
-      ?? '',
-  ).trim()
-}
-
-function buildProvinceChartItems(records: Record<string, unknown>[]) {
-  const groups = new Map<string, number>()
-  records.forEach((record) => {
-    const province = getOrgProvince(record)
-    if (!province) return
-    groups.set(province, (groups.get(province) || 0) + 1)
-  })
-
-  return Array.from(groups.entries())
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value)
-}
-
-function groupOrgRecordsByProvince(records: Record<string, unknown>[]) {
-  return records.reduce<Record<string, Record<string, unknown>[]>>((groups, record) => {
-    const province = getOrgProvince(record)
-    if (!province) return groups
-    groups[province] = groups[province] || []
-    groups[province].push(record)
-    return groups
-  }, {})
-}
-
 function findRegionValueByProvinceName(provinceName: string) {
   const normalized = normalizeProvinceName(provinceName)
   const matched = regionOptions.find((option) => {
@@ -260,35 +195,6 @@ function findRegionValueByProvinceName(provinceName: string) {
   })
 
   return matched ? [String(matched.value)] : []
-}
-
-async function getWfEnterpriseProvinceDistribution(queryString: string) {
-  const firstPage = await searchOrgs(queryString, 0, WF_ENTERPRISE_PROVINCE_PAGE_SIZE)
-  const total = getOrgResultTotal(firstPage as Record<string, unknown>)
-  const records = getOrgResultItems(firstPage as Record<string, unknown>)
-  const targetTotal = Math.min(total, WF_ENTERPRISE_PROVINCE_MAX_ITEMS)
-  const pageTasks: Array<Promise<Record<string, unknown>>> = []
-
-  for (let from = records.length; from < targetTotal; from += WF_ENTERPRISE_PROVINCE_PAGE_SIZE) {
-    pageTasks.push(searchOrgs(queryString, from, WF_ENTERPRISE_PROVINCE_PAGE_SIZE) as Promise<Record<string, unknown>>)
-  }
-
-  if (pageTasks.length > 0) {
-    const pages = await Promise.allSettled(pageTasks)
-    pages.forEach((page) => {
-      if (page.status === 'fulfilled') {
-        records.push(...getOrgResultItems(page.value))
-      }
-    })
-  }
-
-  const items = buildProvinceChartItems(records)
-
-  return {
-    total: items.reduce((sum, item) => sum + item.value, 0),
-    items,
-    recordsByProvince: groupOrgRecordsByProvince(records),
-  }
 }
 
 function countGraphLevels(chainKeys: string[], fallbackGraphData?: CountableGraphSet): number[] {
@@ -351,19 +257,6 @@ function cleanText(value: unknown): string {
   return String(value ?? '').replace(/^\[|]$/g, '').trim()
 }
 
-function resolveQueryableTalentNodeName(
-  nodeName: unknown,
-  nodeKeywords?: Record<string, { keywords: string[]; queryString: string }>,
-): string {
-  if (!nodeKeywords) return ''
-
-  const name = stripLevelPrefix(cleanText(nodeName))
-  if (nodeKeywords[name]) return name
-
-  const normalizedName = name.replace(/\s/g, '')
-  return Object.keys(nodeKeywords).find((key) => key.replace(/\s/g, '') === normalizedName) || ''
-}
-
 function getTalentField(record: Record<string, unknown>, fallback: string): string {
   const candidates = [
     record.DIRECTION,
@@ -397,7 +290,6 @@ export default function IndustryGraph({
   }, [chainKey])
 
   const chainLabel = chainKeyToLabel[chainKey] || ''
-  const chainSearchKey = chainKeyToSearchKey[chainKey] || chainLabel
   const chainLevelCounts = useMemo(
     () => countGraphLevels([chainKey], graphData as CountableGraphSet | undefined),
     [chainKey, graphData],
@@ -408,6 +300,8 @@ export default function IndustryGraph({
   )
   const localRegion = useMemo(() => resolveIndustryRegionFromCascader(externalRegionValue), [externalRegionValue])
   const localCity = localRegion.city || selectedCity || '宜昌'
+  const coverageProvince = localRegion.province || undefined
+  const coverageCity = localRegion.city || selectedCity || undefined
   const [selectedTalentNode, setSelectedTalentNode] = useState<{ chainKey: string; name: string } | null>(null)
 
   const [coverageState, setCoverageState] = useState<{
@@ -431,7 +325,7 @@ export default function IndustryGraph({
   })
 
   useEffect(() => {
-    if (!nodeKeywords || !chainSearchKey) return
+    if (!nodeKeywords || !chainLabel) return
 
     const nodeCount = Object.keys(nodeKeywords).length
 
@@ -450,27 +344,11 @@ export default function IndustryGraph({
         nodeOrgCounts: {},
       }))
 
-      const cachedCoverage = await getIndustryChainCoverageFromSource(chainKey, localRegion).catch(() => null)
-      if (cachedCoverage) {
-        if (cancelled) return
-        setCoverageState({
-          loading: false,
-          checked: cachedCoverage.total,
-          covered: cachedCoverage.covered,
-          total: cachedCoverage.total,
-          rate: cachedCoverage.rate,
-          chainStatus: cachedCoverage.chainStatus,
-          chainOrgTotal: cachedCoverage.chainOrgTotal,
-          nodeOrgCounts: cachedCoverage.nodeOrgCounts,
-        })
-        return
-      }
-
       getChainCoverage(
         chainKey,
-        nodeKeywords,
-        chainSearchKey,
-        localCity,
+        chainLabel,
+        coverageProvince,
+        coverageCity,
         (checked, total) => {
           if (!cancelled) {
             setCoverageState((prev) => ({ ...prev, checked, total }))
@@ -500,13 +378,11 @@ export default function IndustryGraph({
     return () => {
       cancelled = true
     }
-  }, [chainKey, chainSearchKey, localCity, localRegion, nodeKeywords])
+  }, [chainKey, chainLabel, coverageCity, coverageProvince, nodeKeywords])
 
   useEffect(() => {
     clearCoverageCache()
-    clearChainAggregateCache(chainKey)
-    clearIndustryChainExpertLiveCache(chainKey)
-  }, [chainKey, localCity])
+  }, [chainKey, coverageCity, coverageProvince])
 
   const [chainList, setChainList] = useState<ChainListState>({
     orgLoading: false,
@@ -524,7 +400,6 @@ export default function IndustryGraph({
     loading: false,
     items: [],
     total: 0,
-    recordsByProvince: {},
   })
 
   useEffect(() => {
@@ -556,9 +431,14 @@ export default function IndustryGraph({
       })
 
       void (async () => {
-        const cachedOrgAggregate = await getIndustryChainAggregateFromSource(chainKey, 'orgs', localRegion, 1, 10).catch(() => null)
-        const orgAggregate = cachedOrgAggregate
-          ?? await getChainAggregate(chainKey, 'orgs', nodeKeywords, localCity).catch(() => ({ items: [], total: 0 }))
+        const orgAggregate = await searchChainOrgs(
+          chainLabel || chainKey,
+          localRegion.province,
+          localRegion.city,
+          undefined,
+          1,
+          10,
+        ).catch(() => ({ items: [], total: 0 }))
         if (cancelled) return
 
         setChainList({
@@ -572,8 +452,7 @@ export default function IndustryGraph({
         })
 
         // chain-talents/search — 后端按全子节点去重，一次请求
-        const chainLabel = chainKeyToLabel[chainKey] || chainKey
-        const expertAggregate = await searchChainTalents(chainLabel, undefined, localRegion.city || undefined, 1, 8)
+        const expertAggregate = await searchChainTalents(chainLabel || chainKey, undefined, localRegion.city || undefined, 1, 8)
           .then((r) => ({ items: r.items, total: r.total }))
           .catch(() => ({ items: [] as Record<string, unknown>[], total: 0 }))
         if (cancelled) return
@@ -591,7 +470,7 @@ export default function IndustryGraph({
       cancelled = true
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
     }
-  }, [chainKey, localCity, localRegion, nodeKeywords])
+  }, [chainKey, chainLabel, localRegion, nodeKeywords])
 
   useEffect(() => {
     let cancelled = false
@@ -599,39 +478,28 @@ export default function IndustryGraph({
     void (async () => {
       await Promise.resolve()
       if (cancelled) return
-      setEnterpriseChart({ loading: true, items: [], total: 0, recordsByProvince: {} })
+      setEnterpriseChart({ loading: true, items: [], total: 0 })
 
       try {
-        const items = await getIndustryChainProvinceDistributionFromSource(chainKey).catch(() => null)
+        const result = await getChainOrgProvinceDistribution(chainLabel || chainKey).catch(() => null)
         if (cancelled) return
-        const chartItems = (items || [])
-          .filter((item) => item.province && item.total > 0)
-          .map((item) => ({ name: item.province, value: item.total }))
+        const chartItems = (result?.items || [])
+          .filter((item) => item.name && item.total > 0)
+          .map((item) => ({ name: item.name, value: item.total }))
         setEnterpriseChart({
           loading: false,
           items: chartItems,
-          total: chartItems.reduce((sum, item) => sum + item.value, 0),
-          recordsByProvince: {},
-        })
-        if (chartItems.length > 0) return
-
-        const wfResult = await getWfEnterpriseProvinceDistribution(chainSearchKey)
-        if (cancelled) return
-        setEnterpriseChart({
-          loading: false,
-          items: wfResult.items,
-          total: wfResult.total,
-          recordsByProvince: wfResult.recordsByProvince,
+          total: result?.total || chartItems.reduce((sum, item) => sum + item.value, 0),
         })
       } catch {
-        if (!cancelled) setEnterpriseChart({ loading: false, items: [], total: 0, recordsByProvince: {} })
+        if (!cancelled) setEnterpriseChart({ loading: false, items: [], total: 0 })
       }
     })()
 
     return () => {
       cancelled = true
     }
-  }, [chainKey, chainSearchKey])
+  }, [chainKey, chainLabel])
 
   const graphNodes = useMemo(
     () => collectGraphNodes(graphData as CountableGraphSet | undefined),
@@ -773,22 +641,16 @@ export default function IndustryGraph({
       const region = resolveIndustryRegionFromCascader(regionValue)
       if (type === 'orgs') {
         const tagFilter = normalizeOrgTagFilter(orgTag)
-        const cachedAggregate = await getIndustryChainAggregateFromSource(chainKey, type, region, page, 10, tagFilter).catch(() => null)
-        const result = cachedAggregate
-          ?? (
-            tagFilter
-              ? await searchOrgs(chainSearchKey, (page - 1) * 10, 10, region.city || undefined, tagFilter)
-                .then((res) => {
-                  const data = res?.data as Record<string, unknown> | undefined
-                  const items = ((data?.orgRecommend ?? data?.items ?? []) as Record<string, unknown>[])
-                  return { items, total: Number(data?.total || items.length) }
-                })
-                .catch(() => ({ items: [], total: 0 }))
-              : await getChainAggregate(chainKey, 'orgs', nodeKeywords, region.city || undefined).catch(() => ({ items: [], total: 0 }))
-          )
+        const result = await searchChainOrgs(
+          queryChain || chainLabel || chainKey,
+          region.province,
+          region.city,
+          tagFilter || undefined,
+          page,
+          10,
+        ).catch(() => ({ items: [], total: 0 }))
 
-        const list = cachedAggregate || tagFilter ? result.items : result.items.slice((page - 1) * 10, page * 10)
-        setChainDrawer((prev) => ({ ...prev, loading: false, data: list, total: result.total, page }))
+        setChainDrawer((prev) => ({ ...prev, loading: false, data: result.items, total: result.total, page }))
         return
       }
 
@@ -800,7 +662,7 @@ export default function IndustryGraph({
     })().catch(() => {
       setChainDrawer((prev) => ({ ...prev, loading: false, data: [], total: 0 }))
     })
-  }, [chainKey, chainSearchKey, nodeKeywords])
+  }, [chainKey, chainLabel, nodeKeywords])
 
   const openChainDrawer = useCallback((type: 'orgs' | 'experts', regionOverride?: string[]) => {
     const region = regionOverride || externalRegionValue || ['hubei', 'yichang']
@@ -821,26 +683,9 @@ export default function IndustryGraph({
   }, [externalRegionValue, loadChainDrawerData])
 
   const openEnterpriseProvinceDrawer = useCallback((provinceName: string) => {
-    const sampledRecords = enterpriseChart.recordsByProvince[provinceName] || []
-    if (sampledRecords.length > 0) {
-      setChainDrawer({
-        visible: true,
-        type: 'orgs',
-        city: provinceName,
-        regionValue: findRegionValueByProvinceName(provinceName),
-        queryChain: undefined,
-        orgTag: '',
-        loading: false,
-        data: sampledRecords.slice(0, 10),
-        total: Math.min(sampledRecords.length, 10),
-        page: 1,
-      })
-      return
-    }
-
     const region = findRegionValueByProvinceName(provinceName)
     openChainDrawer('orgs', region.length > 0 ? region : undefined)
-  }, [enterpriseChart.recordsByProvince, openChainDrawer])
+  }, [openChainDrawer])
 
   const openTalentNodeDrawer = useCallback((nodeName: string) => {
     setChainDrawer({
@@ -872,9 +717,9 @@ export default function IndustryGraph({
   }, [openTalentNodeDrawer])
 
   const handleGraphNodeContextSelect = useCallback((node: IndustryGraphNode) => {
-    const talentNodeName = resolveQueryableTalentNodeName(node.name, nodeKeywords)
+    const talentNodeName = stripLevelPrefix(cleanText(node.name))
     if (talentNodeName) setSelectedTalentNode({ chainKey, name: talentNodeName })
-  }, [chainKey, nodeKeywords])
+  }, [chainKey])
 
   const handleChainDrawerRegionChange = useCallback((val: string[]) => {
     if (!val || val.length === 0 || val[0] === '__all__') {
