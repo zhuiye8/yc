@@ -1,0 +1,118 @@
+"table_name","col_order","column_name","data_type","is_nullable","column_default","column_comment","example_value"
+"tech_achievement","1","id","character varying(64)","NO",,"主键 (Original: ta_achievement.id, ES: _source.ID)","CGWFWZ201305060001194120"
+"tech_achievement","2","external_id","character varying(64)","YES",,"外部ID (Original: ta_achievement.f_id, ES: _source.F_ID)","4715107"
+"tech_achievement","3","title","character varying(500)","YES",,"标题 (Original: ta_achievement.ti, ES: _source.TI)","城市化地区水资源可持续利用与管理"
+"tech_achievement","4","title_alt","character varying(500)","YES",,"标题-备用 (Original: ta_achievement.title, ES: _source.TITLE)","城市化地区水资源可持续利用与管理"
+"tech_achievement","5","patent_code","character varying(100)","YES",,"专利号 (Original: ta_achievement.pw, ES: _source.PW)",
+"tech_achievement","6","registration_code","character varying(100)","YES",,"登记号 (Original: ta_achievement.aid, ES: _source.AID)",
+"tech_achievement","7","security_level","character varying(50)","YES",,"密级 (Original: ta_achievement.ps, ES: _source.PS)","非密"
+"tech_achievement","8","achievement_nature","character varying(100)","YES",,"成果性质 (Original: ta_achievement.ee, ES: _source.EE)",
+"tech_achievement","9","achievement_form","character varying(100)","YES",,"成果形式 (Original: ta_achievement.tifo, ES: _source.TIFO)",
+"tech_achievement","10","achievement_category","character varying(100)","YES",,"成果类别 (Original: ta_achievement.tme, ES: _source.TME)","技术服务"
+"tech_achievement","11","is_leading_unit","character varying(50)","YES",,"是否负责人单位 (Original: ta_achievement.is_charge, ES: _source.ISCHARGE)","Y"
+"tech_achievement","12","abstract","text","YES",,"摘要 (Original: ta_achievement.abstract, ES: _source.ABSTRACT)","本研究拟以系统生态学方法为指导和基础，采用理论分析与现场观察相结合，定位研究与面上研究相结合，传统技术与现代技术相结合的方法，对快速城市化区域次级河流以生态学机理为主线进行跨学科多层次研究，在应用生态系统、水资源研究新理论和现代技术的同时，注重挖掘已取得资料和有关专家的实际经验。该项目的实施，可为受人为干扰严重的城市水生态系统的恢复和重建提供理论基础和技术范式，将对三峡库区的生态环境保护、资源的可持续利用产生重大而积极的影响。本研究不仅是对城市水生态系统理论的进一步深化和拓展，对城市水生态系统空间结构、变化趋势研究具有重要的学术意义，而且对重庆乃至对全国城市河流的建设都具有启发和借鉴意义。"
+"tech_achievement","13","description_detail","text","YES",,"详细介绍 (Original: ta_achievement.pnms, ES: _source.PNMS)",
+"tech_achievement","14","description_intro","text","YES",,"简介 (Original: ta_achievement.intro, ES: _source.INTRO)","本研究拟以系统生态学方法为指导和基础，采用理论分析与现场观察相结合，定位研究与面上研究相结合，传统技术与现代技术相结合的方法，对快速城市化区域次级河流以生态学机理为主线进行跨学科多层次研究，在应用生态系统、水资源研究新理论和现代技术的同时，注重挖掘已取得资料和有关专家的实际经验。该项目的实施，可为受人为干扰严重的城市水生态系统的恢复和重建提供理论基础和技术范式，将对三峡库区的生态环境保护、资源的可持续利用产生重大而积极的影响。本研究不仅是对城市水生态系统理论的进一步深化和拓展，对城市水生态系统空间结构、变化趋势研究具有重要的学术意义，而且对重庆乃至对全国城市河流的建设都具有启发和借鉴意义。"
+"tech_achievement","15","description_cab","text","YES",,"详细介绍-副本 (Original: ta_achievement.cab, ES: _source.CAB)","本研究拟以系统生态学方法为指导和基础，采用理论分析与现场观察相结合，定位研究与面上研究相结合，传统技术与现代技术相结合的方法，对快速城市化区域次级河流以生态学机理为主线进行跨学科多层次研究，在应用生态系统、水资源研究新理论和现代技术的同时，注重挖掘已取得资料和有关专家的实际经验。该项目的实施，可为受人为干扰严重的城市水生态系统的恢复和重建提供理论基础和技术范式，将对三峡库区的生态环境保护、资源的可持续利用产生重大而积极的影响。本研究不仅是对城市水生态系统理论的进一步深化和拓展，对城市水生态系统空间结构、变化趋势研究具有重要的学术意义，而且对重庆乃至对全国城市河流的建设都具有启发和借鉴意义。"
+"tech_achievement","16","prospect_desc","text","YES",,"前景描述 (Original: ta_achievement.prnd, ES: _source.PRND)",
+"tech_achievement","17","tech_scope_desc","text","YES",,"适用范围 (Original: ta_achievement.pnre, ES: _source.PNRE)",
+"tech_achievement","18","application_desc","text","YES",,"应用情况 (Original: ta_achievement.pnio, ES: _source.PNIO)",
+"tech_achievement","19","promotion_desc","text","YES",,"推广情况 (Original: ta_achievement.pntg, ES: _source.PNTG)",
+"tech_achievement","20","property_desc","text","YES",,"属性说明 (Original: ta_achievement.tm, ES: _source.TM)",
+"tech_achievement","21","publish_date_raw","character varying(50)","YES",,"发布日期 (Original: ta_achievement.dop, ES: _source.DOP)","2004-12-01"
+"tech_achievement","22","start_date_raw","character varying(50)","YES",,"开始日期 (Original: ta_achievement.date_begin, ES: _source.DATE_BEGIN)","2003-01-01"
+"tech_achievement","23","end_date_raw","character varying(50)","YES",,"结束日期 (Original: ta_achievement.date_end, ES: _source.DATE_END)","2003-01-01"
+"tech_achievement","24","formation_date_raw","character varying(50)","YES",,"形成日期 (Original: ta_achievement.idt, ES: _source.IDT)","2004-10-16"
+"tech_achievement","25","completion_date_raw","character varying(50)","YES",,"完成时间 (Original: ta_achievement.re, ES: _source.RE)","2021-06-22"
+"tech_achievement","26","project_start_date_raw","character varying(50)","YES",,"立项时间 (Original: ta_achievement.on_time, ES: _source.ONTIME)",
+"tech_achievement","27","evaluation_date_raw","character varying(50)","YES",,"评审日期 (Original: ta_achievement.ree, ES: _source.REE)",
+"tech_achievement","28","registration_date_raw","character varying(50)","YES",,"登记日期 (Original: ta_achievement.date, ES: _source.DATE)","2004-12-01"
+"tech_achievement","29","db_entry_date_raw","character varying(50)","YES",,"入库时间 (Original: ta_achievement.de, ES: _source.DE)",
+"tech_achievement","30","year","integer","YES",,"年份 (Original: ta_achievement.year, ES: _source.YEAR)","2004"
+"tech_achievement","31","quarter","integer","YES",,"季度 (Original: ta_achievement.quarter, ES: _source.QUARTER)","4"
+"tech_achievement","32","quarter_alias","character varying(50)","YES",,"季度-别名 (Original: ta_achievement.jidu, ES: _source.JIDU)","200404"
+"tech_achievement","33","year_month","character varying(20)","YES",,"年月 (Original: ta_achievement.nian_yue, ES: _source.NIANYUE)","200412"
+"tech_achievement","34","evaluation_standard","text","YES",,"评价标准 (Original: ta_achievement.pnve, ES: _source.PNVE)",
+"tech_achievement","35","maturity_level","character varying(100)","YES",,"成熟度 (Original: ta_achievement.ts, ES: _source.TS)",
+"tech_achievement","36","search_weight","character varying(50)","YES",,"搜索权重 (Original: ta_achievement.weight, ES: _source.WEIGHT)","2"
+"tech_achievement","37","investment_total","character varying(100)","YES",,"投资总额 (Original: ta_achievement.iat, ES: _source.IAT)","47万元"
+"tech_achievement","38","economic_analysis","text","YES",,"经济分析 (Original: ta_achievement.indr, ES: _source.INDR)",
+"tech_achievement","39","transfer_method","character varying(100)","YES",,"转让方式 (Original: ta_achievement.tc, ES: _source.TC)",
+"tech_achievement","40","transfer_cost","character varying(100)","YES",,"转让费用 (Original: ta_achievement.tf, ES: _source.TF)",
+"tech_achievement","41","transfer_limit","character varying(100)","YES",,"转让限制 (Original: ta_achievement.tr, ES: _source.TR)","不转让"
+"tech_achievement","42","publish_org","character varying(255)","YES",,"发布机构 (Original: ta_achievement.ad, ES: _source.AD)","广东省科技厅"
+"tech_achievement","43","publish_unit","character varying(255)","YES",,"发布单位 (Original: ta_achievement.dn, ES: _source.DN)",
+"tech_achievement","44","audit_org","character varying(255)","YES",,"审核机构 (Original: ta_achievement.ruit, ES: _source.RUIT)","国家科技成果信息服务平台"
+"tech_achievement","45","recommend_org","character varying(255)","YES",,"推荐机构 (Original: ta_achievement.rt, ES: _source.RT)",
+"tech_achievement","46","award_grant_org","character varying(255)","YES",,"授奖机构 (Original: ta_achievement.rtt, ES: _source.RTT)","重庆市"
+"tech_achievement","47","participant_org_count","integer","YES",,"参与单位数量 (Original: ta_achievement.org_num, ES: _source.ORGNUM)","4"
+"tech_achievement","48","contact_org_name","character varying(255)","YES",,"联系机构名称 (Original: ta_achievement.contact_name, ES: _source.CONNAME)","重庆高新技术产业开发区管理委员会"
+"tech_achievement","49","contact_address","character varying(500)","YES",,"联系地址 (Original: ta_achievement.contact_address, ES: _source.CONADR)","重庆市石桥铺科园一路166号"
+"tech_achievement","50","contact_phone","character varying(100)","YES",,"联系电话 (Original: ta_achievement.contact_tel, ES: _source.CONTEL)","(023)68192086"
+"tech_achievement","51","contact_email","character varying(100)","YES",,"联系邮箱 (Original: ta_achievement.email, ES: _source.EMAIL)","jyxc@publicl.wx.js.cn"
+"tech_achievement","52","contact_fax","character varying(100)","YES",,"传真 (Original: ta_achievement.fax, ES: _source.FAX)","(023)68192075"
+"tech_achievement","53","contact_zip","character varying(20)","YES",,"邮编 (Original: ta_achievement.zip_code, ES: _source.ZIPCODE)","400039"
+"tech_achievement","54","award_level","character varying(100)","YES",,"奖励等级 (Original: ta_achievement.aw_level, ES: _source.AWLEVEL)","地方级"
+"tech_achievement","55","award_cert_no","character varying(100)","YES",,"奖励证书编号 (Original: ta_achievement.rud, ES: _source.RUD)",
+"tech_achievement","56","award_short_name","character varying(100)","YES",,"奖励简称 (Original: ta_achievement.aw_short, ES: _source.AWSHORT)","河北省科学技术进步奖"
+"tech_achievement","57","patent_award_no","character varying(100)","YES",,"专利/奖励编号 (Original: ta_achievement.pr, ES: _source.RR)","9502005R0025"
+"tech_achievement","58","patent_list","text","YES",,"专利列表 (Original: ta_achievement.pts, ES: _source.PTS)",
+"tech_achievement","59","doc_type","character varying(50)","YES",,"文档类型 (Original: ta_achievement.doc_type, ES: _source.DOCTYPE)","科技成果"
+"tech_achievement","60","doc_index_code","character varying(100)","YES",,"文档索引库编号 (Original: ta_achievement.doc_code, ES: _source.DOCCODE)","10006"
+"tech_achievement","61","publication_info","text","YES",,"公开信息 (Original: ta_achievement.pub_info, ES: _source.PUBINFO)","国家科技成果信息服务平台成果汇编"
+"tech_achievement","62","investment_structure","text","YES",,"投资结构 (Original: ta_achievement.ininfo, ES: _source.ININFO)",
+"tech_achievement","63","research_method","character varying(100)","YES",,"研究方式 (Original: ta_achievement.sy, ES: _source.SY)",
+"tech_achievement","64","remark","text","YES",,"备注 (Original: ta_achievement.memo, ES: _source.MEMO)","鉴定"
+"tech_achievement","65","data_source_desc","text","YES",,"数据来源说明 (Original: ta_achievement.rss, ES: _source.RSS)","2007年新增数据"
+"tech_achievement","66","record_type","character varying(50)","YES",,"记录类型 (Original: ta_achievement.rec_type, ES: _source.RECTYPE)","文摘"
+"tech_achievement","67","create_time","timestamp without time zone","NO","CURRENT_TIMESTAMP",,"2026-01-09T20:00:09.308705"
+"tech_achievement","68","update_time","timestamp without time zone","NO","CURRENT_TIMESTAMP",,"2026-01-09T20:00:09.308705"
+"tech_achievement","69","is_deleted","boolean","NO","false",,"false"
+"tech_achievement","70","etl_job_id","character varying(50)","YES",,,"JOB_TECH_20260109_200006"
+"tech_achievement_attribute","1","achievement_id","character varying(64)","NO",,"成果ID (Original: ta_pte.achievement)","CGWFWZ201305060000963784"
+"tech_achievement_attribute","2","attribute_name","character varying(255)","NO",,"属性名称 (Original: ta_pte.name, ES: _source.PTE)","重大成果"
+"tech_achievement_author","1","achievement_id","character varying(64)","NO",,"成果ID (Original: ta_author_info.achievement)","CGCN202501140000003122"
+"tech_achievement_author","2","sequence","integer","NO",,"排序 (Original: ta_author_info.cx, ES: _source.AUTHORINFO.CX)","9"
+"tech_achievement_author","3","name","character varying(255)","YES",,"作者姓名 (Original: ta_author_info.name, ES: _source.AUTHORINFO.NAME)","范晓杰"
+"tech_achievement_author","4","auid","character varying(100)","YES",,"作者ID (Original: ta_author_info.auid, ES: _source.AUTHORINFO.AUID)","L09684183"
+"tech_achievement_author","5","org_name","character varying(255)","YES",,"所属机构 (Original: ta_author_info.org, ES: _source.AUTHORINFO.ORG)","郑州轻工业学院"
+"tech_achievement_author","6","org_id","character varying(100)","YES",,"机构ID (Original: ta_author_info.org_id, ES: _source.AUTHORINFO.ORGID)","GXY39571"
+"tech_achievement_author","7","org_type","character varying(100)","YES",,"机构类型 (Original: ta_author_info.org_type, ES: _source.AUTHORINFO.JGLX)","GX"
+"tech_achievement_author","8","department","character varying(255)","YES",,"所属部门 (Original: ta_author_info.sub_unit, ES: _source.AUTHORINFO.SUNIT)","合肥通用机械研究院"
+"tech_achievement_author","9","superior_unit","character varying(255)","YES",,"上级单位 (Original: ta_author_info.first_unit, ES: _source.AUTHORINFO.FUNIT)","郑州轻工业学院"
+"tech_achievement_author","10","expert_id","character varying(100)","YES",,"专家ID (Original: ta_author_info.expert_id, ES: _source.AUTHORINFO.EXPID)","A0019037"
+"tech_achievement_author","11","org_province","character varying(100)","YES",,"机构省份 (Original: ta_author_info.org_province, ES: _source.AUTHORINFO.ORGPROVINCE)","河南"
+"tech_achievement_author","12","org_city","character varying(100)","YES",,"机构城市 (Original: ta_author_info.org_city, ES: _source.AUTHORINFO.ORGCITY)","郑州"
+"tech_achievement_author","13","org_country","character varying(100)","YES",,"机构国家 (Original: ta_author_info.org_country, ES: _source.AUTHORINFO.ORGCOUNTRY)","金水区"
+"tech_achievement_award","1","achievement_id","character varying(64)","NO",,"成果ID (Original: ta_awards.achievement)","CGCN201305060000005619"
+"tech_achievement_award","2","award_name","character varying(255)","NO",,"奖项名称 (Original: ta_awards.name, ES: _source.AW)","2012年度青海省科学技术进步奖三等奖"
+"tech_achievement_contact_person","1","achievement_id","character varying(64)","NO",,"成果ID (Original: ta_contact.achievement)","CGWFWZ201305060000979818"
+"tech_achievement_contact_person","2","person_name","character varying(255)","NO",,"联系人姓名 (Original: ta_contact.name, ES: _source.CONTACT)","左铭官"
+"tech_achievement_fit_level","1","achievement_id","character varying(64)","NO",,"成果ID (Original: ta_fit_level.achievement)","CGCN201311180000034002"
+"tech_achievement_fit_level","2","level_name","character varying(255)","NO",,"水平描述 (Original: ta_fit_level.level, ES: _source.FITLEVEL)","国内领先"
+"tech_achievement_industry","1","achievement_id","character varying(64)","NO",,"成果ID (Original: ta_byind.achievement)","CGWFWZ201305060000801928"
+"tech_achievement_industry","2","industry_name","character varying(255)","NO",,"行业名称 (Original: ta_byind.name, ES: _source.BYIND)","家用电力器具制造"
+"tech_achievement_keyword","1","achievement_id","character varying(64)","NO",,"成果ID (Original: ta_keyword.achievement)","CGCN202402260000092972"
+"tech_achievement_keyword","2","keyword","character varying(255)","NO",,"关键词 (Original: ta_keyword.keyword, ES: _source.CKEY/KEYWORD)","泡沫混凝土"
+"tech_achievement_level","1","achievement_id","character varying(64)","NO",,"成果ID (Original: ta_achievement_level.achievement)","CGCN202409140000099150"
+"tech_achievement_level","2","level_name","character varying(255)","NO",,"等级名称 (Original: ta_achievement_level.level, ES: _source.FITCLASS)","应用技术"
+"tech_achievement_org","1","achievement_id","character varying(64)","NO",,"成果ID (Original: ta_org_info.achievement)","CGWFWZ201305060001194047"
+"tech_achievement_org","2","sequence","integer","NO",,"排序 (Original: ta_org_info.cx, ES: _source.ORGINFO.CX)","1"
+"tech_achievement_org","3","org_name","character varying(255)","YES",,"机构名称 (Original: ta_org_info.org, ES: _source.ORGINFO.ORG)","天津钢管集团有限公司168新型钢管厂"
+"tech_achievement_org","4","org_id","character varying(100)","YES",,"机构ID (Original: ta_org_info.org_id, ES: _source.ORGINFO.ORGID)","QY001286"
+"tech_achievement_org","5","org_type","character varying(100)","YES",,"机构类型 (Original: ta_org_info.org_type, ES: _source.ORGINFO.ORGTYPE)","QY"
+"tech_achievement_org","6","relation_type","character varying(255)","YES",,"机构关联关系 (Original: ta_org_info.relation, ES: _source.ORGINFO.RELATION)",
+"tech_achievement_org","7","region_code","character varying(50)","YES",,"地区代码 (Original: ta_org_info.area_code, ES: _source.ORGINFO.AREACODE)","120110"
+"tech_achievement_org","8","province","character varying(100)","YES",,"省 (Original: ta_org_info.province, ES: _source.ORGINFO.PROVINCE)","天津"
+"tech_achievement_org","9","city","character varying(100)","YES",,"市 (Original: ta_org_info.city, ES: _source.ORGINFO.CITY)","天津"
+"tech_achievement_org","10","county","character varying(100)","YES",,"县 (Original: ta_org_info.county, ES: _source.ORGINFO.COUNTY)","东丽区"
+"tech_achievement_project","1","achievement_id","character varying(64)","NO",,"成果ID (Original: ta_project_title.achievement)","CGCN201305060000069910"
+"tech_achievement_project","2","project_name","character varying(255)","NO",,"项目名称 (Original: ta_project_title.name, ES: _source.PROJTI)","科技部相关计划项目"
+"tech_achievement_region","1","achievement_id","character varying(64)","NO",,"成果ID (Original: ta_province.achievement, ta_city.achievement, ta_county.achievement, ta_country.achievement, ta_area_code.achievement)","CGCN202402260000127760"
+"tech_achievement_region","2","region_name","character varying(255)","NO",,"地区名称/代码 (Original: ta_province.province, ta_city.city, ta_county.county, ta_country.country, ta_area_code.area_code, ES: _source.PROVINCE, _source.CITY, _source.COUNTY, _source.COUNTRY, _source.AREACODE)","山西"
+"tech_achievement_region","3","region_type","character varying(20)","NO",,"地区类型 (Logic: ETL过程硬编码区分 PROVINCE/CITY/COUNTY/COUNTRY/AREA_CODE)","PROVINCE"
+"tech_achievement_source_tag","1","achievement_id","character varying(64)","NO",,"成果ID (Original: ta_source.achievement)","CGWFWZ201305060001231781"
+"tech_achievement_source_tag","2","source_name","character varying(255)","NO",,"来源名称 (Original: ta_source.source, ES: _source.SOURCE)","国家科技成果信息服务平台"
+"tech_achievement_subject","1","achievement_id","character varying(64)","NO",,"成果ID (Original: ta_cid.achievement, ta_zc_id.achievement, ta_szc_id.achievement, ta_tzc_id.achievement, ta_dzc_id.achievement)","CGWFWZ201305060000969516"
+"tech_achievement_subject","2","subject_code","character varying(100)","NO",,"分类号 (Original: ta_cid.classification, ta_zc_id.classification, ta_szc_id.classification, ta_tzc_id.classification, ta_dzc_id.classification, ES: _source.CID, _source.ZCID, _source.SZCID, _source.TZCID, _source.DZCID)","R5"
+"tech_achievement_subject","3","subject_type","character varying(20)","NO",,"分类类型 (Logic: ETL过程硬编码区分 CID/ZCID/SZCID/TZCID/DZCID)","SZCID"

@@ -17,6 +17,8 @@ dist-ssr
 .research/
 __pycache__/
 *.pyc
+.claude/.claude/
+.claude/launch.json
 
 # Editor directories and files
 .vscode/*
