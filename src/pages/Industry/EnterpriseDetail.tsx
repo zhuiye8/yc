@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom'
 import { FloatButton, Tag } from 'antd'
 import {
   BankOutlined,
@@ -544,6 +544,7 @@ export default function EnterpriseDetail() {
   useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const [activeSection, setActiveSection] = useState<SectionKey>('basic')
 
   const name = searchParams.get('name') ?? '天合光能股份有限公司'
@@ -552,6 +553,17 @@ export default function EnterpriseDetail() {
   const tagsRaw = searchParams.get('tags') ?? '上市公司,中国民营企业500强,新质技术企业,国家级企业技术中心,中国500强'
   const tags = tagsRaw.split(',').filter(Boolean)
   const backTarget = searchParams.get('back') || '/industry?tab=innovation'
+
+  // 详情页统一从列表/图谱新开页签进入：无站内历史时关闭页签即可回到来源页（抽屉/气泡状态保留）；
+  // 页签内有跳转历史则正常返回；浏览器拒绝关闭（如直接输入网址打开）时回退到产业页
+  const handleBack = () => {
+    if (location.key !== 'default') {
+      navigate(-1)
+      return
+    }
+    window.close()
+    window.setTimeout(() => navigate(backTarget), 200)
+  }
 
   const infoRows = useMemo(
     () => [
@@ -581,7 +593,7 @@ export default function EnterpriseDetail() {
           <img src={enterpriseDetailBanner} alt="" />
         </div>
       <div className={styles.heroInner}>
-        <div className={styles.heroBreadcrumb} onClick={() => navigate(backTarget)}>
+        <div className={styles.heroBreadcrumb} onClick={handleBack}>
           <LeftOutlined />
           返回上一级
         </div>

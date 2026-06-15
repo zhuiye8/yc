@@ -138,8 +138,29 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: $font-size-sm;
+  font-size: 16px;
+  font-weight: 500;
   color: #fff;
+}
+
+// 白底胶囊按钮：与蓝色提醒条形成强对比
+.tipButton {
+  height: 32px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 16px;
+  background: #fff;
+  color: #1f5fe8;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(16, 62, 151, 0.22);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 62, 151, 0.28);
+  }
 }
 
 .content {

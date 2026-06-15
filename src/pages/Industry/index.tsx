@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { App, Button, Drawer, Select, Table, Tag } from 'antd'
 import { BankOutlined, DownloadOutlined, TeamOutlined } from '@ant-design/icons'
 import HeroSection from '@/components/HeroSection'
@@ -41,7 +41,6 @@ interface SearchDrawerState {
 
 export default function Industry() {
   const { message } = App.useApp()
-  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const initialTab = searchParams.get('tab')
   const initialChain = searchParams.get('chain')
@@ -170,14 +169,15 @@ export default function Industry() {
       tags: ((record.TAGS || record.tags || []) as string[]).join(','),
       back: '/industry',
     })
-    navigate(`/industry/enterprise/${encodeURIComponent(id)}?${params.toString()}`)
-  }, [navigate])
+    // 新开页签，保留当前搜索抽屉状态；详情页"返回上一级"会关闭页签
+    window.open(`/industry/enterprise/${encodeURIComponent(id)}?${params.toString()}`, '_blank')
+  }, [])
 
   const openTalentDetail = useCallback((record: Record<string, unknown>) => {
     const id = String(record.ID || record.id || record.auid || '')
     if (!id) return
-    navigate(`/industry/talent/${encodeURIComponent(id)}`)
-  }, [navigate])
+    window.open(`/industry/talent/${encodeURIComponent(id)}`, '_blank')
+  }, [])
 
   const handleExportSearchDrawerData = useCallback(() => {
     const isOrgTab = searchDrawer.activeTab === 'orgs'

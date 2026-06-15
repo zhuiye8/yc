@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   LogoutOutlined,
@@ -30,9 +31,17 @@ const menuItems = [
 export default function Header() {
   const navigate = useNavigate()
   const location = useLocation()
+  // 悬浮透明 → 滚动后变实底（白底深字）
+  const [solid, setSolid] = useState(() => window.scrollY > 24)
+
+  useEffect(() => {
+    const onScroll = () => setSolid(window.scrollY > 24)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   return (
-    <header className={styles.header}>
+    <header className={`${styles.header} ${solid ? styles.solid : ''}`}>
       <div className={styles.headerInner}>
         <div className={styles.logoArea} onClick={() => navigate('/')}>
           <img src={logo} alt="Logo" />

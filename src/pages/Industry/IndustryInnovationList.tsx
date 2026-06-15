@@ -1,6 +1,5 @@
 import { Empty, Input, Pagination, Select, Tag } from 'antd'
 import { BankOutlined, LeftOutlined, UserOutlined } from '@ant-design/icons'
-import { useNavigate } from 'react-router-dom'
 import type {
   InnovationListCategory,
   InnovationListCategoryKey,
@@ -55,7 +54,6 @@ export default function IndustryInnovationList({
   onPageChange,
   onBack,
 }: Props) {
-  const navigate = useNavigate()
 
   const handleItemClick = (item: InnovationListItem) => {
     const backParams = new URLSearchParams({
@@ -73,7 +71,7 @@ export default function IndustryInnovationList({
         patents: String(item.metrics.find(m => m.label === '专利')?.value ?? 0),
         back: `/industry?${backParams.toString()}`,
       })
-      navigate(`/industry/talent/${encodeURIComponent(item.id)}?${params}`)
+      window.open(`/industry/talent/${encodeURIComponent(item.id)}?${params}`, '_blank')
     } else if (activeCategory === 'institutions') {
       const params = new URLSearchParams({
         name: item.title,
@@ -82,7 +80,7 @@ export default function IndustryInnovationList({
         tags: item.tags.join(','),
         back: `/industry?${backParams.toString()}`,
       })
-      navigate(`/industry/enterprise/${encodeURIComponent(item.id)}?${params}`)
+      window.open(`/industry/enterprise/${encodeURIComponent(item.id)}?${params}`, '_blank')
     }
   }
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom'
 import { DatePicker, Empty, FloatButton, Pagination, Spin } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
 import {
@@ -600,6 +600,7 @@ export default function TalentDetail() {
   const { id: talentId } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const [activeTab, setActiveTab] = useState<DetailTabKey>('basic')
   const [paperPage, setPaperPage] = useState(1)
   const [patentPage, setPatentPage] = useState(1)
@@ -637,6 +638,17 @@ export default function TalentDetail() {
   const fallbackOrg = searchParams.get('org') ?? ''
   const fallbackDirection = searchParams.get('direction') ?? ''
   const backTarget = searchParams.get('back') || '/industry?tab=innovation'
+
+  // 详情页统一从列表/图谱新开页签进入：无站内历史时关闭页签即可回到来源页（抽屉/气泡状态保留）；
+  // 页签内有跳转历史则正常返回；浏览器拒绝关闭（如直接输入网址打开）时回退到产业页
+  const handleBack = () => {
+    if (location.key !== 'default') {
+      navigate(-1)
+      return
+    }
+    window.close()
+    window.setTimeout(() => navigate(backTarget), 200)
+  }
 
   useEffect(() => {
     if (!auid) return
@@ -1044,7 +1056,15 @@ export default function TalentDetail() {
           <div className={styles.collaborativeList}>
             {coopTalentRows.length > 0 ? (
               coopTalentRows.map((item) => (
-                <div key={item.id} className={styles.collaborativeRow}>
+                <div
+                  key={item.id}
+                  className={styles.collaborativeRow}
+                  style={item.id.startsWith('talent-') ? undefined : { cursor: 'pointer' }}
+                  onClick={item.id.startsWith('talent-')
+                    ? undefined
+                    : () => window.open(`/industry/talent/${encodeURIComponent(item.id)}?name=${encodeURIComponent(item.name)}`, '_blank')}
+                  title={item.id.startsWith('talent-') ? undefined : `查看 ${item.name} 的详情`}
+                >
                   <div className={styles.collaborativeAvatar}>
                     <UserOutlined />
                   </div>
@@ -1248,7 +1268,7 @@ export default function TalentDetail() {
           <img src={talentDetailBanner} alt="" />
         </div>
         <div className={styles.heroInner}>
-          <div className={styles.heroBreadcrumb} onClick={() => navigate(backTarget)}>
+          <div className={styles.heroBreadcrumb} onClick={handleBack}>
             <LeftOutlined />
             返回上一级
           </div>

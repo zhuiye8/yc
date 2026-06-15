@@ -1,10 +1,10 @@
 @use '@/styles/variables' as *;
 
-// 首页整体：一屏展示
+// 首页整体：一屏展示（导航栏悬浮在 hero 上，不占文档流）
 .page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - #{$header-height});
+  height: 100vh;
   overflow: hidden;
 }
 
@@ -127,71 +127,245 @@
   height: 36px;
 }
 
-// 统计区
+// 统计区：政务数据驾驶舱风格
+$num-font: Bahnschrift, 'DIN Alternate', 'Arial Narrow', sans-serif;
+
 .stats {
-  padding: $space-xl 0;
-  background: #f2f6fe;
+  position: relative;
   flex-shrink: 0;
+  padding: 18px 0 16px;
+  background:
+    radial-gradient(circle at 6% 0%, rgba(41, 135, 237, 0.08), transparent 42%),
+    radial-gradient(circle at 94% 100%, rgba(123, 97, 255, 0.06), transparent 46%),
+    linear-gradient(180deg, #f8fbff 0%, #edf3fc 100%);
+  border-top: 1px solid #e3ebf8;
+  overflow: hidden;
+
+  // 细点阵底纹，上下渐隐
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(36, 104, 242, 0.07) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: linear-gradient(180deg, transparent, #000 35%, #000 65%, transparent);
+    pointer-events: none;
+  }
 }
 
-.statsContent {
+.statsHead {
+  position: relative;
   width: 100%;
-  max-width: 1360px;
-  margin: 0 auto;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  max-width: 1380px;
+  margin: 0 auto 10px;
+  padding: 0 10px;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
 }
 
-.statItem {
+.statsTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: #2a3a55;
+
+  &::before {
+    content: '';
+    width: 16px;
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #2468f2, #68c1b2);
+  }
+}
+
+.statsHint {
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: #9aa9c0;
+}
+
+// 六链数据卡
+.chainGrid {
+  position: relative;
+  width: 100%;
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 0 10px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+}
+
+.chainCard {
+  --accent: #2987ed;
+  --accent-soft: rgba(41, 135, 237, 0.12);
   position: relative;
   display: flex;
   flex-direction: column;
+  gap: 4px;
+  padding: 13px 16px 11px;
+  background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+  border: 1px solid #e4ecf9;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(80, 112, 174, 0.06);
+  cursor: pointer;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(14px);
+  animation: chainCardIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+
+  // 顶部 accent 挑线
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), transparent 80%);
+    opacity: 0.9;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 10px 24px var(--accent-soft), 0 4px 10px rgba(80, 112, 174, 0.08);
+
+    .chainIndex {
+      opacity: 0.22;
+    }
+  }
+}
+
+@keyframes chainCardIn {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// 幽灵序号
+.chainIndex {
+  position: absolute;
+  top: 4px;
+  right: 10px;
+  font-family: $num-font;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent);
+  opacity: 0.1;
+  transition: opacity 0.22s ease;
+  pointer-events: none;
+}
+
+.chainName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d2129;
+  line-height: 1.4;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chainMetricValue {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  font-family: $num-font;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.chainMetricUnit {
+  font-size: 12px;
+  font-weight: 400;
+  color: #86909c;
+}
+
+.chainMetricCaption {
+  margin-top: 2px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #9aa9c0;
+}
+
+// 次级统计：技术标准 / 金融产品 / 申报政策
+.subStats {
+  position: relative;
+  display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 72px;
-  padding: 0 20px;
-  text-align: center;
+  width: max-content;
+  max-width: calc(100% - 40px);
+  margin: 12px auto 0;
+  opacity: 0;
+  animation: chainCardIn 0.5s ease 0.45s forwards;
+}
+
+.subStatItem {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 28px;
   cursor: pointer;
-  transition: transform 0.18s ease, opacity 0.18s ease;
+  transition: transform 0.18s ease;
 
   &:not(:last-child)::after {
     content: '';
     position: absolute;
-    top: 50%;
     right: 0;
-    width: 1px;
-    height: 45px;
-    background: #dbe4f2;
+    top: 50%;
     transform: translateY(-50%);
+    width: 1px;
+    height: 18px;
+    background: #d8e2f3;
   }
 
   &:hover {
     transform: translateY(-2px);
+
+    .subStatNum {
+      color: #2468f2;
+    }
   }
 }
 
-.statNumber {
-  margin-bottom: 6px;
-  font-size: 44px;
+.subStatDot {
+  align-self: center;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.subStatLabel {
+  font-size: 13px;
+  color: #5f6f8a;
+}
+
+.subStatNum {
+  font-family: $num-font;
+  font-size: 20px;
   font-weight: 700;
-  line-height: 1;
-  display: inline-flex;
-  align-items: flex-end;
-  justify-content: center;
-  white-space: nowrap;
+  color: #2a3a55;
+  transition: color 0.18s ease;
 }
 
-.statUnit {
-  font-size: $font-size-sm;
-  font-weight: 400;
-  margin-left: 2px;
-}
-
-.statLabel {
-  font-size: $font-size-base;
-  color: $gray-500;
+.subStatUnit {
+  font-size: 11px;
+  color: #86909c;
 }
 
 // 每个统计项的颜色
@@ -200,21 +374,35 @@
 .color2 { color: #e86d6a; }
 .color3 { color: #eca35d; }
 .color4 { color: #29afed; }
+.color5 { color: #7b61ff; }
+
+// 六链 accent（数字/挑线/序号用，部分加深保证浅底可读性）
+.accent0 { --accent: #2987ed; --accent-soft: rgba(41, 135, 237, 0.14); }
+.accent1 { --accent: #2aa893; --accent-soft: rgba(42, 168, 147, 0.14); }
+.accent2 { --accent: #e86d6a; --accent-soft: rgba(232, 109, 106, 0.14); }
+.accent3 { --accent: #e0922f; --accent-soft: rgba(224, 146, 47, 0.14); }
+.accent4 { --accent: #29afed; --accent-soft: rgba(41, 175, 237, 0.14); }
+.accent5 { --accent: #7b61ff; --accent-soft: rgba(123, 97, 255, 0.14); }
 
 @media (max-width: 1200px) {
-  .statsContent {
-    max-width: calc(100% - 40px);
+  .chainGrid {
+    grid-template-columns: repeat(3, 1fr);
+    row-gap: 12px;
   }
 }
 
 @media (max-width: 768px) {
-  .statsContent {
+  .chainGrid {
     grid-template-columns: repeat(2, 1fr);
-    row-gap: 18px;
   }
 
-  .statNumber {
-    font-size: 34px;
+  .subStats {
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  .subStatItem {
+    padding: 4px 10px;
   }
 }
 

@@ -1,5 +1,4 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Button, Tag, Spin, Drawer, Cascader, Table, Select } from 'antd'
 import ReactECharts from 'echarts-for-react'
 import type { EChartsOption } from 'echarts'
@@ -32,7 +31,6 @@ import industryChainTalentsIcon from '@/assets/images/icons/industry-chain-talen
 import industryOverviewChainIcon from '@/assets/images/icons/industry-overview-chain-icon.png'
 import industryOverviewEnterpriseIcon from '@/assets/images/icons/industry-overview-enterprise-icon.png'
 import industryOverviewRegionIcon from '@/assets/images/icons/industry-overview-region-icon.png'
-import industryOverviewCoverageIcon from '@/assets/images/icons/industry-overview-coverage-icon.png'
 import styles from './Industry.module.scss'
 
 interface IndustryGraphProps {
@@ -280,7 +278,6 @@ export default function IndustryGraph({
   regionValue: externalRegionValue,
   onRegionChange,
 }: IndustryGraphProps) {
-  const navigate = useNavigate()
   const graphData = useMemo(() => industryChainGraphData[chainKey], [chainKey])
 
   const nodeKeywords = useMemo(() => {
@@ -808,14 +805,15 @@ export default function IndustryGraph({
       tags: ((record.TAGS || record.tags || []) as string[]).join(','),
       back: '/industry',
     })
-    navigate(`/industry/enterprise/${encodeURIComponent(id)}?${params.toString()}`)
-  }, [navigate])
+    // 新开页签，保留当前图谱/抽屉状态；详情页"返回上一级"会关闭页签
+    window.open(`/industry/enterprise/${encodeURIComponent(id)}?${params.toString()}`, '_blank')
+  }, [])
 
   const openTalentDetail = useCallback((record: Record<string, unknown>) => {
     const id = String(record.ID || record.id || record.auid || '')
     if (!id) return
-    navigate(`/industry/talent/${encodeURIComponent(id)}`)
-  }, [navigate])
+    window.open(`/industry/talent/${encodeURIComponent(id)}`, '_blank')
+  }, [])
 
   if (!graphData) {
     return <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>暂无该产业链图谱数据</div>
@@ -847,10 +845,11 @@ export default function IndustryGraph({
       label: '企业数量',
     },
     {
-      icon: industryOverviewCoverageIcon,
-      value: coverageState.loading ? '统计中' : `${localizationRateStr}%`,
-      unit: '',
-      label: '产业覆盖度',
+      // #8 指标替换：原"产业覆盖度"改为"该链全国人才数量"（talentChart.total 已是全国口径）
+      icon: industryChainTalentsIcon,
+      value: talentChart.loading ? '统计中' : talentChart.total.toLocaleString(),
+      unit: talentChart.loading ? '' : '人',
+      label: '全国人才数量',
     },
   ]
   const enterpriseChartOption = buildBarChartOption(enterpriseChart.items)
@@ -1051,7 +1050,7 @@ export default function IndustryGraph({
         <div className={styles.panelCard}>
           <div className={styles.panelTitle}>
             <img src={industryLocalizationRateIcon} alt="" className={styles.iconImage} />
-            本地化率
+            产业覆盖度
           </div>
           <div className={styles.statValue} style={{ color: '#2468F2' }}>
             {coverageState.loading ? (

@@ -33,9 +33,8 @@
 
 | 数据 | 来源 | 备注 |
 | --- | --- | --- |
-| 企业总数 | `GET /api/stats/industry-chain-total` | TG 返回 `enterpriseTotal`，前端只格式化 |
-| 人才总数 | `GET /api/stats/industry-chain-total` | TG 返回 `talentTotal` |
-| 技术标准 | `GET /api/stats/industry-chain-total` | TG 返回 `standardTotal` |
+| 六条产业链企业数 | `GET /api/stats/industry-chain-total` | TG 返回 `chainList`（每链 `chainName/enterpriseTotal/talentTotal/standardTotal`），首页按链分卡展示**企业数**（全国维度，对应三批次(修改)#6），点击直达 `/industry?chain=xxx`；2026-06-09 起替换原企业/人才总数两卡。`chainList` 的每链 `talentTotal` 预留给产业页 #8 指标替换（"某产业链上全国人才数量"） |
+| 技术标准 | `GET /api/stats/industry-chain-total` | TG 返回顶层 `standardTotal` |
 | 金融产品 | 前端静态值 | 等后端提供真实口径 |
 | 申报政策 | 前端静态值 | 等后端提供真实口径 |
 

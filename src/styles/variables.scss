@@ -87,7 +87,8 @@ $shadow-card: 0 4px 20px rgba(0, 0, 0, 0.05);
 $shadow-card-hover: 0 12px 40px rgba(0, 0, 0, 0.1);
 
 // ========== 布局 ==========
-$header-height: 64px;
+// 注意：导航栏现为 fixed 悬浮，不占文档流；此值与 Header 实际渲染高度（76px）一致
+$header-height: 76px;
 $content-max-width: 1336px;
 $footer-bg: $gray-50;
 

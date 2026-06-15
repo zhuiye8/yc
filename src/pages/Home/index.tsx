@@ -13,9 +13,35 @@ interface HomeStatItem {
   link: string
 }
 
-const defaultStats: HomeStatItem[] = [
-  { number: '200万', unit: '家', label: '企业总数', colorClass: 'color0', link: '/industry' },
-  { number: '4000万', unit: '人', label: '人才总数', colorClass: 'color1', link: '/talent' },
+interface HomeChainStat {
+  name: string
+  chainKey: string
+  enterprise: number
+  talent: number
+  colorClass: string
+}
+
+/** TG 链名 -> 产业页二级 chainKey（用于点击直达 /industry?chain=xxx） */
+const CHAIN_KEY_BY_NAME: Record<string, string> = {
+  '人工智能': 'ai',
+  '湿电子化学品': 'wetchem',
+  '新能源电池': 'newenergy',
+  '先进制剂与高端仿制药': 'pharma',
+  '酵母发酵与功能成分制造': 'yeast',
+  '内河绿色智能船舶制造': 'ship',
+}
+
+// 接口异常时的兜底展示（与 TG 2026-06 口径一致）
+const defaultChainStats: HomeChainStat[] = [
+  { name: '人工智能', chainKey: 'ai', enterprise: 222606, talent: 1256049, colorClass: 'color0' },
+  { name: '湿电子化学品', chainKey: 'wetchem', enterprise: 27770, talent: 73486, colorClass: 'color1' },
+  { name: '新能源电池', chainKey: 'newenergy', enterprise: 115207, talent: 580181, colorClass: 'color2' },
+  { name: '先进制剂与高端仿制药', chainKey: 'pharma', enterprise: 99686, talent: 510794, colorClass: 'color3' },
+  { name: '酵母发酵与功能成分制造', chainKey: 'yeast', enterprise: 300055, talent: 3013497, colorClass: 'color4' },
+  { name: '内河绿色智能船舶制造', chainKey: 'ship', enterprise: 35101, talent: 266073, colorClass: 'color5' },
+]
+
+const defaultSubStats: HomeStatItem[] = [
   { number: '300万', unit: '项', label: '技术标准', colorClass: 'color2', link: '/innovation' },
   { number: '257', unit: '款', label: '金融产品', colorClass: 'color3', link: '/funding' },
   { number: '41', unit: '项', label: '申报政策', colorClass: 'color4', link: '/policy' },
@@ -65,7 +91,8 @@ function resolveSearchPath(keyword: string) {
 export default function Home() {
   const navigate = useNavigate()
   const [searchKeyword, setSearchKeyword] = useState('')
-  const [stats, setStats] = useState<HomeStatItem[]>(defaultStats)
+  const [chainStats, setChainStats] = useState<HomeChainStat[]>(defaultChainStats)
+  const [subStats, setSubStats] = useState<HomeStatItem[]>(defaultSubStats)
 
   useEffect(() => {
     let cancelled = false
@@ -73,15 +100,24 @@ export default function Home() {
     getIndustryChainTotalStats()
       .then((data) => {
         if (cancelled) return
-        setStats((prev) => prev.map((item, index) => {
-          if (index === 0) return { ...item, number: formatHomeStatNumber(data.enterpriseTotal) }
-          if (index === 1) return { ...item, number: formatHomeStatNumber(data.talentTotal) }
-          if (index === 2) return { ...item, number: formatHomeStatNumber(data.standardTotal) }
-          return item
-        }))
+        if (data.chainList.length > 0) {
+          setChainStats(data.chainList.map((chain, index) => ({
+            name: chain.chainName,
+            chainKey: CHAIN_KEY_BY_NAME[chain.chainName] ?? '',
+            enterprise: chain.enterpriseTotal,
+            talent: chain.talentTotal,
+            colorClass: `color${index % 6}`,
+          })))
+        }
+        setSubStats((prev) => prev.map((item, index) => (
+          index === 0 ? { ...item, number: formatHomeStatNumber(data.standardTotal) } : item
+        )))
       })
       .catch(() => {
-        if (!cancelled) setStats(defaultStats)
+        if (!cancelled) {
+          setChainStats(defaultChainStats)
+          setSubStats(defaultSubStats)
+        }
       })
 
     return () => {
@@ -109,7 +145,7 @@ export default function Home() {
         <div className={styles.heroTitle}>
           <div className={styles.heroTitleMain}>产业人才创新平台</div>
           <div className={styles.heroTitleSub}>
-            整合产业、人才、技术、资金、政策数据，构建"人才+"全要素数据服务
+            产业、人才、技术、资金、政策数据，构建"人才+"全要素数据服务
           </div>
           <div className={styles.heroTitleBar} />
         </div>
@@ -131,20 +167,39 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 统计数字 */}
+      {/* 统计区：六大产业链数据卡（全国维度）+ 平台次级统计 */}
       <div className={styles.stats}>
-        <div className={styles.statsContent}>
-          {stats.map((item) => (
+        <div className={styles.statsHead}>
+          <span className={styles.statsTitle}>六大重点产业链 · 全国企业数据</span>
+          <span className={styles.statsHint}>点击卡片进入对应产业图谱</span>
+        </div>
+
+        <div className={styles.chainGrid}>
+          {chainStats.map((chain, index) => (
             <div
-              key={item.label}
-              className={styles.statItem}
-              onClick={() => navigate(item.link)}
+              key={chain.name}
+              className={`${styles.chainCard} ${styles[`accent${index % 6}`]}`}
+              style={{ animationDelay: `${index * 70}ms` }}
+              onClick={() => navigate(chain.chainKey ? `/industry?chain=${chain.chainKey}` : '/industry')}
             >
-              <div className={`${styles.statNumber} ${styles[item.colorClass]}`}>
-                {item.number}
-                <span className={styles.statUnit}>{item.unit}</span>
+              <span className={styles.chainIndex}>{String(index + 1).padStart(2, '0')}</span>
+              <div className={styles.chainName}>{chain.name}</div>
+              <div className={styles.chainMetricValue}>
+                {formatHomeStatNumber(chain.enterprise)}
+                <span className={styles.chainMetricUnit}>家</span>
               </div>
-              <div className={styles.statLabel}>{item.label}</div>
+              <div className={styles.chainMetricCaption}>全国企业数量</div>
+            </div>
+          ))}
+        </div>
+
+        <div className={styles.subStats}>
+          {subStats.map((item) => (
+            <div key={item.label} className={styles.subStatItem} onClick={() => navigate(item.link)}>
+              <span className={`${styles.subStatDot} ${styles[item.colorClass]}`} />
+              <span className={styles.subStatLabel}>{item.label}</span>
+              <span className={styles.subStatNum}>{item.number}</span>
+              <span className={styles.subStatUnit}>{item.unit}</span>
             </div>
           ))}
         </div>

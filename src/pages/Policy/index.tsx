@@ -33,6 +33,12 @@ const tagPalette = [
   { color: '#2BA471', bg: '#F0FFF4', border: '#B7E8C3' },
 ]
 
+// 政策标题剥离宜昌市级冗余前缀（"市人民政府办公室" / "市人民政府"），保留"关于…"
+// 县/区/省级前缀（如"枝江市人民政府""湖北省人民政府办公厅"）不受影响——它们不以"市人民政府"开头
+function formatPolicyTitle(title: string) {
+  return title.replace(/^市人民政府(办公室)?/, '')
+}
+
 function getTagStyle(tag: string) {
   const sum = Array.from(tag).reduce((acc, char) => acc + char.charCodeAt(0), 0)
   const palette = tagPalette[sum % tagPalette.length]
@@ -54,10 +60,10 @@ const policyColumns: TableColumnsType<LocalPolicy> = [
         <CaretRightOutlined style={{ color: '#2468F2', marginRight: 4, fontSize: 10 }} />
         {record.sourceUrl ? (
           <a href={record.sourceUrl} target="_blank" rel="noreferrer" style={{ color: '#2468F2' }}>
-            {value}
+            {formatPolicyTitle(value)}
           </a>
         ) : (
-          value
+          formatPolicyTitle(value)
         )}
       </span>
     ),
@@ -158,11 +164,12 @@ export default function Policy() {
         <div className={styles.tipBar}>
           <div className={styles.tipContent}>
             <span>当前有 {expiringCount} 条政策将在 180 天内到期，建议优先关注并安排申报。</span>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <Button type="primary" size="small" ghost>
-                查看提醒
-              </Button>
-              <CloseOutlined style={{ cursor: 'pointer', color: '#999' }} onClick={() => setShowTip(false)} />
+            <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+              <button type="button" className={styles.tipButton}>查看提醒</button>
+              <CloseOutlined
+                style={{ cursor: 'pointer', color: 'rgba(255, 255, 255, 0.85)', fontSize: 16 }}
+                onClick={() => setShowTip(false)}
+              />
             </div>
           </div>
         </div>

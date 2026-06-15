@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
 import { App, Button, Cascader, Drawer, Select, Spin, Table, Tabs, Tag, Typography } from 'antd'
 import { BankOutlined, DownloadOutlined, EnvironmentOutlined, LoadingOutlined, PlusOutlined, TeamOutlined } from '@ant-design/icons'
 import { Graph, treeToGraphData } from '@antv/g6'
@@ -424,7 +423,6 @@ export default function IndustryChainGraph({
   onNodeContextSelect,
 }: Props) {
   const { message } = App.useApp()
-  const navigate = useNavigate()
   const abortRef = useRef<AbortController | null>(null)
   const [collapsedByStream, setCollapsedByStream] = useState<Record<StreamKey, string[]>>(() => buildInitialCollapsedState(graphData))
   const [popover, setPopover] = useState<PopoverData | null>(null)
@@ -757,14 +755,15 @@ export default function IndustryChainGraph({
       tags: ((record.TAGS || record.tags || []) as string[]).join(','),
       back: '/industry',
     })
-    navigate(`/industry/enterprise/${encodeURIComponent(id)}?${params.toString()}`)
-  }, [navigate])
+    // 新开页签，保留当前页的气泡/抽屉状态；详情页"返回上一级"会关闭页签
+    window.open(`/industry/enterprise/${encodeURIComponent(id)}?${params.toString()}`, '_blank')
+  }, [])
 
   const openTalentDetail = useCallback((record: Record<string, unknown>) => {
     const id = String(record.ID || record.id || record.auid || '')
     if (!id) return
-    navigate(`/industry/talent/${encodeURIComponent(id)}`)
-  }, [navigate])
+    window.open(`/industry/talent/${encodeURIComponent(id)}`, '_blank')
+  }, [])
 
   const handleExportDrawerData = useCallback(() => {
     const typeLabel = drawer.type === 'orgs' ? '相关企业' : '相关人才'
