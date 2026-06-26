@@ -6,7 +6,7 @@
 
 .hero {
   width: 100%;
-  height: 330px;
+  height: $page-hero-height;
   object-fit: cover;
   object-position: center 42%;
   display: block;

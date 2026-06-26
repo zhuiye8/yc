@@ -2,6 +2,7 @@ import {
   TeamOutlined, BankOutlined, ExperimentOutlined,
   DollarOutlined, FileProtectOutlined, SearchOutlined,
   GlobalOutlined, DesktopOutlined, SyncOutlined,
+  DeploymentUnitOutlined, UserOutlined, BulbOutlined, FundOutlined,
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import solutionsBg from '@/assets/images/hero/solutions-bg-202604.jpg'
@@ -21,13 +22,23 @@ const capabilityRoutes = ['/talent', '/industry', '/industry', '/innovation', '/
 const scenarios = [
   { icon: <GlobalOutlined />, title: '对内治理', desc: '人才引育、产业分析、招商引资' },
   { icon: <DesktopOutlined />, title: '对外展示', desc: '大屏展示、路演支撑、招商推介' },
-  { icon: <SyncOutlined />, title: '循环运营', desc: '清单管理、任务跟进、报告生成' },
+  { icon: <SyncOutlined />, title: '闭环运营', desc: '清单管理、任务跟进、报告生成' },
 ]
 
-const matrixRows = [
-  { level: '政府场景', items: ['产业链图谱导航\n投资强链补链目标', '人才全景画像\n预判流动趋势', '产学研动态监测\n引导资源集聚', '基金投向跟踪\n重大项目评估', '政策仿真监管\n兑现全程数字化'] },
-  { level: '企业场景', items: ['拓展上下游商机\n融入产业生态', '急需人才智能推荐\n柔性引才不死板', '技术难题精准传导\n成果一键对接', '多元金融产品匹配\n实现"以技定贷"', '政策自动筛算\n申报集中即享'] },
-  { level: '个人场景', items: ['全国产业布局透视\n锚定落地热土', '岗位匹配项目推送\n合作机会精准触达', '企业技术需求对接\n打通转化通道', '人才专项基金直通\n成果转化有保障', '人才补贴一键计算\n政策红利尽享'] },
+// 典型应用场景：5 类能力（产业招引/人才引育/创新协同/融资对接/政策匹配）
+const scenarioCategories = [
+  { title: '产业招引', icon: <DeploymentUnitOutlined /> },
+  { title: '人才引育', icon: <UserOutlined /> },
+  { title: '创新协同', icon: <BulbOutlined /> },
+  { title: '融资对接', icon: <FundOutlined /> },
+  { title: '政策匹配', icon: <FileProtectOutlined /> },
+]
+
+// 政府 / 企业 / 个人三类场景，descs 与上面 5 类能力一一对应
+const scenarioGroups = [
+  { no: '01', level: '政府场景', color: '#2468F2', descs: ['产业链图谱导航\n投资强链补链目标', '人才全景画像\n预判流动趋势', '产学研动态监测\n引导资源集聚', '基金投向跟踪\n重大项目评估', '政策仿真监管\n兑现全程数字化'] },
+  { no: '02', level: '企业场景', color: '#2BA471', descs: ['拓展上下游商机\n融入产业生态', '急需人才智能推荐\n柔性引才不死板', '技术难题精准传导\n成果一键对接', '多元金融产品匹配\n实现"以技定贷"', '政策自动筛算\n申报集中即享'] },
+  { no: '03', level: '个人场景', color: '#F5A623', descs: ['全国产业布局透视\n锚定落地热土', '岗位匹配项目推送\n合作机会精准触达', '企业技术需求对接\n打通转化通道', '人才专项基金直通\n成果转化有保障', '人才补贴一键计算\n政策红利尽享'] },
 ]
 
 const dataCards = [
@@ -55,7 +66,7 @@ export default function Solutions() {
         </p>
 
         {/* 核心能力 */}
-        <h2 className={styles.sectionTitle} style={{ fontSize: 20 }}>核心<span className={styles.blue}>能力</span></h2>
+        <h2 className={styles.sectionTitle}>核心<span className={styles.blue}>能力</span></h2>
         <div className={styles.capGrid}>
           {capabilities.map((c, index) => (
             <button
@@ -74,7 +85,7 @@ export default function Solutions() {
         </div>
 
         {/* 典型应用场景 */}
-        <h2 className={styles.sectionTitle} style={{ fontSize: 20, marginBottom: 24 }}>
+        <h2 className={styles.sectionTitle} style={{ marginBottom: 24 }}>
           典型应用<span className={styles.blue}>场景</span>
         </h2>
         <div className={styles.scenarioCards}>
@@ -87,31 +98,26 @@ export default function Solutions() {
           ))}
         </div>
 
-        <table className={styles.matrixTable}>
-          <thead>
-            <tr>
-              <th style={{ width: 90 }}>角色</th>
-              <th>产业招引</th>
-              <th>人才引育</th>
-              <th>创新协同</th>
-              <th>融资对接</th>
-              <th>政策匹配</th>
-            </tr>
-          </thead>
-          <tbody>
-            {matrixRows.map(row => (
-              <tr key={row.level}>
-                <td>{row.level}</td>
-                {row.items.map((item, i) => (
-                  <td key={i} style={{ whiteSpace: 'pre-line' }}>{item}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {scenarioGroups.map(group => (
+          <div key={group.level} className={styles.scenarioSection}>
+            <h3 className={styles.scenarioSectionTitle}>
+              <span className={styles.scenarioNo} style={{ color: group.color }}>{group.no}/</span>
+              {group.level}
+            </h3>
+            <div className={styles.scenarioGrid}>
+              {scenarioCategories.map((cat, i) => (
+                <div key={cat.title} className={styles.scenarioGridCard}>
+                  <span className={styles.scenarioGridIcon} style={{ color: group.color }}>{cat.icon}</span>
+                  <div className={styles.scenarioGridTitle}>{cat.title}</div>
+                  <div className={styles.scenarioGridDesc}>{group.descs[i]}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
 
         {/* 数据维度与深度 */}
-        <h2 className={styles.sectionTitle} style={{ fontSize: 20, marginBottom: 24 }}>
+        <h2 className={styles.sectionTitle} style={{ marginBottom: 24 }}>
           数据<span className={styles.blue}>维度与深度</span>
         </h2>
         <div className={styles.dataGrid}>

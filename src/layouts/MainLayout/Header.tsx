@@ -90,7 +90,11 @@ export default function Header() {
                   icon: <ClockCircleOutlined style={{ color: '#1890ff', fontSize: 16 }} />,
                 },
               ],
-              onClick: ({ key }) => navigate(key),
+              onClick: ({ key }) => {
+                // 收藏 / 最近访问 页面尚未完成，保留菜单项但点击不跳转
+                if (key === '/favorites' || key === '/recent') return
+                navigate(key)
+              },
             }}
             placement="bottomRight"
           >

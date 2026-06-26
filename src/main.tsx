@@ -17,6 +17,7 @@ createRoot(document.getElementById('root')!).render(
         token: {
           colorPrimary: '#2468F2',
           borderRadius: 8,
+          fontSize: 15,
           fontFamily: '"PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Noto Sans SC", Inter, "Helvetica Neue", Arial, sans-serif',
         },
       }}

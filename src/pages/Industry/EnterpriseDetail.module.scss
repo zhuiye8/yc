@@ -27,7 +27,7 @@
 .heroInner {
   position: relative;
   z-index: 1;
-  width: min(1180px, calc(100vw - 40px));
+  width: min(1360px, calc(100vw - 32px));
   margin: 0 auto;
   padding: 86px 0 34px;
   min-height: inherit;
@@ -152,7 +152,7 @@
 }
 
 .anchorBarInner {
-  width: min(1180px, calc(100vw - 40px));
+  width: min(1360px, calc(100vw - 32px));
   margin: 0 auto;
   display: flex;
   justify-content: center;
@@ -192,7 +192,7 @@
 }
 
 .content {
-  width: min(1180px, calc(100vw - 40px));
+  width: min(1360px, calc(100vw - 32px));
   margin: 0 auto;
   padding: 30px 0 72px;
 }

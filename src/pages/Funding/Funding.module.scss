@@ -1,7 +1,7 @@
 @use '@/styles/variables' as *;
 
 .page {
-  --funding-shell-width: min(1400px, calc(100vw - clamp(24px, 4vw, 64px)));
+  --funding-shell-width: min(1600px, calc(100vw - clamp(16px, 2.5vw, 40px)));
   --funding-table-row-height: clamp(58px, calc((100vh - 460px) / 6), 78px);
 }
 

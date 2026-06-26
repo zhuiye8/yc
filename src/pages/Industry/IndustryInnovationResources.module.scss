@@ -1,7 +1,7 @@
 @use '@/styles/variables' as *;
 
 .section {
-  width: min(1400px, calc(100vw - clamp(24px, 4vw, 64px)));
+  width: min(1600px, calc(100vw - clamp(16px, 2.5vw, 40px)));
   margin: 0 auto;
   padding: 18px 0 44px;
 }

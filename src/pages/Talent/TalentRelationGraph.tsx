@@ -33,6 +33,7 @@ interface TalentRelationGraphProps {
   centerAuid: string
   centerName?: string
   onNodeClick?: (nodeId: string) => void
+  onSearch?: (keyword: string) => void
 }
 
 const filterOptions: Array<{ value: RelationFilter; label: string }> = [
@@ -174,12 +175,26 @@ export default function TalentRelationGraph({
   centerAuid,
   centerName,
   onNodeClick,
+  onSearch,
 }: TalentRelationGraphProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const graphRef = useRef<G6Graph | null>(null)
   const onNodeClickRef = useRef(onNodeClick)
   const [width, setWidth] = useState(0)
   const [activeFilter, setActiveFilter] = useState<RelationFilter>('all')
+  // 内层搜索框：默认填当前人才名，可改名后回车/点按钮重新检索
+  // 当外部 centerName 变化（搜到新人才）时，在渲染期同步重置输入框（React 官方推荐写法，避免 effect）
+  const [keyword, setKeyword] = useState(centerName || '')
+  const [syncedCenterName, setSyncedCenterName] = useState(centerName)
+  if (centerName !== syncedCenterName) {
+    setSyncedCenterName(centerName)
+    setKeyword(centerName || '')
+  }
+
+  const triggerSearch = () => {
+    const kw = keyword.trim()
+    if (kw) onSearch?.(kw)
+  }
 
   const { data: graphData, visibleNodes } = useMemo(
     () => buildRelationData(nodes, links, centerAuid, activeFilter),
@@ -286,8 +301,14 @@ export default function TalentRelationGraph({
     <div className={styles.graphRoot}>
       <div className={styles.topBar}>
         <div className={styles.searchDock}>
-          <div className={styles.searchValue}>{centerName || '请选择人才'}</div>
-          <button className={styles.searchButton} type="button">
+          <input
+            className={styles.searchInput}
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            onKeyDown={(event) => { if (event.key === 'Enter') triggerSearch() }}
+            placeholder="输入人才姓名搜索"
+          />
+          <button className={styles.searchButton} type="button" onClick={triggerSearch}>
             <SearchOutlined />
             搜索
           </button>

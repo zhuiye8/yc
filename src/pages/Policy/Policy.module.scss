@@ -1,7 +1,7 @@
 @use '@/styles/variables' as *;
 
 .page {
-  --policy-shell-width: min(1400px, calc(100vw - clamp(24px, 4vw, 64px)));
+  --policy-shell-width: min(1600px, calc(100vw - clamp(16px, 2.5vw, 40px)));
   --policy-table-row-height: clamp(68px, calc((100vh - 250px) / 10), 78px);
 }
 

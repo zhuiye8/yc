@@ -50,6 +50,20 @@
   text-overflow: ellipsis;
 }
 
+.searchInput {
+  width: clamp(260px, 24vw, 420px);
+  border: 0;
+  outline: none;
+  padding: 0 18px;
+  color: #2b3a4d;
+  font-size: 16px;
+  background: transparent;
+
+  &::placeholder {
+    color: #9aa9bf;
+  }
+}
+
 .searchButton {
   width: 260px;
   border: 0;
@@ -61,7 +75,12 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  cursor: default;
+  cursor: pointer;
+  transition: opacity 0.18s ease;
+
+  &:hover {
+    opacity: 0.92;
+  }
 }
 
 .filterBar {

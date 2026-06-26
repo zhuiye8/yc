@@ -295,6 +295,14 @@ function sortCandidateExperts(experts: Record<string, unknown>[]): Record<string
   })
 }
 
+/** 姓名完全相同的专家排最前（精确匹配优先，修复"搜A出B"），其余按 H 等排序 */
+function rankByExactName(experts: Record<string, unknown>[], keyword: string): Record<string, unknown>[] {
+  const kw = keyword.trim()
+  const exact = experts.filter((item) => String(item.CNAME || '').trim() === kw)
+  const rest = experts.filter((item) => String(item.CNAME || '').trim() !== kw)
+  return [...sortCandidateExperts(exact), ...sortCandidateExperts(rest)]
+}
+
 function buildCoopGraphFallback(currentTalent: TalentInfo, coopList: CoopTalent[]): { nodes: GraphNode[]; links: GraphLink[] } {
   const nodes: GraphNode[] = [
     {
@@ -653,7 +661,7 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
       }
 
       if (matchedExperts.length > 1) {
-        const duplicateCandidates = sortCandidateExperts(sourceExperts).slice(0, 20)
+        const duplicateCandidates = rankByExactName(sourceExperts, keyword).slice(0, 20)
         await selectCandidate(duplicateCandidates[0], duplicateCandidates, keyword.trim())
         return
       }
@@ -681,8 +689,9 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
       }
 
       if (experts.length > 1) {
-        const duplicateCandidates = sortCandidateExperts(experts).slice(0, 20)
-        message.info('找到多位匹配人才，已优先展示最匹配结果')
+        const duplicateCandidates = rankByExactName(experts, keyword).slice(0, 20)
+        const hasExact = String(duplicateCandidates[0]?.CNAME || '').trim() === keyword.trim()
+        message.info(hasExact ? `已展示「${keyword.trim()}」` : '未找到完全匹配，已展示最接近的人才')
         await selectCandidate(duplicateCandidates[0], duplicateCandidates, keyword.trim())
         return
       }
@@ -730,6 +739,7 @@ export default function TalentGraph({ searchKeyword }: TalentGraphProps) {
               links={graphLinks}
               centerAuid={currentTalent.auid}
               centerName={currentTalent.name}
+              onSearch={handleSearch}
               onNodeClick={(nodeId) => window.open(`/industry/talent/${encodeURIComponent(nodeId)}`, '_blank')}
             />
           ) : (

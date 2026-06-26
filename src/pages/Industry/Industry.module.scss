@@ -1,7 +1,7 @@
 @use '@/styles/variables' as *;
 
 .page {
-  --industry-shell-width: min(1400px, calc(100vw - clamp(24px, 4vw, 64px)));
+  --industry-shell-width: min(1600px, calc(100vw - clamp(16px, 2.5vw, 40px)));
 }
 
 .tabBar {
