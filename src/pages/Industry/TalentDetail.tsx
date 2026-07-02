@@ -837,10 +837,8 @@ export default function TalentDetail() {
     [detail],
   )
   const introText = intro || '暂无人才简介信息。'
-  const introShouldCollapse = introText.length > 180
-  const introDisplayText = introExpanded || !introShouldCollapse
-    ? introText
-    : `${introText.slice(0, 180)}...`
+  // 超长简介：面板内默认按行数折叠（CSS line-clamp），展开看全文，不再按字符截断
+  const introShouldCollapse = introText.length > 150
   const directionSummary = direction || majorText || '该专家主要研究方向为航天器总体设计技术、航天器动力学与控制技术、飞行动力学与姿态模拟技术。'
   const directionKeywords = useMemo(() => {
     // 用 keyword_stat 驱动标签云（不展示 TAGLARG）
@@ -1352,7 +1350,7 @@ export default function TalentDetail() {
                           <span className={styles.introInfoIcon}><FileTextOutlined /></span>
                           <span className={styles.introInfoLabel}>简介:</span>
                           <div className={styles.introSummaryBlock}>
-                            <div className={styles.introSummary}>{introDisplayText}</div>
+                            <div className={`${styles.introSummary} ${introShouldCollapse && !introExpanded ? styles.introSummaryClamp : ''}`}>{introText}</div>
                             {introShouldCollapse && (
                               <button
                                 type="button"

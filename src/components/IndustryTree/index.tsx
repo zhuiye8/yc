@@ -88,6 +88,11 @@ interface StreamGraphProps {
   onLeafClick: (node: IndustryGraphNode, event: IElementEvent) => void
   onNodeInspect: (node: IndustryGraphNode, event: IElementEvent) => void
   onCanvasClick: () => void
+  // 视口联动：注册图实例、注销、上报视口变化、以及"程序化重排期间不联动"的标记集合
+  registerGraph?: (graph: G6Graph) => void
+  unregisterGraph?: (graph: G6Graph) => void
+  onViewportChange?: (graph: G6Graph) => void
+  selfAdjustingRef?: React.MutableRefObject<Set<G6Graph>>
 }
 
 const STREAM_GRAPH_HEIGHT = 520
@@ -265,6 +270,10 @@ function StreamGraph({
   onLeafClick,
   onNodeInspect,
   onCanvasClick,
+  registerGraph,
+  unregisterGraph,
+  onViewportChange,
+  selfAdjustingRef,
 }: StreamGraphProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const graphRef = useRef<G6Graph | null>(null)
@@ -272,6 +281,9 @@ function StreamGraph({
   const onLeafClickRef = useRef(onLeafClick)
   const onNodeInspectRef = useRef(onNodeInspect)
   const onCanvasClickRef = useRef(onCanvasClick)
+  const registerGraphRef = useRef(registerGraph)
+  const unregisterGraphRef = useRef(unregisterGraph)
+  const onViewportChangeRef = useRef(onViewportChange)
   const [width, setWidth] = useState(0)
   const [height, setHeight] = useState(STREAM_GRAPH_HEIGHT)
 
@@ -285,7 +297,10 @@ function StreamGraph({
     onLeafClickRef.current = onLeafClick
     onNodeInspectRef.current = onNodeInspect
     onCanvasClickRef.current = onCanvasClick
-  }, [onCanvasClick, onLeafClick, onNodeInspect, onToggleNode])
+    registerGraphRef.current = registerGraph
+    unregisterGraphRef.current = unregisterGraph
+    onViewportChangeRef.current = onViewportChange
+  }, [onCanvasClick, onLeafClick, onNodeInspect, onToggleNode, registerGraph, unregisterGraph, onViewportChange])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -387,21 +402,31 @@ function StreamGraph({
         if (datum?.originalNode) onNodeInspectRef.current(datum.originalNode, event)
       })
 
-      graphRef.current = graph
+      // 视口联动：上报本图的缩放/平移，让其它图同步
+      const createdGraph = graph
+      createdGraph.on('aftertransform', () => onViewportChangeRef.current?.(createdGraph))
+      registerGraphRef.current?.(createdGraph)
+
+      graphRef.current = createdGraph
     }
 
     graph.resize(width, graphHeight)
     graph.setData(graphData)
 
+    // 程序化重排（首次适配、展开/收起后的重新 fit）期间不触发联动，避免互相干扰
+    const activeGraph = graph
+    selfAdjustingRef?.current.add(activeGraph)
     void (async () => {
-      await graph.render()
-      await graph.fitView({ when: 'always', direction: 'both' })
-      await graph.fitCenter()
+      await activeGraph.render()
+      await activeGraph.fitView({ when: 'always', direction: 'both' })
+      await activeGraph.fitCenter()
+      requestAnimationFrame(() => selfAdjustingRef?.current.delete(activeGraph))
     })()
-  }, [graphData, height, streamKey, width])
+  }, [graphData, height, streamKey, width, selfAdjustingRef])
 
   useEffect(() => {
     return () => {
+      if (graphRef.current) unregisterGraphRef.current?.(graphRef.current)
       graphRef.current?.destroy()
       graphRef.current = null
     }
@@ -424,6 +449,57 @@ export default function IndustryChainGraph({
 }: Props) {
   const { message } = App.useApp()
   const abortRef = useRef<AbortController | null>(null)
+
+  // ===== 上中下游图谱视口联动：所有子图作为一个整体缩放/平移 =====
+  const graphRegistryRef = useRef<Set<G6Graph>>(new Set())
+  const selfAdjustingRef = useRef<Set<G6Graph>>(new Set())
+  const syncingViewportRef = useRef(false)
+  const lastViewportRef = useRef<Map<G6Graph, { zoom: number; x: number; y: number }>>(new Map())
+
+  const snapshotViewport = (graph: G6Graph) => {
+    // 渲染完成前 getPosition/getZoom 会抛错（canvas 未就绪），兜底返回默认
+    try {
+      const [x, y] = graph.getPosition()
+      return { zoom: graph.getZoom(), x, y }
+    } catch {
+      return { zoom: 1, x: 0, y: 0 }
+    }
+  }
+
+  const mirrorViewport = useCallback((source: G6Graph) => {
+    const current = snapshotViewport(source)
+    const prev = lastViewportRef.current.get(source) ?? current
+    lastViewportRef.current.set(source, current)
+    // 程序化重排或正在同步中：只更新基准，不向其它图传播
+    if (syncingViewportRef.current || selfAdjustingRef.current.has(source)) return
+
+    const ratio = prev.zoom ? current.zoom / prev.zoom : 1
+    const dx = current.x - prev.x
+    const dy = current.y - prev.y
+    const zoomChanged = Math.abs(ratio - 1) > 1e-3
+    const moved = Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5
+    if (!zoomChanged && !moved) return
+
+    syncingViewportRef.current = true
+    graphRegistryRef.current.forEach((target) => {
+      if (target === source) return
+      if (zoomChanged) target.zoomBy(ratio)
+      if (moved) target.translateBy([dx, dy])
+      lastViewportRef.current.set(target, snapshotViewport(target))
+    })
+    syncingViewportRef.current = false
+  }, [])
+
+  const registerGraph = useCallback((graph: G6Graph) => {
+    // 只登记，不在此刻读视口（此时尚未 render，canvas 未就绪）；基准在首次视口事件时惰性建立
+    graphRegistryRef.current.add(graph)
+  }, [])
+
+  const unregisterGraph = useCallback((graph: G6Graph) => {
+    graphRegistryRef.current.delete(graph)
+    lastViewportRef.current.delete(graph)
+  }, [])
+
   const [collapsedByStream, setCollapsedByStream] = useState<Record<StreamKey, string[]>>(() => buildInitialCollapsedState(graphData))
   const [popover, setPopover] = useState<PopoverData | null>(null)
   const [drawer, setDrawer] = useState<DrawerState>({
@@ -841,6 +917,10 @@ export default function IndustryChainGraph({
                       onLeafClick={handleLeafClick}
                       onNodeInspect={handleNodeInspect}
                       onCanvasClick={() => setPopover(null)}
+                      registerGraph={registerGraph}
+                      unregisterGraph={unregisterGraph}
+                      onViewportChange={mirrorViewport}
+                      selfAdjustingRef={selfAdjustingRef}
                     />
                   ))}
                 </div>
